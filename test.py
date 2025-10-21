@@ -362,24 +362,22 @@ def scroll_to_top():
     Fuerza el scroll a la parte superior (0, 0) de manera más agresiva 
     para asegurar que funcione en el entorno Streamlit.
     """
+    # JS Simplificado: Target the main scrollable element in Streamlit and the window.
     st.markdown(
         """
         <script>
         // Un pequeño timeout para asegurar que el JS se ejecute después del render de Streamlit
         setTimeout(function() {
-            // 1. Intentar el selector de bloque principal de Streamlit
+            // 1. Intentar el selector de bloque principal de Streamlit (el que contiene el scrollbar)
             const mainContent = document.querySelector('[data-testid="stAppViewBlock"]');
             if (mainContent) {
                 mainContent.scrollTop = 0;
             }
-
-            // 2. Fallback: Scroll del documento completo (funciona en muchos casos)
-            document.documentElement.scrollTop = 0; 
-            document.body.scrollTop = 0; 
             
-            // 3. Fallback final: Scroll de la ventana (para entornos de iframe)
+            // 2. Fallback: Scroll de la ventana y documento (para entornos de iframe)
             window.scrollTo(0, 0); 
-        }, 100); 
+            document.documentElement.scrollTop = 0; 
+        }, 50); // Reducido el timeout para mayor rapidez
         </script>
         """,
         unsafe_allow_html=True
@@ -392,8 +390,9 @@ def restart_test():
     st.session_state.test_completed = False
     st.session_state.current_page = 0
     st.session_state.error_message = ""
-    scroll_to_top() # Vuelve a la cima al reiniciar
-    st.rerun()
+    
+    # Llamamos a scroll_to_top. El script terminará y Streamlit recargará.
+    scroll_to_top() 
 
 def handle_navigation(action):
     """Maneja la validación de página y la navegación (Siguiente/Anterior/Finalizar)."""
@@ -425,14 +424,14 @@ def handle_navigation(action):
     # 2. Lógica de Navegación
     if action == "prev" and current_page > 0:
         st.session_state.current_page -= 1
-        scroll_to_top() # Scroll antes de recargar
-        st.rerun()
-        
+        scroll_to_top() # Scroll se activa antes de que Streamlit termine y recargue
+        # NO USAMOS st.rerun() para evitar el error 'no-op'
+
     elif action == "next" and current_page < TOTAL_PAGES - 1:
         st.session_state.current_page += 1
-        scroll_to_top() # Scroll antes de recargar
-        st.rerun()
-        
+        scroll_to_top() # Scroll se activa antes de que Streamlit termine y recargue
+        # NO USAMOS st.rerun() para evitar el error 'no-op'
+
     elif action == "finish":
         # Finalizar el test
         # Chequeo final de que todas las 130 preguntas han sido respondidas
@@ -440,8 +439,8 @@ def handle_navigation(action):
         
         if answered_total_final == TOTAL_QUESTIONS:
             st.session_state.test_completed = True
-            scroll_to_top() # Scroll antes de recargar
-            st.rerun()
+            scroll_to_top() # Scroll se activa antes de que Streamlit termine y recargue
+            # NO USAMOS st.rerun() para evitar el error 'no-op'
         else:
             # Mensaje de precaución para el usuario si llega aquí con respuestas faltantes
             st.session_state.error_message = f"Error: Aún faltan {TOTAL_QUESTIONS - answered_total_final} respuestas totales para completar el test. Por favor, revisa."
@@ -834,7 +833,6 @@ def run_test():
                 </div>
             """, unsafe_allow_html=True)
             
-        # El scroll se activa dentro de handle_navigation justo antes de la recarga
         
 # Ejecutar la aplicación
 if __name__ == '__main__':
