@@ -260,7 +260,7 @@ def cargar_css():
 
 # --- FUNCIONES AUXILIARES ---
 
-# Función para resetear el scroll al top
+# Función para resetear el scroll al top (usando JS)
 def scroll_to_top():
     st.components.v1.html("""
         <script>
@@ -280,6 +280,9 @@ def inicializar_estado():
         st.session_state.test_completed = False
     if 'start_time' not in st.session_state:
         st.session_state.start_time = 0
+    # NUEVO: Bandera para controlar el desplazamiento
+    if 'should_scroll' not in st.session_state:
+        st.session_state.should_scroll = False
 
 # Función para reiniciar el test
 def reiniciar_test():
@@ -288,7 +291,8 @@ def reiniciar_test():
     st.session_state.test_started = False
     st.session_state.test_completed = False
     st.session_state.start_time = 0
-    # FIX: Reemplazado st.experimental_rerun() por st.rerun()
+    # Restablecer la bandera de scroll
+    st.session_state.should_scroll = False
     st.rerun()
 
 # Función para convertir DataFrame a Excel
@@ -305,6 +309,13 @@ def to_excel(df):
 # Cargar estilos y estado
 cargar_css()
 inicializar_estado()
+
+# EJECUCIÓN CONDICIONAL DEL SCROLL
+# Este bloque garantiza que el scroll se ejecute al principio de la nueva carga de página
+if st.session_state.should_scroll:
+    scroll_to_top()
+    st.session_state.should_scroll = False
+
 
 # --- PANTALLA DE INICIO ---
 if not st.session_state.test_started:
@@ -374,7 +385,7 @@ elif not st.session_state.test_completed:
         if idx > 0:
             if st.button("⬅️ Anterior"):
                 st.session_state.current_question -= 1
-                scroll_to_top()
+                st.session_state.should_scroll = True # Establece la bandera de scroll
                 # FIX: Reemplazado st.experimental_rerun() por st.rerun()
                 st.rerun()
 
@@ -384,7 +395,7 @@ elif not st.session_state.test_completed:
             if idx < TOTAL_PREGUNTAS - 1:
                 if st.button("Siguiente ➡️"):
                     st.session_state.current_question += 1
-                    scroll_to_top()
+                    st.session_state.should_scroll = True # Establece la bandera de scroll
                     # FIX: Reemplazado st.experimental_rerun() por st.rerun()
                     st.rerun()
             else:
