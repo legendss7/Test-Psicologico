@@ -362,19 +362,19 @@ def scroll_to_top():
     [FIX FINAL DE SCROLL]
     Inyecta JavaScript con un retraso y múltiples métodos para forzar el scroll 
     de la ventana al inicio (0, 0), contrarrestando la memoria de scroll del navegador
-    tras un st.rerun(). Aumentamos el retraso a 100ms.
+    tras un st.rerun(). Aumentamos el retraso a 200ms (Ajuste Final).
     """
     st.markdown(
         """
         <script>
-        // Aplicamos un retraso de 100ms para asegurar que el DOM de la nueva página se haya
+        // Aplicamos un retraso de 200ms para asegurar que el DOM de la nueva página se haya
         // cargado completamente antes de ejecutar el scroll.
         setTimeout(() => {
             // Intentamos con múltiples métodos para mayor compatibilidad
             window.scrollTo(0, 0); 
             document.body.scrollTop = 0; // Para Safari
             document.documentElement.scrollTop = 0; // Para Chrome, Firefox, IE
-        }, 100); 
+        }, 200); // AJUSTE FINAL a 200ms
         </script>
         """,
         unsafe_allow_html=True
@@ -764,7 +764,7 @@ def run_test():
         # --- Lógica de Manejo de Formulario (Fuera del bloque `with st.form`) ---
         
         if prev_button:
-            # NO llamamos a scroll_to_top() aquí, se llama al final del 'else'
+            # Lógica de navegación
             prev_page()
             st.rerun()
 
@@ -801,7 +801,7 @@ def run_test():
         
         # === SOLUCIÓN FINAL ===
         # Llamar a scroll_to_top() de forma incondicional al final del bloque de renderizado
-        # de las preguntas. El script ahora es mucho más robusto.
+        # de las preguntas. El script ahora usa un retraso de 200ms.
         scroll_to_top()
 
 # Ejecutar la aplicación
