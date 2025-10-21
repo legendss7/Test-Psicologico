@@ -382,13 +382,66 @@ def scroll_to_top():
         setTimeout(forceScrollToTop, 500); 
         
         // 3. Tercer intento de máxima seguridad (1000ms): 
-        // Esto solo es necesario en entornos extremadamente lentos o si hay elementos 
-        // de carga diferida que empujan el scroll hacia abajo.
         setTimeout(forceScrollToTop, 1000); 
         </script>
         """,
         unsafe_allow_html=True
     )
+
+def add_debounce_script():
+    """
+    [SOLUCIÓN PARA DOBLE CLIC]
+    Inyecta JavaScript para deshabilitar los botones 'Siguiente' y 'Finalizar' 
+    inmediatamente al hacer clic, evitando el doble envío (double-submit) 
+    antes de que Streamlit haga el rerun.
+    """
+    st.markdown(
+        """
+        <script>
+        function debounceNavButtons() {
+            // Selecciona todos los botones de tipo submit (que son los botones del formulario en Streamlit)
+            const buttons = document.querySelectorAll('button[type="submit"]'); 
+            
+            buttons.forEach(button => {
+                // Solo adjuntamos el listener si aún no lo tiene (para evitar duplicados en re-renders)
+                if (!button.getAttribute('data-debounced')) {
+                    
+                    // Solo aplicamos el debounce a los botones de navegación 'Siguiente' y 'Finalizar'
+                    const buttonText = button.textContent.trim();
+                    if (buttonText.includes('Siguiente') || buttonText.includes('Finalizar')) {
+                        button.addEventListener('click', function(e) {
+                            // Si el botón ya está deshabilitado, ignora el evento (Doble seguridad)
+                            if (this.disabled) {
+                                e.preventDefault(); 
+                                return;
+                            }
+                            
+                            // 1. DESHABILITAR INMEDIATAMENTE
+                            this.disabled = true;
+                            this.style.opacity = '0.7';
+                            
+                            // 2. Deshabilitar los otros botones del formulario (Anterior, si existe)
+                            buttons.forEach(btn => {
+                                if (btn !== this) {
+                                    btn.disabled = true;
+                                    btn.style.opacity = '0.7';
+                                }
+                            });
+                        });
+                        button.setAttribute('data-debounced', 'true');
+                    }
+                }
+            });
+        }
+        
+        // Ejecutar el debouncer en la carga inicial y tras un breve retraso por si Streamlit reestructura el DOM
+        window.onload = debounceNavButtons;
+        setTimeout(debounceNavButtons, 200); 
+        </script>
+        """,
+        unsafe_allow_html=True
+    )
+
 
 def next_page():
     """Avanza a la siguiente página del test."""
@@ -608,6 +661,7 @@ def run_test():
     """Función principal para correr la aplicación."""
     
     set_playful_style()
+    add_debounce_script() # <<<< INYECCIÓN DE DEBOUNCE PARA EVITAR DOBLE CLIC
 
     # Inicializar el estado de la sesión
     if 'answers' not in st.session_state: st.session_state.answers = {}
@@ -762,6 +816,7 @@ def run_test():
             # Botón Anterior (Habilitado solo si no estamos en la primera página)
             if current_page > 0:
                 with col_prev:
+                    # El botón de "Anterior" no necesita el debounce agresivo, pero lo ponemos en el form
                     prev_button = st.form_submit_button("← Volver a la Página Anterior", type="secondary", use_container_width=True)
 
             is_last_page = current_page == TOTAL_PAGES - 1
@@ -769,6 +824,7 @@ def run_test():
                 if is_last_page:
                     submit_button = st.form_submit_button("🚀 Finalizar Test y Ver Mi Perfil", type="primary", use_container_width=True)
                 else:
+                    # Este botón es el que más necesita el debounce
                     submit_button = st.form_submit_button(f"Siguiente → (Pág. {current_page + 2})", type="primary", use_container_width=True)
         
         # --- Lógica de Manejo de Formulario (Fuera del bloque `with st.form`) ---
