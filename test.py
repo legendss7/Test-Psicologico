@@ -358,26 +358,32 @@ def interpret_score(score, trait_code):
 
 def scroll_to_top():
     """
-    [SOLUCIÓN DE SCROLL FORZADO MEJORADA]
-    Fuerza el scroll a la parte superior (0, 0) de manera más agresiva 
-    para asegurar que funcione en el entorno Streamlit.
+    [SOLUCIÓN DE SCROLL FORZADO MEJORADA Y MÁS AGRESIVA]
+    Fuerza el scroll a la parte superior (0, 0) apuntando a múltiples contenedores.
     """
-    # JS Simplificado: Target the main scrollable element in Streamlit and the window.
+    # Usamos un setTimeout un poco más largo (100ms) para asegurar que el DOM de la nueva página esté cargado.
     st.markdown(
         """
         <script>
-        // Un pequeño timeout para asegurar que el JS se ejecute después del render de Streamlit
         setTimeout(function() {
-            // 1. Intentar el selector de bloque principal de Streamlit (el que contiene el scrollbar)
+            // 1. Target el contenedor principal de Streamlit (data-testid="stAppViewBlock")
             const mainContent = document.querySelector('[data-testid="stAppViewBlock"]');
             if (mainContent) {
                 mainContent.scrollTop = 0;
             }
             
-            // 2. Fallback: Scroll de la ventana y documento (para entornos de iframe)
+            // 2. Target el wrapper principal de la aplicación (para entornos de iframe)
+            const main = document.querySelector('.main');
+            if (main) {
+                main.scrollTop = 0;
+            }
+
+            // 3. Fallback: Scroll de la ventana y documento
             window.scrollTo(0, 0); 
             document.documentElement.scrollTop = 0; 
-        }, 50); // Reducido el timeout para mayor rapidez
+            document.body.scrollTop = 0; 
+
+        }, 100); 
         </script>
         """,
         unsafe_allow_html=True
@@ -391,7 +397,7 @@ def restart_test():
     st.session_state.current_page = 0
     st.session_state.error_message = ""
     
-    # Llamamos a scroll_to_top. El script terminará y Streamlit recargará.
+    # Llamamos a scroll_to_top.
     scroll_to_top() 
 
 def handle_navigation(action):
@@ -424,13 +430,11 @@ def handle_navigation(action):
     # 2. Lógica de Navegación
     if action == "prev" and current_page > 0:
         st.session_state.current_page -= 1
-        scroll_to_top() # Scroll se activa antes de que Streamlit termine y recargue
-        # NO USAMOS st.rerun() para evitar el error 'no-op'
+        scroll_to_top() # Activa el scroll antes de la re-ejecución
 
     elif action == "next" and current_page < TOTAL_PAGES - 1:
         st.session_state.current_page += 1
-        scroll_to_top() # Scroll se activa antes de que Streamlit termine y recargue
-        # NO USAMOS st.rerun() para evitar el error 'no-op'
+        scroll_to_top() # Activa el scroll antes de la re-ejecución
 
     elif action == "finish":
         # Finalizar el test
@@ -439,8 +443,7 @@ def handle_navigation(action):
         
         if answered_total_final == TOTAL_QUESTIONS:
             st.session_state.test_completed = True
-            scroll_to_top() # Scroll se activa antes de que Streamlit termine y recargue
-            # NO USAMOS st.rerun() para evitar el error 'no-op'
+            scroll_to_top() # Activa el scroll antes de la re-ejecución
         else:
             # Mensaje de precaución para el usuario si llega aquí con respuestas faltantes
             st.session_state.error_message = f"Error: Aún faltan {TOTAL_QUESTIONS - answered_total_final} respuestas totales para completar el test. Por favor, revisa."
@@ -566,7 +569,7 @@ def set_playful_style():
             border: none;
             transition: all 0.3s;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
-            width: 100%; /* Ocupa todo el ancho en el sidebar */
+            /* width: 100%; - Retirado para la sección de navegación */
             margin-bottom: 10px;
         }}
         
@@ -748,7 +751,7 @@ def run_test():
         st.button("🔄 Quiero Explorar de Nuevo", on_click=restart_test, type="secondary", use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
             
-    # --- B. Mostrar Cuestionario Paginado y Sidebar ---
+    # --- B. Mostrar Cuestionario Paginado y Navegación en Contenido ---
     else:
         
         current_page = st.session_state.current_page
@@ -766,7 +769,6 @@ def run_test():
         st.subheader(f"Sección {current_page + 1} de {TOTAL_PAGES}")
         st.markdown("Marca tu nivel de acuerdo con cada afirmación:")
         st.markdown("---")
-
 
         # Mensaje de error (si existe)
         if st.session_state.error_message:
@@ -797,27 +799,18 @@ def run_test():
         
         st.markdown("---")
         
-        # 3. Controles de Navegación en el Sidebar
-        with st.sidebar:
-            st.header("Navegación del Test")
-            
+        # 3. Controles de Navegación en el Contenido Principal (NUEVA UBICACIÓN)
+        col_prev, col_status, col_next = st.columns([1, 1, 1])
+        
+        with col_prev:
             # Botón Anterior
             if current_page > 0:
-                st.button("← Página Anterior", on_click=handle_navigation, args=("prev",), use_container_width=True, type="secondary")
+                st.button("← Anterior", on_click=handle_navigation, args=("prev",), use_container_width=True, type="secondary")
             else:
-                st.button("Inicio (Página 1)", disabled=True, use_container_width=True, type="secondary")
-            
-            st.markdown("<hr style='border: 1px dashed #DDD;'>", unsafe_allow_html=True)
-            
-            # Botón Siguiente / Finalizar
-            is_last_page = current_page == TOTAL_PAGES - 1
-            
-            if is_last_page:
-                st.button("🚀 Finalizar Test y Ver Mi Perfil", on_click=handle_navigation, args=("finish",), use_container_width=True, type="primary")
-            else:
-                st.button(f"Siguiente → (Pág. {current_page + 2} de {TOTAL_PAGES})", on_click=handle_navigation, args=("next",), use_container_width=True, type="primary")
+                st.button("Inicio", disabled=True, use_container_width=True, type="secondary")
                 
-            # Contador de Respuestas Pendientes en el Sidebar
+        with col_status:
+            # Contador de Respuestas Pendientes en el centro
             answered_current_page = 0
             for q in current_questions:
                 ans = st.session_state.answers.get(q["id"])
@@ -825,14 +818,37 @@ def run_test():
                     answered_current_page += 1
             
             pending_count = len(current_questions) - answered_current_page
-
+            
+            # Usar un componente markdown para el contador central
             st.markdown(f"""
-                <div style="text-align: center; margin-top: 20px; padding: 10px; border: 1px solid #EEE; border-radius: 8px;">
-                    <p style="font-size: 0.9rem; margin: 0; color: {COLOR_VIBRANT_BLUE};">Preguntas Pendientes:</p>
-                    <p style="font-size: 1.5rem; font-weight: bold; color: {COLOR_DANGER_RED}; margin: 5px 0 0 0;">{pending_count}</p>
+                <div style="text-align: center; padding: 10px; border: 1px dashed #DDD; border-radius: 8px;">
+                    <p style="font-size: 0.85rem; margin: 0; color: #555;">PENDIENTES EN PÁGINA:</p>
+                    <p style="font-size: 1.2rem; font-weight: bold; color: {COLOR_DANGER_RED}; margin: 5px 0 0 0;">{pending_count}</p>
                 </div>
             """, unsafe_allow_html=True)
+
+
+        with col_next:
+            # Botón Siguiente / Finalizar
+            is_last_page = current_page == TOTAL_PAGES - 1
             
+            if is_last_page:
+                st.button("🚀 Finalizar Test", on_click=handle_navigation, args=("finish",), use_container_width=True, type="primary")
+            else:
+                st.button(f"Siguiente →", on_click=handle_navigation, args=("next",), use_container_width=True, type="primary")
+
+        # 4. Dejar el sidebar para información extra
+        with st.sidebar:
+            st.header("Información")
+            st.markdown(f"""
+            <div style="text-align: center; padding: 10px; border: 1px solid #E0E7FF; border-radius: 8px; background-color: #F0F5FF;">
+                <p style="font-size: 1rem; margin-bottom: 5px; color: {COLOR_VIBRANT_BLUE};">Página Actual</p>
+                <p style="font-size: 2rem; font-weight: bold; color: {COLOR_MINT_GREEN}; margin: 0;">{current_page + 1}/{TOTAL_PAGES}</p>
+            </div>
+            """, unsafe_allow_html=True)
+            st.markdown("---")
+            st.info("El test se guarda automáticamente. Si cierras o recargas, continuarás donde lo dejaste.")
+
         
 # Ejecutar la aplicación
 if __name__ == '__main__':
