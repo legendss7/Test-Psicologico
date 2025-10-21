@@ -359,33 +359,31 @@ def interpret_score(score, trait):
 
 def scroll_to_top():
     """
-    [SOLUCIÓN MULTI-ETAPA AGRESIVA PARA SCROLL]
-    Inyecta JavaScript con múltiples intentos cronometrados (incluyendo 0ms) 
-    para asegurar el scroll al inicio (0, 0), contrarrestando la memoria del navegador.
+    [SOLUCIÓN DE SCROLL RE-OPTIMIZADA: Ejecución Asíncrona Inmediata]
+    Fuerza el scroll a la parte superior (0, 0) utilizando un 'instant' behavior 
+    dentro de un setTimeout(0) para garantizar que se ejecute después del re-render, 
+    incluyendo selectores específicos de Streamlit.
     """
     st.markdown(
         """
         <script>
-        // Función principal que intenta forzar el scroll al inicio usando múltiples métodos
-        function forceScrollToTop() {
-            // Intento 1: Scroll suave al cuerpo del documento
-            window.scrollTo({ top: 0, behavior: 'smooth' }); 
+        // La función se ejecuta en el siguiente ciclo de eventos (0ms) para asegurar que el DOM 
+        // de la nueva página esté completamente disponible y se contrarreste la memoria de scroll.
+        setTimeout(function() {
+            // Intento 1: Scroll forzado INSTANTÁNEO en la ventana
+            window.scrollTo({ top: 0, behavior: 'instant' }); 
             
-            // Intento 2 y 3: Scroll forzado inmediato al nivel del documento/body
-            document.body.scrollTop = 0; // Para Safari
-            document.documentElement.scrollTop = 0; // Para Chrome, Firefox, IE
-        }
-
-        // 1. Primer intento CERO DELAY (0ms): Ejecutado inmediatamente después de que el stack actual se vacía, 
-        // ideal para garantizar que el DOM de la nueva página esté listo.
-        setTimeout(forceScrollToTop, 0); 
-
-        // 2. Segundo intento rápido (10ms): Captura la mayoría de las recargas rápidas.
-        setTimeout(forceScrollToTop, 10); 
-
-        // 3. Tercer intento de respaldo (200ms): 
-        // Se ejecuta si el navegador es lento en restablecer su posición después de la recarga del DOM.
-        setTimeout(forceScrollToTop, 200); 
+            // Intento 2 y 3: Fallbacks de compatibilidad forzada en elementos root del documento
+            document.body.scrollTop = 0; 
+            document.documentElement.scrollTop = 0;
+            
+            // Intento 4: Selector Streamlit-específico (el contenedor principal de la aplicación)
+            const mainContent = document.querySelector('[data-testid="stAppViewBlock"]');
+            if (mainContent) {
+                mainContent.scrollTop = 0;
+            }
+            
+        }, 0); // Cero delay, ejecución inmediata asíncrona.
         </script>
         """,
         unsafe_allow_html=True
@@ -393,39 +391,29 @@ def scroll_to_top():
 
 def add_debounce_script():
     """
-    [SOLUCIÓN PARA DOBLE CLIC]
     Inyecta JavaScript para deshabilitar los botones 'Siguiente' y 'Finalizar' 
-    inmediatamente al hacer clic, evitando el doble envío (double-submit) 
-    antes de que Streamlit haga el rerun.
+    inmediatamente al hacer clic, evitando el doble envío (double-submit).
     """
     st.markdown(
         """
         <script>
         function debounceNavButtons() {
-            // Selecciona todos los botones de tipo submit (que son los botones del formulario en Streamlit)
+            // Selecciona todos los botones de tipo submit 
             const buttons = document.querySelectorAll('button[type="submit"]'); 
             
             buttons.forEach(button => {
-                // Solo adjuntamos el listener si aún no lo tiene (para evitar duplicados en re-renders)
                 if (!button.getAttribute('data-debounced')) {
                     
-                    // Solo aplicamos el debounce a los botones de navegación 'Siguiente' y 'Finalizar'
                     const buttonText = button.textContent.trim();
                     if (buttonText.includes('Siguiente') || buttonText.includes('Finalizar')) {
                         button.addEventListener('click', function(e) {
-                            // Si el botón ya está deshabilitado, ignora el evento (Doble seguridad)
                             if (this.disabled) {
                                 e.preventDefault(); 
                                 return;
                             }
                             
-                            // 1. DESHABILITAR INMEDIATAMENTE
-                            this.disabled = true;
-                            this.style.opacity = '0.7';
-                            
-                            // 2. Deshabilitar los otros botones del formulario (Anterior, si existe)
+                            // DESHABILITAR TODOS los botones de navegación inmediatamente
                             buttons.forEach(btn => {
-                                // Deshabilitar todos los botones de navegación
                                 btn.disabled = true;
                                 btn.style.opacity = '0.7';
                             });
