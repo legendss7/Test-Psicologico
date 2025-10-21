@@ -360,24 +360,23 @@ def scroll_to_top():
     """
     [SOLUCIÓN DE SCROLL FORZADO]
     Fuerza el scroll a la parte superior (0, 0) para mejorar la UX al cambiar de página.
+    Se usa JavaScript para garantizar que el scroll se aplique al contenedor correcto.
     """
     st.markdown(
         """
         <script>
+        // Timeout asegura que el scroll se ejecute *después* de que Streamlit ha re-renderizado
         setTimeout(function() {
-            // 1. Scroll forzado INSTANTÁNEO en la ventana
-            window.scrollTo({ top: 0, behavior: 'instant' }); 
-            
-            // 2. Fallbacks de compatibilidad en elementos root del documento
-            document.body.scrollTop = 0; 
-            document.documentElement.scrollTop = 0;
-            
-            // 3. Selector Streamlit-específico (el contenedor principal de la aplicación)
+            // Buscamos el contenedor principal de Streamlit
             const mainContent = document.querySelector('[data-testid="stAppViewBlock"]');
+            
+            // Si el contenedor existe, lo hacemos scroll
             if (mainContent) {
                 mainContent.scrollTop = 0;
+            } else {
+                // Fallback para scroll de la ventana (funciona en algunos iframes/embeds)
+                window.scrollTo({ top: 0, behavior: 'smooth' }); 
             }
-            
         }, 0); 
         </script>
         """,
@@ -391,6 +390,7 @@ def restart_test():
     st.session_state.test_completed = False
     st.session_state.current_page = 0
     st.session_state.error_message = ""
+    scroll_to_top() # Vuelve a la cima al reiniciar
     st.rerun()
 
 def handle_navigation(action):
@@ -423,10 +423,12 @@ def handle_navigation(action):
     # 2. Lógica de Navegación
     if action == "prev" and current_page > 0:
         st.session_state.current_page -= 1
+        scroll_to_top() # Scroll antes de recargar
         st.rerun()
         
     elif action == "next" and current_page < TOTAL_PAGES - 1:
         st.session_state.current_page += 1
+        scroll_to_top() # Scroll antes de recargar
         st.rerun()
         
     elif action == "finish":
@@ -436,6 +438,7 @@ def handle_navigation(action):
         
         if answered_total_final == TOTAL_QUESTIONS:
             st.session_state.test_completed = True
+            scroll_to_top() # Scroll antes de recargar
             st.rerun()
         else:
             # Mensaje de precaución para el usuario si llega aquí con respuestas faltantes
@@ -454,10 +457,6 @@ def set_playful_style():
     # --- CSS Styles ---
     st.markdown(f"""
     <style>
-        /* Deshabilita la animación de rebote en los encabezados si no se usa */
-        @keyframes bounce {{ 0% {{transform: none;}} }} 
-        .bouncing-header {{ display: inline-block; }}
-
         /* Fuente y Estilo General */
         @import url('https://fonts.googleapis.com/css2?family=Varela+Round&display=swap');
         html, body, [class*="st-"] {{
@@ -487,7 +486,7 @@ def set_playful_style():
             text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
         }}
 
-        /* Preguntas (Cambiado: Sin Card Box alrededor del texto, solo en radio) */
+        /* Preguntas */
         .stRadio label {{
             font-size: 1.05rem;
             font-weight: 500;
@@ -834,10 +833,11 @@ def run_test():
                     <p style="font-size: 1.5rem; font-weight: bold; color: {COLOR_DANGER_RED}; margin: 5px 0 0 0;">{pending_count}</p>
                 </div>
             """, unsafe_allow_html=True)
+            
+        # 4. Scroll forzado después de la renderización
+        # Importante: El scroll_to_top no se llama aquí, sino dentro de handle_navigation 
+        # (antes del st.rerun), y su JS se ejecuta con el timeout, asegurando el scroll.
 
-        
-        # --- APLICACIÓN DEL SCROLL FORZADO ---
-        scroll_to_top()
 
 # Ejecutar la aplicación
 if __name__ == '__main__':
