@@ -3,20 +3,53 @@ from collections import defaultdict
 import time
 import pandas as pd
 import plotly.graph_objects as go
+
 def scroll_to_top():
-    """Fuerza que la vista de la página suba al inicio."""
-    st.markdown("""
+    """
+    [SOLUCIÓN DE SCROLL FORZADO MEJORADA]
+    Fuerza el scroll a la parte superior usando múltiples métodos.
+    """
+    st.markdown(
+        """
         <script>
+        setTimeout(function() {
+            // Método 1: Contenedor principal de Streamlit
+            const mainContent = document.querySelector('[data-testid="stAppViewBlock"]');
+            if (mainContent) {
+                mainContent.scrollTop = 0;
+            }
+            
+            // Método 2: Elemento main
+            const main = document.querySelector('.main');
+            if (main) {
+                main.scrollTop = 0;
+            }
+
+            // Método 3: Ventana y documento
             window.scrollTo(0, 0);
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
+
+            // Método 4: Forzar scroll incluso si hay iframes
+            const scrollToTop = function() {
+                window.scrollTo(0, 0);
+                document.documentElement.scrollTo(0, 0);
+                document.body.scrollTo(0, 0);
+            };
+            scrollToTop();
+            
+        }, 100);
         </script>
-        """, unsafe_allow_html=True)
+        """,
+        unsafe_allow_html=True
+    )
+
 # --- CONFIGURACIÓN DE PÁGINA PARA RESPONSIVIDAD ---
-# Usamos el layout "wide" para aprovechar el espacio en escritorio.
 st.set_page_config(layout="wide", page_title="Test Big Five Detallado", initial_sidebar_state="expanded")
 
 # --- 1. CONFIGURACIÓN DEL TEST (BIG FIVE - OCEAN) ---
 
-# Opciones de respuesta para el Likert Scale (Ahora solo un mapeo de score a descripción)
+# Opciones de respuesta para el Likert Scale
 LIKERT_OPTIONS = {
     5: "Totalmente de acuerdo",
     4: "De acuerdo",
@@ -24,11 +57,10 @@ LIKERT_OPTIONS = {
     2: "En desacuerdo",
     1: "Totalmente en desacuerdo"
 }
-# La lista real de opciones para el widget es solo la lista de scores (enteros), la más estable.
+
 LIKERT_SCORES = list(LIKERT_OPTIONS.keys()) # [5, 4, 3, 2, 1]
 
 # Se ha escalado el test a 130 preguntas (26 por rasgo) para una medición más precisa.
-# La estructura del test es (ID, Texto, Rasgo, Inversa)
 QUESTIONS = [
     # O - Apertura a la Experiencia (Openness) - 26 items
     {"id": "O1", "text": "Disfruto profundamente con la exploración de ideas abstractas.", "trait": "O", "reverse": False},
@@ -302,365 +334,265 @@ def interpret_score(score, trait_code):
                 "challenge": "⚠️ **Desafío Clave (Riesgo de Falla):** Evitar conflictos a toda costa, lo que lleva a la **sumisión**, a ser manipulado o a la dificultad para decir 'no'. Corres el riesgo de descuidar tus propias necesidades y sentirte resentido."
             },
             "Medio": {
-                "desc": "Eres **Amable, Justo y Pragmático**. Eres generalmente agradable y cooperativo, pero mantienes un saludable escepticismo y puedes defender tus propios intereses cuando es necesario.",
-                "strength": "Eres un colaborador valioso que equilibra la justicia con la calidez, ofreciendo ayuda, pero esperando reciprocidad y manteniendo la dignidad personal.",
-                "challenge": "⚠️ **Desafío Clave (Riesgo de Falla):** Puedes dudar al tomar una postura moral o crítica para no ofender a nadie. Esto te hace parecer inconsistente en situaciones que exigen un liderazgo firme y polarizado."
+                "desc": "Eres **Cooperativo pero Asertivo**. Eres amable y confías en los demás, pero también eres capaz de defender tus intereses cuando es necesario. Buscas el equilibrio entre la cooperación y la justicia.",
+                "strength": "Tu capacidad para ser comprensivo sin ser ingenuo te permite mantener relaciones saludables y negociar con éxito, sin caer en la pasividad ni en la agresividad.",
+                "challenge": "⚠️ **Desafío Clave (Riesgo de Falla):** Puedes caer en la indecisión en situaciones donde la amabilidad y la asertividad entran en conflicto, o ser percibido como inconsistente en tu trato con los demás."
             },
             "Bajo": {
-                "desc": "Eres **Desafiante y Escepticismo**. Tiendes a ser competitivo, directo, y priorizas la verdad y tus intereses sobre la sensibilidad ajena. Eres excelente para negociar.",
-                "strength": "Tu capacidad para la franqueza brutal, tu resistencia a la manipulación y tu enfoque en la competencia te hacen altamente efectivo en entornos de negociación y alta presión.",
-                "challenge": "⚠️ **Desafío Clave (Riesgo de Falla):** Frecuente **hostilidad** y dificultad para confiar. Los demás te ven como insensible, frío o conflictivo, dificultando la construcción de alianzas a largo plazo y la lealtad de equipo."
+                "desc": "Eres **Directo y Competitivo**. Eres escéptico sobre las intenciones de los demás y no temes al conflicto. Priorizas la honestidad brutal y la eficiencia sobre la diplomacia.",
+                "strength": "Tu escepticismo te protege de ser manipulado. Tu franqueza puede ser brutalmente eficiente en entornos competitivos y tu capacidad para tomar decisiones difíciles sin sentimentalismo es una fortaleza.",
+                "challenge": "⚠️ **Desafío Clave (Riesgo de Falla):** Tendencia a la **agresividad**, al cinismo y a la dificultad para mantener relaciones cercanas. Puedes crear un entorno de desconfianza y alienar a tus aliados, lo que resulta en soledad estratégica."
             }
         },
         "N": {
             "Alto": {
-                "desc": "Tu **Estabilidad Emocional es Baja (Reactiva)**. Eres muy sensible al estrés y experimentas ansiedad, preocupación e ira con facilidad. Tu estado de ánimo es a menudo volátil.",
-                "strength": "Tu alta sensibilidad te permite experimentar las emociones y el arte profundamente. Tu capacidad de sentir la alarma rápidamente puede protegerte de riesgos inminentes.",
-                "challenge": "⚠️ **Desafío Clave (Riesgo de Falla):** **Ansiedad crónica** y altos niveles de estrés que paralizan la acción. Tu inestabilidad dificulta la toma de decisiones objetivas y puede dañar tu salud y relaciones interpersonales."
+                "desc": "Eres **Hiperconsciente y Emocionalmente Reactivo**. Experimentas emociones negativas con intensidad y frecuencia. Eres muy sensible a las críticas y al estrés, lo que puede llevarte a la ansiedad y la inseguridad.",
+                "strength": "Tu sensibilidad te permite detectar peligros y problemas potenciales antes que los demás, y tu empatía emocional puede ser profunda.",
+                "challenge": "⚠️ **Desafío Clave (Riesgo de Falla):** La **rumiación** constante y la reactividad emocional pueden paralizarte, generando un ciclo de ansiedad y evitación que afecta tu salud, relaciones y productividad."
             },
             "Medio": {
-                "desc": "Tienes una **Estabilidad Emocional Moderada (Sensible)**. Eres capaz de gestionar el estrés diario, pero puedes volverte ansioso o preocupado bajo presión intensa. Eres empático, pero mantienes el control la mayoría del tiempo.",
-                "strength": "Tu sensibilidad moderada te permite ser consciente de los riesgos sin ser abrumado por ellos, manteniendo la prudencia sin caer en el pánico.",
-                "challenge": "⚠️ **Desafío Clave (Riesgo de Falla):** Tiendes a la rumiación mental y a la preocupación excesiva por el futuro. Puedes caer en la sobrecarga de trabajo al intentar controlar todas las variables externas."
+                "desc": "Eres **Sensible pero Resiliente**. Experimentas estrés y emociones negativas, pero generalmente puedes manejarlas y recuperarte. Tu estado de ánimo es estable la mayor parte del tiempo, con fluctuaciones normales.",
+                "strength": "Tienes un buen equilibrio entre la conciencia de los problemas y la capacidad de afrontarlos sin quedar atrapado en la negatividad, lo que te permite ser realista sin ser pesimista.",
+                "challenge": "⚠️ **Desafío Clave (Riesgo de Falla):** En momentos de estrés extremo, puedes mostrar signos de inestabilidad emocional, lo que afecta tu juicio y te lleva a tomar decisiones impulsivas o pesimistas."
             },
             "Bajo": {
-                "desc": "¡Eres **Zen y Súper Resiliente**! Eres tranquilo, estable y rara vez te sientes perturbado. Muestras una gran capacidad para manejar el estrés y recuperarte rápidamente de los contratiempos.",
-                "strength": "Tu calma, tu resiliencia y tu optimismo natural te permiten afrontar crisis y contratiempos con una cabeza fría, siendo un faro de estabilidad para los demás.",
-                "challenge": "⚠️ **Desafío Clave (Riesgo de Falla):** Puedes parecer **indiferente o desinteresado** en los problemas emocionales ajenos. Corres el riesgo de subestimar peligros o de no prepararte adecuadamente para desastres por exceso de confianza."
+                "desc": "¡Eres una **Fortaleza Emocional**! Eres emocionalmente estable, resiliente y tranquilo. Te recuperas rápidamente del estrés y mantienes la calma bajo presión. Tu estado de ánimo es predominantemente positivo y estable.",
+                "strength": "Tu serenidad y capacidad para manejar el estrés te convierten en un pilar de estabilidad para los demás. Tu optimismo realista te permite enfrentar los desafíos con confianza.",
+                "challenge": "⚠️ **Desafío Clave (Riesgo de Falla):** Puedes subestimar los riesgos reales o ser percibido como insensible o desconectado de los problemas de los demás. Tu optimismo puede llevarte a ignorar señales de advertencia importantes."
             }
         }
     }
     
-    # Determinación de color y nivel de estabilidad
-    if trait_code == 'N':
-        if level == "Bajo":
-            color_hex = LEVEL_COLORS["Estable"] 
-            color_label = "Muy Estable"
-        elif level == "Alto":
-            color_hex = LEVEL_COLORS["Bajo_Negativo"] 
-            color_label = "Inestable"
-        else:
-            color_hex = LEVEL_COLORS["Medio"]
-            color_label = "Moderado"
-    else:
-        if level == "Alto":
-            color_hex = LEVEL_COLORS["Alto_Positivo"] 
-            color_label = "Muy Pronunciado"
-        elif level == "Bajo":
-            color_hex = LEVEL_COLORS["Bajo_Negativo"] 
-            color_label = "Bajo"
-        else:
-            color_hex = LEVEL_COLORS["Medio"]
-            color_label = "Moderado"
-            
-    # Retorna un diccionario más estructurado
-    return {
-        "level": level, 
-        "color_hex": color_hex, 
-        "color_label": color_label,
-        "description": profiles[trait_code][level]["desc"],
-        "strength": profiles[trait_code][level]["strength"],
-        "challenge": profiles[trait_code][level]["challenge"]
-    }
+    profile = profiles[trait_code][level]
+    return level, profile["desc"], profile["strength"], profile["challenge"]
 
-# --- 3. FUNCIONES DE NAVEGACIÓN Y REINICIO ---
-
-def scroll_to_top():
-    """
-    [SOLUCIÓN DE SCROLL FORZADO MEJORADA Y MÁS AGRESIVA]
-    Fuerza el scroll a la parte superior (0, 0) apuntando a múltiples contenedores.
-    Esto soluciona el problema de que el scroll no vuelva al inicio al cambiar de página.
-    """
-    # Usamos un setTimeout un poco más largo (100ms) para asegurar que el DOM de la nueva página esté cargado.
-    st.markdown(
-        """
-        <script>
-        setTimeout(function() {
-            // 1. Target el contenedor principal de Streamlit (data-testid="stAppViewBlock")
-            const mainContent = document.querySelector('[data-testid="stAppViewBlock"]');
-            if (mainContent) {
-                mainContent.scrollTop = 0;
-            }
-            
-            // 2. Target el wrapper principal de la aplicación (para entornos de iframe)
-            const main = document.querySelector('.main');
-            if (main) {
-                main.scrollTop = 0;
-            }
-
-            // 3. Fallback: Scroll de la ventana y documento
-            window.scrollTo(0, 0); 
-            document.documentElement.scrollTop = 0; 
-            document.body.scrollTop = 0; 
-
-        }, 100); 
-        </script>
-        """,
-        unsafe_allow_html=True
+def generate_radar_chart(scores):
+    """Genera un gráfico de radar para visualizar el perfil Big Five."""
+    
+    # Normalizar los scores al rango 0-100 para el gráfico de radar
+    # Usamos MIN_SCORE_PER_TRAIT y MAX_SCORE_PER_TRAIT para normalizar
+    normalized_scores = []
+    for trait in ["O", "C", "E", "A", "N"]:
+        score = scores.get(trait, 0)
+        # Normalizar al rango 0-100
+        normalized = ((score - MIN_SCORE_PER_TRAIT) / (MAX_SCORE_PER_TRAIT - MIN_SCORE_PER_TRAIT)) * 100
+        normalized_scores.append(normalized)
+    
+    categories = list(TRAIT_LABELS.values())
+    
+    fig = go.Figure()
+    
+    fig.add_trace(go.Scatterpolar(
+        r=normalized_scores,
+        theta=categories,
+        fill='toself',
+        fillcolor='rgba(74, 144, 226, 0.3)',  # Azul semitransparente
+        line=dict(color=COLOR_VIBRANT_BLUE, width=2),
+        name="Tu Perfil"
+    ))
+    
+    fig.update_layout(
+        polar=dict(
+            radialaxis=dict(
+                visible=True,
+                range=[0, 100],
+                tickvals=[0, 25, 50, 75, 100],
+                ticktext=["Muy Bajo", "Bajo", "Medio", "Alto", "Muy Alto"]
+            )
+        ),
+        showlegend=False,
+        title="Perfil de Personalidad Big Five",
+        title_x=0.5,
+        font=dict(size=12)
     )
+    
+    return fig
 
-def restart_test():
-    """Reinicia el estado de la sesión para comenzar el test de nuevo."""
-    st.session_state['page'] = 0
-    st.session_state['answers'] = {}
-    st.session_state['name'] = ""
-    st.session_state['email'] = ""
-    # Llamamos a scroll_to_top después del reinicio
-    scroll_to_top()
+# --- 3. INTERFAZ DE USUARIO CON STREAMLIT ---
 
-def go_next():
-    """Avanza a la siguiente página."""
-    # Verificar que todas las preguntas de la página actual estén respondidas (solo si no es la página de inicio)
-# --- CONTROL DE NAVEGACIÓN ENTRE PÁGINAS ---
-if "page" not in st.session_state:
-    st.session_state.page = 0
+# Inicialización del estado de sesión
+if 'current_page' not in st.session_state:
+    st.session_state.current_page = 0
+    st.session_state.answers = {}
+    st.session_state.test_completed = False
+    st.session_state.scroll_trigger = False
 
-# Botones de navegación
-col1, col2 = st.columns(2)
+# Función para navegar a la página siguiente
+def next_page():
+    if st.session_state.current_page < TOTAL_PAGES - 1:
+        st.session_state.current_page += 1
+        st.session_state.scroll_trigger = True
+
+# Función para navegar a la página anterior
+def prev_page():
+    if st.session_state.current_page > 0:
+        st.session_state.current_page -= 1
+        st.session_state.scroll_trigger = True
+
+# Función para reiniciar el test
+def reset_test():
+    st.session_state.current_page = 0
+    st.session_state.answers = {}
+    st.session_state.test_completed = False
+    st.session_state.scroll_trigger = True
+
+# --- HEADER ---
+st.markdown(
+    f"""
+    <div style="background-color:{COLOR_VIBRANT_BLUE}; padding:20px; border-radius:10px; margin-bottom:20px;">
+        <h1 style="color:white; text-align:center; margin:0;">🧠 Test de Personalidad Big Five Detallado</h1>
+        <p style="color:white; text-align:center; margin:0;">Descubre tu perfil psicológico completo con 130 preguntas científicas</p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+# --- PROGRESS BAR ---
+progress = (st.session_state.current_page + 1) / TOTAL_PAGES
+st.progress(progress)
+st.markdown(f"**Progreso: Página {st.session_state.current_page + 1} de {TOTAL_PAGES}**")
+
+# --- BOTONES DE NAVEGACIÓN (arriba) ---
+col1, col2, col3 = st.columns([1, 2, 1])
 
 with col1:
-    if st.session_state.page > 0:
-        if st.button("⬅️ Anterior"):
-            st.session_state.page -= 1
-            scroll_to_top()  # <-- vuelve al inicio al cambiar
+    if st.session_state.current_page > 0:
+        if st.button("⬅️ Anterior", use_container_width=True):
+            prev_page()
+            st.rerun()
 
-with col2:
-    if st.session_state.page < TOTAL_PAGES - 1:
-        if st.button("Siguiente ➡️"):
-            st.session_state.page += 1
-            scroll_to_top()  # <-- vuelve al inicio al cambiar
+with col3:
+    if st.session_state.current_page < TOTAL_PAGES - 1:
+        if st.button("Siguiente ➡️", use_container_width=True, key="next_top"):
+            next_page()
+            st.rerun()
+    else:
+        if st.button("📊 Ver Resultados", use_container_width=True, type="primary"):
+            st.session_state.test_completed = True
+            st.session_state.scroll_trigger = True
+            st.rerun()
 
-    
-    # Llamamos a scroll_to_top después de cambiar de página para aplicar la corrección
-    scroll_to_top()
+# --- CONTENIDO PRINCIPAL ---
 
-def go_back():
-    """Retrocede a la página anterior."""
-    if st.session_state['page'] > 1:
-        st.session_state['page'] -= 1
+if not st.session_state.test_completed:
+    # --- FORMULARIO DEL TEST ---
+    start_idx = st.session_state.current_page * QUESTIONS_PER_PAGE
+    end_idx = min(start_idx + QUESTIONS_PER_PAGE, TOTAL_QUESTIONS)
     
-    # Llamamos a scroll_to_top después de cambiar de página para aplicar la corrección
-    scroll_to_top()
-
-
-# --- 4. VISTAS DEL FRONTEND ---
-
-def display_start_page():
-    """Muestra la página de inicio y recopila información básica."""
-    st.title("Test Detallado de los Cinco Grandes (Big Five)")
-    st.markdown("""
-        ### 🧠 Descubre tu Perfil de Personalidad (OCEAN)
-        Este es un test avanzado basado en el modelo de los Cinco Grandes (Big Five): Apertura, Responsabilidad, Extraversión, Amabilidad y Neuroticismo.
-        Consta de **130 preguntas** (26 por rasgo) para obtener un resultado detallado y preciso.
-        
-        Por favor, responde honestamente a cada afirmación para obtener un perfil exacto.
-    """)
+    st.markdown("### Por favor, responde con sinceridad:")
+    st.markdown("**Escala:** 5 = Totalmente de acuerdo, 1 = Totalmente en desacuerdo")
     
-    # Recolección de datos
-    st.subheader("Datos de Participante")
-    st.session_state['name'] = st.text_input("Nombre Completo (Opcional)", value=st.session_state.get('name', ''))
-    st.session_state['email'] = st.text_input("Correo Electrónico (Opcional)", value=st.session_state.get('email', ''))
-
-    st.markdown("---")
-    
-    # Botón de inicio
-    st.info("⏰ Tiempo estimado: 15-20 minutos.")
-    if st.button("Comenzar Test", type="primary", use_container_width=True):
-        go_next()
-
-
-def display_question_page():
-    """Muestra las preguntas para la página actual."""
-    
-    current_page = st.session_state['page']
-    start_index = (current_page - 1) * QUESTIONS_PER_PAGE
-    end_index = min(start_index + QUESTIONS_PER_PAGE, TOTAL_QUESTIONS)
-    
-    st.header(f"Sección de Preguntas {current_page} de {TOTAL_PAGES}")
-    st.subheader(f"Progreso: {end_index} de {TOTAL_QUESTIONS} preguntas respondidas (Parcialmente)")
-    
-    # Mostrar la barra de progreso
-    progress_percent = end_index / TOTAL_QUESTIONS
-    st.progress(progress_percent)
-    
-    current_questions = QUESTIONS[start_index:end_index]
-    
-    # Muestra las preguntas en forma de tarjetas o contenedores para mejor visualización
-    for i, q in enumerate(current_questions):
-        q_id = q["id"]
-        
-        # Obtener el índice de la respuesta actual para que el radio button sea "controlado"
-        current_answer = st.session_state['answers'].get(q_id)
-        
-        # Mapear el score (int) a la descripción (string) para mostrarlo
-        # Esto asegura que el valor de retorno sea el score (1-5)
-        options_display = [f"{score}. {LIKERT_OPTIONS[score]}" for score in LIKERT_SCORES]
-        
-        with st.container(border=True):
-            # Título de la pregunta y el rasgo asociado (solo para referencia interna)
-            st.markdown(f"**{start_index + i + 1}. {q['text']}**")
+    # Contenedor para las preguntas
+    with st.container():
+        for i in range(start_idx, end_idx):
+            question = QUESTIONS[i]
+            q_id = question["id"]
+            trait = question["trait"]
             
-            # Generar el componente de radio button
-            # El índice de la opción seleccionada (0-4)
-            # Necesitamos obtener el índice de la lista LIKERT_SCORES para preseleccionar
-            default_index = LIKERT_SCORES.index(current_answer) if current_answer is not None else -1
+            # Crear una clave única para cada pregunta
+            answer_key = f"q_{q_id}"
             
+            # Usar radio buttons para las respuestas
+            st.markdown(f"**{i+1}. {question['text']}**")
             
-            # Usamos un truco con st.select_slider para simular el radio button con mejor UI,
-            # manteniendo el valor de retorno como el score entero (1-5)
+            # Opciones de respuesta en columnas para mejor visualización
+            cols = st.columns(5)
+            response = None
             
-            selected_score = st.select_slider(
-                label=f"Respuesta para {q_id}:",
-                options=LIKERT_SCORES,
-                value=current_answer if current_answer is not None else LIKERT_SCORES[2], # 3: Neutral por defecto
-                format_func=lambda x: LIKERT_OPTIONS[x],
-                key=f"q_{q_id}",
-                label_visibility="collapsed"
-            )
+            for idx, (score, label) in enumerate(LIKERT_OPTIONS.items()):
+                with cols[idx]:
+                    if st.button(
+                        label, 
+                        key=f"{answer_key}_{score}",
+                        use_container_width=True,
+                        type="primary" if st.session_state.answers.get(q_id) == score else "secondary"
+                    ):
+                        response = score
+                        st.session_state.answers[q_id] = response
+                        st.rerun()
             
-            # Almacenar la respuesta en el estado de la sesión
-            st.session_state['answers'][q_id] = selected_score
-
-    st.markdown("---")
+            # Mostrar la respuesta actual si existe
+            current_answer = st.session_state.answers.get(q_id)
+            if current_answer:
+                st.markdown(f"*Respuesta actual: **{LIKERT_OPTIONS[current_answer]}***")
+            else:
+                st.markdown("*Sin respuesta*")
+            
+            st.markdown("---")
     
-    # --- Controles de Navegación ---
-    col1, col2, col3 = st.columns([1, 4, 1])
+    # --- BOTONES DE NAVEGACIÓN (abajo) ---
+    col1, col2, col3 = st.columns([1, 2, 1])
     
     with col1:
-        if current_page > 1:
-            st.button("⬅️ Anterior", on_click=go_back, use_container_width=True)
-            
+        if st.session_state.current_page > 0:
+            if st.button("⬅️ Anterior", use_container_width=True, key="prev_bottom"):
+                prev_page()
+                st.rerun()
+    
     with col3:
-        if current_page < TOTAL_PAGES:
-            st.button("Siguiente ➡️", on_click=go_next, type="primary", use_container_width=True)
-        elif current_page == TOTAL_PAGES:
-            # Botón de Finalizar Test
-            st.button("Finalizar Test ✅", on_click=go_next, type="success", use_container_width=True)
+        if st.session_state.current_page < TOTAL_PAGES - 1:
+            if st.button("Siguiente ➡️", use_container_width=True, key="next_bottom"):
+                next_page()
+                st.rerun()
+        else:
+            if st.button("📊 Ver Resultados", use_container_width=True, type="primary", key="results_bottom"):
+                st.session_state.test_completed = True
+                st.session_state.scroll_trigger = True
+                st.rerun()
 
-
-def display_results_page():
-    """Calcula y muestra los resultados finales."""
+else:
+    # --- RESULTADOS DEL TEST ---
+    st.markdown("## 📊 Tus Resultados del Test Big Five")
     
-    st.title("🎉 Resultados del Test Big Five")
-    st.header(f"Perfil de {st.session_state['name']}")
+    # Calcular puntuaciones
+    scores = calculate_score(st.session_state.answers)
     
-    # 1. Calcular las puntuaciones finales
-    final_scores = calculate_score(st.session_state['answers'])
+    # Mostrar gráfico de radar
+    st.markdown("### Perfil Visual de Personalidad")
+    radar_fig = generate_radar_chart(scores)
+    st.plotly_chart(radar_fig, use_container_width=True)
     
-    # 2. Interpretar y preparar datos para visualización
-    results_list = []
-    for trait_code, score in final_scores.items():
-        interpretation = interpret_score(score, trait_code)
+    # Mostrar resultados detallados por rasgo
+    st.markdown("### Análisis Detallado por Rasgo")
+    
+    for trait_code, trait_name in TRAIT_LABELS.items():
+        score = scores.get(trait_code, 0)
+        level, description, strength, challenge = interpret_score(score, trait_code)
         
-        # Normalizar el score al porcentaje (0-100%) para la visualización en el radar
-        normalized_score = ((score - MIN_SCORE_PER_TRAIT) / (MAX_SCORE_PER_TRAIT - MIN_SCORE_PER_TRAIT)) * 100
+        # Determinar color según el nivel
+        if level == "Alto":
+            color = LEVEL_COLORS["Alto_Positivo"]
+        elif level == "Bajo":
+            color = LEVEL_COLORS["Bajo_Negativo"] 
+        else:
+            color = LEVEL_COLORS["Medio"]
         
-        results_list.append({
-            "Rasgo_Code": trait_code,
-            "Rasgo_Label": TRAIT_LABELS[trait_code],
-            "Score_Raw": score,
-            "Score_Normalized": normalized_score,
-            "Nivel": interpretation["level"],
-            "Nivel_Label": interpretation["color_label"],
-            "Color_Hex": interpretation["color_hex"],
-            "Descripcion": interpretation["description"],
-            "Fortaleza": interpretation["strength"],
-            "Desafio": interpretation["challenge"],
-        })
-
-    df_results = pd.DataFrame(results_list)
-
-    # 3. Visualización de Resultados (Gráfico Radar)
-    st.subheader("Gráfico de Perfil (OCEAN) [Image of radar chart of personality traits]")
+        with st.expander(f"{trait_name} - Puntuación: {score}/{MAX_SCORE_PER_TRAIT} ({level})", expanded=True):
+            st.markdown(f"**Descripción:** {description}")
+            st.markdown(f"**💪 Fortaleza Clave:** {strength}")
+            st.markdown(f"**{challenge}**")
     
-    # Crear el gráfico de radar (Polar Plot)
-    fig = go.Figure(
-        data=[
-            go.Scatterpolar(
-                r=df_results['Score_Normalized'],
-                theta=df_results['Rasgo_Label'],
-                fill='toself',
-                name='Tu Perfil',
-                line_color=COLOR_VIBRANT_BLUE,
-                opacity=0.8
-            )
-        ],
-        layout=go.Layout(
-            polar=dict(
-                radialaxis=dict(
-                    visible=True, 
-                    range=[0, 100], 
-                    tickvals=[0, 25, 50, 75, 100],
-                    ticktext=['Bajo', 'Bajo-Medio', 'Medio', 'Medio-Alto', 'Alto']
-                ),
-            ),
-            showlegend=False,
-            height=500,
-            title_text="Tu Posicionamiento en los Cinco Grandes"
-        )
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
-    
+    # --- BOTÓN PARA REINICIAR ---
     st.markdown("---")
-    
-    # 4. Interpretación Detallada por Rasgo
-    st.subheader("Interpretación Detallada (Rasgo por Rasgo)")
-    
-    for _, row in df_results.iterrows():
-        
-        # Tarjeta de resumen
-        st.markdown(f"#### {row['Rasgo_Code']}: {row['Rasgo_Label']}")
-        col_res, col_score = st.columns([3, 1])
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("🔄 Realizar el Test Nuevamente", use_container_width=True, type="primary"):
+            reset_test()
+            st.rerun()
 
-        with col_score:
-            st.markdown(f"""
-                <div style="background-color: {row['Color_Hex']}; padding: 10px; border-radius: 10px; color: white; text-align: center;">
-                    <p style="font-size: 1.5em; margin: 0;">{row['Nivel_Label']}</p>
-                    <p style="font-size: 0.9em; margin: 0;">Puntuación: {row['Score_Raw']} / {MAX_SCORE_PER_TRAIT}</p>
-                </div>
-            """, unsafe_allow_html=True)
-        
-        with col_res:
-            st.markdown(f"**Resumen:** {row['Descripcion']}")
-            st.markdown(f"**💪 Fortaleza Clave:** {row['Fortaleza']}")
-            st.markdown(f"**🚨 Desafío Crítico:** {row['Desafio']}")
-            st.markdown("---")
+# --- EJECUTAR SCROLL AL CAMBIAR DE PÁGINA ---
+if st.session_state.scroll_trigger:
+    scroll_to_top()
+    st.session_state.scroll_trigger = False
 
-    # Botón de reinicio
-    st.markdown("---")
-    st.button("Volver a Empezar Test", on_click=restart_test, type="secondary", use_container_width=True)
-
-
-# --- 5. LÓGICA PRINCIPAL DE LA APLICACIÓN ---
-
-def main_app():
-    """Maneja el flujo de navegación de la aplicación."""
-    
-    # Inicialización del estado de la sesión
-    if 'page' not in st.session_state:
-        st.session_state['page'] = 0
-    if 'answers' not in st.session_state:
-        st.session_state['answers'] = {}
-    if 'name' not in st.session_state:
-        st.session_state['name'] = ""
-    if 'email' not in st.session_state:
-        st.session_state['email'] = ""
-
-    current_page = st.session_state['page']
-    
-    if current_page == 0:
-        display_start_page()
-    elif 1 <= current_page <= TOTAL_PAGES:
-        display_question_page()
-    elif current_page == TOTAL_PAGES + 1:
-        display_results_page()
-    else:
-        # Fallback o estado final inesperado
-        st.error("Error en el estado de la aplicación. Por favor, reinicia el test.")
-        restart_test()
-
-# Ejecución de la aplicación
-if __name__ == "__main__":
-    main_app()
-
+# --- FOOTER ---
+st.markdown("---")
+st.markdown(
+    """
+    <div style="text-align: center; color: gray;">
+        <p>Test Big Five basado en el modelo OCEAN de personalidad. 
+        Este test es para fines educativos y de autoconocimiento.</p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
