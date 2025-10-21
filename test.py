@@ -1,6 +1,8 @@
 import streamlit as st
 from collections import defaultdict
-import time 
+import time
+import pandas as pd
+import plotly.graph_objects as go
 
 # --- CONFIGURACIÓN DE PÁGINA PARA RESPONSIVIDAD ---
 # Usamos el layout "wide" para aprovechar el espacio en escritorio.
@@ -206,6 +208,7 @@ def calculate_score(answers):
         # Obtenemos la respuesta (score entero)
         response = answers.get(q_id) 
         
+        # Usamos 3 (Neutral) como valor por defecto si falta, aunque el frontend lo debería evitar.
         if response is not None and isinstance(response, int): # Doble chequeo de tipo
             score = response
             
@@ -360,6 +363,7 @@ def scroll_to_top():
     """
     [SOLUCIÓN DE SCROLL FORZADO MEJORADA Y MÁS AGRESIVA]
     Fuerza el scroll a la parte superior (0, 0) apuntando a múltiples contenedores.
+    Esto soluciona el problema de que el scroll no vuelva al inicio al cambiar de página.
     """
     # Usamos un setTimeout un poco más largo (100ms) para asegurar que el DOM de la nueva página esté cargado.
     st.markdown(
@@ -390,466 +394,260 @@ def scroll_to_top():
     )
 
 def restart_test():
-    """Resets the session state to restart the test."""
-    # Reinicia todas las claves esenciales
-    st.session_state.answers = {}
-    st.session_state.test_completed = False
-    st.session_state.current_page = 0
-    st.session_state.error_message = ""
+    """Reinicia el estado de la sesión para comenzar el test de nuevo."""
+    st.session_state['page'] = 0
+    st.session_state['answers'] = {}
+    st.session_state['name'] = ""
+    st.session_state['email'] = ""
+    # Llamamos a scroll_to_top después del reinicio
+    scroll_to_top()
+
+def go_next():
+    """Avanza a la siguiente página."""
+    # Verificar que todas las preguntas de la página actual estén respondidas (solo si no es la página de inicio)
+    if st.session_state['page'] > 0:
+        start_index = (st.session_state['page'] - 1) * QUESTIONS_PER_PAGE
+        end_index = min(start_index + QUESTIONS_PER_PAGE, TOTAL_QUESTIONS)
+        current_questions_ids = [q['id'] for q in QUESTIONS[start_index:end_index]]
+        
+        unanswered = [q_id for q_id in current_questions_ids if q_id not in st.session_state['answers']]
+        
+        if unanswered:
+            st.warning("⚠️ Debes responder todas las preguntas antes de avanzar. Las preguntas sin responder son: " + ", ".join(unanswered))
+            return # Detener la navegación si faltan respuestas
+
+    if st.session_state['page'] < TOTAL_PAGES + 1:
+        st.session_state['page'] += 1
     
-    # Llamamos a scroll_to_top.
-    scroll_to_top() 
+    # Llamamos a scroll_to_top después de cambiar de página para aplicar la corrección
+    scroll_to_top()
 
-def handle_navigation(action):
-    """Maneja la validación de página y la navegación (Siguiente/Anterior/Finalizar)."""
-    current_page = st.session_state.current_page
-    start_index = current_page * QUESTIONS_PER_PAGE
-    end_index = min(start_index + QUESTIONS_PER_PAGE, TOTAL_QUESTIONS)
-    current_questions = QUESTIONS[start_index:end_index]
+def go_back():
+    """Retrocede a la página anterior."""
+    if st.session_state['page'] > 1:
+        st.session_state['page'] -= 1
     
-    # 1. Validar respuestas para avanzar o finalizar
-    if action == "next" or action == "finish":
-        # Contamos cuántas preguntas de la página actual tienen una respuesta válida
-        answered_on_current_page = 0
-        for q in current_questions:
-            # Una respuesta es válida si existe en st.session_state.answers y es un entero
-            ans = st.session_state.answers.get(q["id"])
-            if ans is not None and isinstance(ans, int) and 1 <= ans <= 5:
-                answered_on_current_page += 1
+    # Llamamos a scroll_to_top después de cambiar de página para aplicar la corrección
+    scroll_to_top()
+
+
+# --- 4. VISTAS DEL FRONTEND ---
+
+def display_start_page():
+    """Muestra la página de inicio y recopila información básica."""
+    st.title("Test Detallado de los Cinco Grandes (Big Five)")
+    st.markdown("""
+        ### 🧠 Descubre tu Perfil de Personalidad (OCEAN)
+        Este es un test avanzado basado en el modelo de los Cinco Grandes (Big Five): Apertura, Responsabilidad, Extraversión, Amabilidad y Neuroticismo.
+        Consta de **130 preguntas** (26 por rasgo) para obtener un resultado detallado y preciso.
         
-        questions_on_page_count = len(current_questions)
-        
-        if answered_on_current_page < questions_on_page_count:
-            # Falla la validación: Error de respuestas incompletas
-            st.session_state.error_message = f"⚠️ ¡Alto! Responde las **{questions_on_page_count - answered_on_current_page}** preguntas de la página actual antes de continuar."
-            return 
-        else:
-            # Pasa la validación
-            st.session_state.error_message = ""
-            
-    # 2. Lógica de Navegación
-    if action == "prev" and current_page > 0:
-        st.session_state.current_page -= 1
-        scroll_to_top() # Activa el scroll antes de la re-ejecución
-
-    elif action == "next" and current_page < TOTAL_PAGES - 1:
-        st.session_state.current_page += 1
-        scroll_to_top() # Activa el scroll antes de la re-ejecución
-
-    elif action == "finish":
-        # Finalizar el test
-        # Chequeo final de que todas las 130 preguntas han sido respondidas
-        answered_total_final = len([ans for ans in st.session_state.answers.values() if ans is not None and isinstance(ans, int)])
-        
-        if answered_total_final == TOTAL_QUESTIONS:
-            st.session_state.test_completed = True
-            scroll_to_top() # Activa el scroll antes de la re-ejecución
-        else:
-            # Mensaje de precaución para el usuario si llega aquí con respuestas faltantes
-            st.session_state.error_message = f"Error: Aún faltan {TOTAL_QUESTIONS - answered_total_final} respuestas totales para completar el test. Por favor, revisa."
-            return
-
-# --- 4. CONFIGURACIÓN VISUAL Y DE INTERFAZ (CSS) ---
-
-def set_playful_style():
-    """Aplica estilos CSS divertidos, dinámicos y de impresión."""
+        Por favor, responde honestamente a cada afirmación para obtener un perfil exacto.
+    """)
     
-    V_BLUE = "#4A90E2"
-    M_GREEN = "#50E3C2"
-    D_RED = "#D0021B"
-    
-    # --- CSS Styles ---
-    st.markdown(f"""
-    <style>
-        /* Fuente y Estilo General */
-        @import url('https://fonts.googleapis.com/css2?family=Varela+Round&display=swap');
-        html, body, [class*="st-"] {{
-            font-family: 'Varela Round', sans-serif;
-        }}
-        
-        /* Contenedor Principal y Fondo */
-        .main {{
-            background: linear-gradient(135deg, #F9F9FB 0%, #E0F7FA 100%); 
-            border-radius: 18px;
-            padding: 25px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        }}
-        
-        /* Títulos y Encabezados */
-        h1 {{
-            color: {V_BLUE}; 
-            border-bottom: 3px solid {M_GREEN};
-            padding-bottom: 0.5rem;
-            margin-bottom: 1.5rem;
-            font-weight: 700;
-        }}
-        h2 {{
-            color: {V_BLUE};
-            font-weight: 600;
-            margin-top: 2rem;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-        }}
+    # Recolección de datos
+    st.subheader("Datos de Participante")
+    st.session_state['name'] = st.text_input("Nombre Completo (Opcional)", value=st.session_state.get('name', ''))
+    st.session_state['email'] = st.text_input("Correo Electrónico (Opcional)", value=st.session_state.get('email', ''))
 
-        /* Preguntas */
-        .stRadio label {{
-            font-size: 1.05rem;
-            font-weight: 500;
-            color: #1f2937;
-            padding: 15px 0 15px 0;
-            display: block;
-        }}
-        
-        /* Opciones de Radio Button - Flexbox y Responsive */
-        .stRadio div[role="radiogroup"] {{
-            display: flex;
-            flex-direction: row; 
-            gap: 8px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid #E5E7EB;
-            margin-bottom: 25px;
-            flex-wrap: wrap; /* Asegura que las opciones se envuelvan en móvil */
-        }}
-        .stRadio div[role="radiogroup"] > label {{
-            font-size: 0.85rem !important;
-            border: 1px solid #CCC !important;
-            padding: 8px 10px !important;
-            border-radius: 20px !important;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            background-color: #F9F9F9;
-            flex-grow: 1;
-            text-align: center;
-            border-left: none !important; 
-            box-shadow: none !important;
-            min-width: 120px; /* Asegura un buen tamaño para el dedo en móvil */
-        }}
-        /* Destacar la opción seleccionada */
-        .stRadio div[role="radiogroup"] input:checked + div + div > label {{
-            background-color: {V_BLUE} !important;
-            color: white !important;
-            border-color: {V_BLUE} !important;
-            font-weight: 600;
-            transform: scale(1.05);
-        }}
-
-        /* Contenedor de Resultados */
-        .profile-container {{
-            background-color: #ffffff;
-            border: 1px solid #E5E7EB;
-            border-radius: 15px;
-            padding: 30px;
-            margin-top: 30px;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
-            border-top: 5px solid {M_GREEN};
-        }}
-        .trait-header h3 {{
-            color: {V_BLUE};
-            border-bottom: 2px dashed #EEE;
-            padding-bottom: 10px;
-        }}
-        
-        /* Estilo para Desafío Clave (Lo "malo") */
-        .challenge-box {{
-            background-color: #FFEFEF; /* Fondo rojo suave */
-            border-left: 5px solid {D_RED};
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 15px;
-            font-size: 0.95rem;
-        }}
-        .challenge-box b {{
-            color: {D_RED};
-        }}
-        
-        /* Botones y Sidebar */
-        .stButton>button {{
-            font-weight: 600;
-            padding: 10px 10px;
-            border-radius: 12px;
-            border: none;
-            transition: all 0.3s;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
-            /* width: 100%; - Retirado para la sección de navegación */
-            margin-bottom: 10px;
-        }}
-        
-        /* Botones Primarios (Finalizar / Siguiente) */
-        .stButton>button[kind="primary"] {{
-            background-color: {M_GREEN} !important; 
-            color: #1F2937 !important;
-        }}
-        /* Botón de Anterior */
-        .stButton>button[kind="secondary"] {{
-            background-color: #EFEFEF !important;
-            color: #4A90E2 !important;
-            border: 1px solid #4A90E2;
-        }}
-        
-        /* Sidebar Navigation Grouping */
-        .sidebar .stButton {{
-            margin-bottom: 10px; 
-        }}
-        
-        /* Estilo del Header del Sidebar */
-        .sidebar h2 {{
-            color: {V_BLUE};
-            font-size: 1.5rem;
-            margin-bottom: 10px;
-            border-bottom: 2px solid {M_GREEN};
-            padding-bottom: 5px;
-        }}
-
-        /* Botón de Imprimir/PDF (Acción Final) */
-        .print-button-container button {{
-            background-color: {V_BLUE} !important; 
-            color: white !important;
-            font-weight: 600;
-            padding: 12px 20px;
-            border-radius: 12px;
-            border: none;
-            transition: background-color 0.3s;
-            box-shadow: 0 4px 6px rgba(74, 144, 226, 0.5);
-            cursor: pointer;
-            width: 100%;
-        }}
-        
-        /* === Media Query para Impresión (Limpieza profesional del PDF) === */
-        @media print {{
-            /* Ocultar UI de Streamlit */
-            .stSidebar, .stButton, .stProgress:not(.results-progress), 
-            .stAlert:not(.result-alert), .css-fg4pbf, .stMetric [data-testid="stMetricDelta"],
-            .st-emotion-cache-1cypcdb
-            {{
-                display: none !important;
-            }}
-            /* Forzar visualización de Títulos y Resultados */
-            .main {{
-                background: white !important;
-                padding: 10px !important;
-                border: none !important;
-                box-shadow: none !important;
-            }}
-        }}
-
-    </style>
-    """, unsafe_allow_html=True)
-    
-# --- FUNCIÓN DE CALLBACK REFACTORIZADA PARA LA ESTABILIDAD ---
-def update_answer_stable(q_id):
-    """
-    Callback Estables: Lee el valor directamente de st.session_state usando la clave del widget.
-    """
-    widget_key = f"radio_{q_id}"
-    
-    # 1. Obtener el valor (que ahora es un entero o None)
-    selected_score = st.session_state.get(widget_key) 
-    
-    # 2. Guardar solo si es un score válido
-    if selected_score is not None and isinstance(selected_score, int) and selected_score in LIKERT_SCORES:
-         st.session_state.answers[q_id] = selected_score
-    else:
-         # Si es None o un tipo incorrecto, lo establece como None
-         st.session_state.answers[q_id] = None 
-    
-    # 3. Limpiar el error para no interferir con la navegación
-    st.session_state.error_message = ""
-# --- FIN FUNCIÓN DE CALLBACK REFACTORIZADA ---
-
-# Función para formatear las opciones del radio
-def format_likert(score):
-    """Mapea el score numérico a la descripción de texto."""
-    return LIKERT_OPTIONS.get(score, f"ERROR: {score}")
-
-# --- 5. FLUJO DE LA APLICACIÓN STREAMLIT ---
-
-def run_test():
-    """Función principal para correr la aplicación."""
-    
-    set_playful_style() # Aplica estilos
-    
-    # Inicializar el estado de la sesión
-    if 'answers' not in st.session_state: st.session_state.answers = {}
-    if 'test_completed' not in st.session_state: st.session_state.test_completed = False
-    if 'current_page' not in st.session_state: st.session_state.current_page = 0
-    if 'error_message' not in st.session_state: st.session_state.error_message = ""
-        
-    # Título y Encabezado
-    st.markdown(f"""
-    <div style="display: flex; align-items: center; margin-bottom: 20px;">
-        <span style="font-size: 2rem; font-weight: 700; color: {COLOR_MINT_GREEN}; margin-right: 10px;">🧠</span>
-        <h1 style="display: inline-block; margin: 0; border: none; padding: 0; color: {COLOR_VIBRANT_BLUE};">
-            Test de Personalidad: ¡Descubre tu Perfil!
-        </h1>
-        <span style="font-size: 2rem; font-weight: 700; color: {COLOR_MINT_GREEN}; margin-left: 10px;">🌟</span>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown(f"**Modelo OCEAN (Cinco Grandes)** | **{TOTAL_QUESTIONS} Ítems** (26 por rasgo)")
     st.markdown("---")
     
-    # --- A. Mostrar Resultados (Si el test está completado) ---
-    if st.session_state.test_completed:
-        
-        with st.spinner('✨ Analizando tu magia interior y generando tu perfil único...'):
-            time.sleep(1.5)
+    # Botón de inicio
+    st.info("⏰ Tiempo estimado: 15-20 minutos.")
+    if st.button("Comenzar Test", type="primary", use_container_width=True):
+        go_next()
 
-        scores = calculate_score(st.session_state.answers)
+
+def display_question_page():
+    """Muestra las preguntas para la página actual."""
+    
+    current_page = st.session_state['page']
+    start_index = (current_page - 1) * QUESTIONS_PER_PAGE
+    end_index = min(start_index + QUESTIONS_PER_PAGE, TOTAL_QUESTIONS)
+    
+    st.header(f"Sección de Preguntas {current_page} de {TOTAL_PAGES}")
+    st.subheader(f"Progreso: {end_index} de {TOTAL_QUESTIONS} preguntas respondidas (Parcialmente)")
+    
+    # Mostrar la barra de progreso
+    progress_percent = end_index / TOTAL_QUESTIONS
+    st.progress(progress_percent)
+    
+    current_questions = QUESTIONS[start_index:end_index]
+    
+    # Muestra las preguntas en forma de tarjetas o contenedores para mejor visualización
+    for i, q in enumerate(current_questions):
+        q_id = q["id"]
         
-        st.markdown(
-            f"""
-            <div class="profile-container">
-                <h2>🎉 ¡Tu Perfil de Personalidad ha sido Desbloqueado!</h2>
-                <p>Este análisis de 130 ítems te da una perspectiva detallada sobre tus rasgos dominantes del Modelo OCEAN. **Puntuación máxima por rasgo: {MAX_SCORE_PER_TRAIT}**.</p>
-                
-                <div class="print-button-container">
-                    <button onclick="window.print()">
-                        🖨️ ¡Guardar como PDF / Imprimir Informe Detallado!
-                    </button>
-                </div>
-            </div>
-            """, 
-            unsafe_allow_html=True
+        # Obtener el índice de la respuesta actual para que el radio button sea "controlado"
+        current_answer = st.session_state['answers'].get(q_id)
+        
+        # Mapear el score (int) a la descripción (string) para mostrarlo
+        # Esto asegura que el valor de retorno sea el score (1-5)
+        options_display = [f"{score}. {LIKERT_OPTIONS[score]}" for score in LIKERT_SCORES]
+        
+        with st.container(border=True):
+            # Título de la pregunta y el rasgo asociado (solo para referencia interna)
+            st.markdown(f"**{start_index + i + 1}. {q['text']}**")
+            
+            # Generar el componente de radio button
+            # El índice de la opción seleccionada (0-4)
+            # Necesitamos obtener el índice de la lista LIKERT_SCORES para preseleccionar
+            default_index = LIKERT_SCORES.index(current_answer) if current_answer is not None else -1
+            
+            
+            # Usamos un truco con st.select_slider para simular el radio button con mejor UI,
+            # manteniendo el valor de retorno como el score entero (1-5)
+            
+            selected_score = st.select_slider(
+                label=f"Respuesta para {q_id}:",
+                options=LIKERT_SCORES,
+                value=current_answer if current_answer is not None else LIKERT_SCORES[2], # 3: Neutral por defecto
+                format_func=lambda x: LIKERT_OPTIONS[x],
+                key=f"q_{q_id}",
+                label_visibility="collapsed"
+            )
+            
+            # Almacenar la respuesta en el estado de la sesión
+            st.session_state['answers'][q_id] = selected_score
+
+    st.markdown("---")
+    
+    # --- Controles de Navegación ---
+    col1, col2, col3 = st.columns([1, 4, 1])
+    
+    with col1:
+        if current_page > 1:
+            st.button("⬅️ Anterior", on_click=go_back, use_container_width=True)
+            
+    with col3:
+        if current_page < TOTAL_PAGES:
+            st.button("Siguiente ➡️", on_click=go_next, type="primary", use_container_width=True)
+        elif current_page == TOTAL_PAGES:
+            # Botón de Finalizar Test
+            st.button("Finalizar Test ✅", on_click=go_next, type="success", use_container_width=True)
+
+
+def display_results_page():
+    """Calcula y muestra los resultados finales."""
+    
+    st.title("🎉 Resultados del Test Big Five")
+    st.header(f"Perfil de {st.session_state['name']}")
+    
+    # 1. Calcular las puntuaciones finales
+    final_scores = calculate_score(st.session_state['answers'])
+    
+    # 2. Interpretar y preparar datos para visualización
+    results_list = []
+    for trait_code, score in final_scores.items():
+        interpretation = interpret_score(score, trait_code)
+        
+        # Normalizar el score al porcentaje (0-100%) para la visualización en el radar
+        normalized_score = ((score - MIN_SCORE_PER_TRAIT) / (MAX_SCORE_PER_TRAIT - MIN_SCORE_PER_TRAIT)) * 100
+        
+        results_list.append({
+            "Rasgo_Code": trait_code,
+            "Rasgo_Label": TRAIT_LABELS[trait_code],
+            "Score_Raw": score,
+            "Score_Normalized": normalized_score,
+            "Nivel": interpretation["level"],
+            "Nivel_Label": interpretation["color_label"],
+            "Color_Hex": interpretation["color_hex"],
+            "Descripcion": interpretation["description"],
+            "Fortaleza": interpretation["strength"],
+            "Desafio": interpretation["challenge"],
+        })
+
+    df_results = pd.DataFrame(results_list)
+
+    # 3. Visualización de Resultados (Gráfico Radar)
+    st.subheader("Gráfico de Perfil (OCEAN) [Image of radar chart of personality traits]")
+    
+    # Crear el gráfico de radar (Polar Plot)
+    fig = go.Figure(
+        data=[
+            go.Scatterpolar(
+                r=df_results['Score_Normalized'],
+                theta=df_results['Rasgo_Label'],
+                fill='toself',
+                name='Tu Perfil',
+                line_color=COLOR_VIBRANT_BLUE,
+                opacity=0.8
+            )
+        ],
+        layout=go.Layout(
+            polar=dict(
+                radialaxis=dict(
+                    visible=True, 
+                    range=[0, 100], 
+                    tickvals=[0, 25, 50, 75, 100],
+                    ticktext=['Bajo', 'Bajo-Medio', 'Medio', 'Medio-Alto', 'Alto']
+                ),
+            ),
+            showlegend=False,
+            height=500,
+            title_text="Tu Posicionamiento en los Cinco Grandes"
         )
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+    
+    st.markdown("---")
+    
+    # 4. Interpretación Detallada por Rasgo
+    st.subheader("Interpretación Detallada (Rasgo por Rasgo)")
+    
+    for _, row in df_results.iterrows():
         
-        for trait_code, score in scores.items():
-            results = interpret_score(score, trait_code)
-            trait_label = TRAIT_LABELS[trait_code]
-            
-            # Normalización del score para la barra de progreso
-            normalized_score = (score - MIN_SCORE_PER_TRAIT) / (MAX_SCORE_PER_TRAIT - MIN_SCORE_PER_TRAIT)
-            
+        # Tarjeta de resumen
+        st.markdown(f"#### {row['Rasgo_Code']}: {row['Rasgo_Label']}")
+        col_res, col_score = st.columns([3, 1])
+
+        with col_score:
             st.markdown(f"""
-            <div class="trait-header">
-                <h3>{trait_label}</h3>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            col_bar, col_score = st.columns([0.7, 0.3])
-
-            with col_bar:
-                st.markdown(f"""
-                <div style="font-size: 0.9rem; color: #555;">Nivel Detectado: <b>{results['level']} ({results['color_label']})</b></div>
-                <div style="height: 20px; border-radius: 10px; background-color: #E0E0E0; margin-top: 5px; overflow: hidden;">
-                    <div style="width: {normalized_score*100}%; height: 100%; background-color: {results['color_hex']}; border-radius: 1px; transition: width 1s;"></div>
-                </div>
-                """, unsafe_allow_html=True)
-
-            with col_score:
-                st.metric(label="Puntuación", value=f"{score}/{MAX_SCORE_PER_TRAIT}", delta=f"Rango: {results['level']}")
-            
-            st.markdown(f"**Fortaleza Central:** {results['strength']}")
-            
-            st.markdown(
-                f'<div class="challenge-box">', unsafe_allow_html=True
-            )
-            st.markdown(f"**{results['challenge']}**", unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-            st.markdown("<br>---<br>", unsafe_allow_html=True)
-        
-        st.markdown('<div class="restart-btn" style="text-align: center; margin-top: 30px;">', unsafe_allow_html=True)
-        st.button("🔄 Quiero Explorar de Nuevo", on_click=restart_test, type="secondary", use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-            
-    # --- B. Mostrar Cuestionario Paginado y Navegación en Contenido ---
-    else:
-        
-        current_page = st.session_state.current_page
-        start_index = current_page * QUESTIONS_PER_PAGE
-        end_index = min(start_index + QUESTIONS_PER_PAGE, TOTAL_QUESTIONS)
-        
-        current_questions = QUESTIONS[start_index:end_index]
-        
-        # 1. Visualización del Progreso y Página Actual
-        # Contamos solo respuestas válidas (enteros)
-        answered_total = len([ans for ans in st.session_state.answers.values() if ans is not None and isinstance(ans, int)])
-        progress_text = f"Progreso General: {answered_total}/{TOTAL_QUESTIONS} Preguntas"
-        st.progress(answered_total / TOTAL_QUESTIONS, text=progress_text)
-        
-        st.subheader(f"Sección {current_page + 1} de {TOTAL_PAGES}")
-        st.markdown("Marca tu nivel de acuerdo con cada afirmación:")
-        st.markdown("---")
-
-        # Mensaje de error (si existe)
-        if st.session_state.error_message:
-            st.error(st.session_state.error_message)
-        
-        # 2. Mostrar Preguntas
-        for q in current_questions:
-            q_id = q['id']
-            
-            # 1. Recuperar el valor actual (el score entero)
-            current_score = st.session_state.answers.get(q_id)
-            
-            # 2. Determinar el índice
-            current_index = None
-            if current_score in LIKERT_SCORES:
-                current_index = LIKERT_SCORES.index(current_score)
-            
-            # 3. Renderizar el widget con las opciones de entero y la función de formato
-            st.radio(
-                label=f"**{q_id}.** {q['text']}",
-                options=LIKERT_SCORES, # Opciones son scores (enteros)
-                key=f"radio_{q_id}", # Clave única para guardar el valor entero
-                index=current_index, # Índice para mantener la selección
-                format_func=format_likert, # Función para mostrar la descripción
-                on_change=update_answer_stable,
-                args=(q_id,) # Se pasa q_id para que el callback sepa qué pregunta actualizar
-            )
-        
-        st.markdown("---")
-        
-        # 3. Controles de Navegación en el Contenido Principal (NUEVA UBICACIÓN)
-        col_prev, col_status, col_next = st.columns([1, 1, 1])
-        
-        with col_prev:
-            # Botón Anterior
-            if current_page > 0:
-                st.button("← Anterior", on_click=handle_navigation, args=("prev",), use_container_width=True, type="secondary")
-            else:
-                st.button("Inicio", disabled=True, use_container_width=True, type="secondary")
-                
-        with col_status:
-            # Contador de Respuestas Pendientes en el centro
-            answered_current_page = 0
-            for q in current_questions:
-                ans = st.session_state.answers.get(q["id"])
-                if ans is not None and isinstance(ans, int):
-                    answered_current_page += 1
-            
-            pending_count = len(current_questions) - answered_current_page
-            
-            # Usar un componente markdown para el contador central
-            st.markdown(f"""
-                <div style="text-align: center; padding: 10px; border: 1px dashed #DDD; border-radius: 8px;">
-                    <p style="font-size: 0.85rem; margin: 0; color: #555;">PENDIENTES EN PÁGINA:</p>
-                    <p style="font-size: 1.2rem; font-weight: bold; color: {COLOR_DANGER_RED}; margin: 5px 0 0 0;">{pending_count}</p>
+                <div style="background-color: {row['Color_Hex']}; padding: 10px; border-radius: 10px; color: white; text-align: center;">
+                    <p style="font-size: 1.5em; margin: 0;">{row['Nivel_Label']}</p>
+                    <p style="font-size: 0.9em; margin: 0;">Puntuación: {row['Score_Raw']} / {MAX_SCORE_PER_TRAIT}</p>
                 </div>
             """, unsafe_allow_html=True)
-
-
-        with col_next:
-            # Botón Siguiente / Finalizar
-            is_last_page = current_page == TOTAL_PAGES - 1
-            
-            if is_last_page:
-                st.button("🚀 Finalizar Test", on_click=handle_navigation, args=("finish",), use_container_width=True, type="primary")
-            else:
-                st.button(f"Siguiente →", on_click=handle_navigation, args=("next",), use_container_width=True, type="primary")
-
-        # 4. Dejar el sidebar para información extra
-        with st.sidebar:
-            st.header("Información")
-            st.markdown(f"""
-            <div style="text-align: center; padding: 10px; border: 1px solid #E0E7FF; border-radius: 8px; background-color: #F0F5FF;">
-                <p style="font-size: 1rem; margin-bottom: 5px; color: {COLOR_VIBRANT_BLUE};">Página Actual</p>
-                <p style="font-size: 2rem; font-weight: bold; color: {COLOR_MINT_GREEN}; margin: 0;">{current_page + 1}/{TOTAL_PAGES}</p>
-            </div>
-            """, unsafe_allow_html=True)
+        
+        with col_res:
+            st.markdown(f"**Resumen:** {row['Descripcion']}")
+            st.markdown(f"**💪 Fortaleza Clave:** {row['Fortaleza']}")
+            st.markdown(f"**🚨 Desafío Crítico:** {row['Desafio']}")
             st.markdown("---")
-            st.info("El test se guarda automáticamente. Si cierras o recargas, continuarás donde lo dejaste.")
 
-        
-# Ejecutar la aplicación
-if __name__ == '__main__':
-    run_test()
+    # Botón de reinicio
+    st.markdown("---")
+    st.button("Volver a Empezar Test", on_click=restart_test, type="secondary", use_container_width=True)
+
+
+# --- 5. LÓGICA PRINCIPAL DE LA APLICACIÓN ---
+
+def main_app():
+    """Maneja el flujo de navegación de la aplicación."""
+    
+    # Inicialización del estado de la sesión
+    if 'page' not in st.session_state:
+        st.session_state['page'] = 0
+    if 'answers' not in st.session_state:
+        st.session_state['answers'] = {}
+    if 'name' not in st.session_state:
+        st.session_state['name'] = ""
+    if 'email' not in st.session_state:
+        st.session_state['email'] = ""
+
+    current_page = st.session_state['page']
+    
+    if current_page == 0:
+        display_start_page()
+    elif 1 <= current_page <= TOTAL_PAGES:
+        display_question_page()
+    elif current_page == TOTAL_PAGES + 1:
+        display_results_page()
+    else:
+        # Fallback o estado final inesperado
+        st.error("Error en el estado de la aplicación. Por favor, reinicia el test.")
+        restart_test()
+
+# Ejecución de la aplicación
+if __name__ == "__main__":
+    main_app()
