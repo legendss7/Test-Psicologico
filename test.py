@@ -357,7 +357,7 @@ def interpret_score(score, trait):
 
 # --- 3. FUNCIONES DE NAVEGACIÓN Y REINICIO ---
 
-# Función para gestionar el scroll al top
+# Función para gestionar el scroll al top (MANTENIDA)
 def scroll_to_top():
     """
     Inyecta JavaScript para forzar el scroll de la ventana al inicio (0, 0).
@@ -365,7 +365,8 @@ def scroll_to_top():
     st.markdown(
         """
         <script>
-        // Mueve el scroll de la ventana al inicio
+        // Mueve el scroll de la ventana al inicio.
+        // Se ejecuta en el nuevo ciclo de renderizado.
         window.scrollTo(0, 0);
         </script>
         """,
@@ -390,7 +391,8 @@ def restart_test():
     st.session_state.test_completed = False
     st.session_state.current_page = 0
     st.session_state.error_message = ""
-    scroll_to_top() # También al reiniciar
+    # NO es necesario scroll_to_top() aquí, ya se ejecuta al final de run_test
+    # cuando st.session_state.test_completed es False.
 
 # --- 4. CONFIGURACIÓN VISUAL Y DE INTERFAZ (CSS) ---
 
@@ -757,9 +759,7 @@ def run_test():
         # --- Lógica de Manejo de Formulario (Fuera del bloque `with st.form`) ---
         
         if prev_button:
-            # 1. Llamar a la función de scroll antes de cambiar de página
-            scroll_to_top() 
-            # 2. Retroceder y forzar la re-ejecución
+            # NO llamamos a scroll_to_top() aquí.
             prev_page()
             st.rerun()
 
@@ -783,16 +783,22 @@ def run_test():
                     # Si es la última página Y todo está respondido, finalizar
                     if len(st.session_state.answers) == TOTAL_QUESTIONS:
                         st.session_state.test_completed = True
-                        scroll_to_top() # Scroll al top antes de ver resultados
-                        st.rerun()
+                        # st.rerun() provocará que se ejecute la sección A
+                        st.rerun() 
                     else:
                         st.session_state.error_message = "Error interno: Faltan respuestas para completar el test. Por favor, revisa las páginas anteriores."
                         st.rerun()
                 else:
                     # Avanzar a la siguiente página
-                    scroll_to_top() # Scroll al top antes de avanzar
                     next_page()
+                    # st.rerun() provocará que se ejecute la sección B y el scroll_to_top al final.
                     st.rerun() 
+        
+        # === CORRECCIÓN CLAVE ===
+        # Llamar a scroll_to_top() de forma incondicional al final del bloque de renderizado
+        # de las preguntas. Esto garantiza que el JS se inyecte en cada ciclo de re-ejecución 
+        # (incluido el generado por el cambio de página) y se ejecute después de cargar el DOM.
+        scroll_to_top()
 
 # Ejecutar la aplicación
 if __name__ == '__main__':
