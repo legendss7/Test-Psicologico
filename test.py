@@ -357,17 +357,20 @@ def interpret_score(score, trait):
 
 # --- 3. FUNCIONES DE NAVEGACIÓN Y REINICIO ---
 
-# Función para gestionar el scroll al top (MANTENIDA)
 def scroll_to_top():
     """
-    Inyecta JavaScript para forzar el scroll de la ventana al inicio (0, 0).
+    Inyecta JavaScript con un retraso para forzar el scroll de la ventana al inicio (0, 0),
+    asegurando que se ejecute después de que Streamlit haya renderizado el nuevo DOM.
     """
+    # [CORRECCIÓN APLICADA AQUÍ: Se añade setTimeout]
     st.markdown(
         """
         <script>
-        // Mueve el scroll de la ventana al inicio.
-        // Se ejecuta en el nuevo ciclo de renderizado.
-        window.scrollTo(0, 0);
+        // La comunidad de Streamlit recomienda un pequeño retraso (e.g., 50ms)
+        // para garantizar que la nueva página esté cargada antes de scrollear.
+        setTimeout(() => {
+            window.scrollTo(0, 0);
+        }, 50); 
         </script>
         """,
         unsafe_allow_html=True
@@ -391,8 +394,6 @@ def restart_test():
     st.session_state.test_completed = False
     st.session_state.current_page = 0
     st.session_state.error_message = ""
-    # NO es necesario scroll_to_top() aquí, ya se ejecuta al final de run_test
-    # cuando st.session_state.test_completed es False.
 
 # --- 4. CONFIGURACIÓN VISUAL Y DE INTERFAZ (CSS) ---
 
@@ -759,7 +760,7 @@ def run_test():
         # --- Lógica de Manejo de Formulario (Fuera del bloque `with st.form`) ---
         
         if prev_button:
-            # NO llamamos a scroll_to_top() aquí.
+            # NO llamamos a scroll_to_top() aquí, se llama al final del 'else'
             prev_page()
             st.rerun()
 
@@ -794,10 +795,9 @@ def run_test():
                     # st.rerun() provocará que se ejecute la sección B y el scroll_to_top al final.
                     st.rerun() 
         
-        # === CORRECCIÓN CLAVE ===
+        # === SOLUCIÓN FINAL ===
         # Llamar a scroll_to_top() de forma incondicional al final del bloque de renderizado
-        # de las preguntas. Esto garantiza que el JS se inyecte en cada ciclo de re-ejecución 
-        # (incluido el generado por el cambio de página) y se ejecute después de cargar el DOM.
+        # de las preguntas. El script ahora tiene un retraso para funcionar correctamente.
         scroll_to_top()
 
 # Ejecutar la aplicación
