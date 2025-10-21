@@ -202,7 +202,6 @@ def calculate_score(answers):
         is_reverse = q["reverse"]
         
         # Obtenemos la respuesta directamente del estado de sesión
-        # Utilizamos .get() por si alguna clave falta (aunque no debería)
         response = answers.get(q_id) 
         
         if response is not None:
@@ -412,7 +411,7 @@ def handle_navigation(action):
         
         if answered_on_current_page < questions_on_page_count:
             # Falla la validación: Error de respuestas incompletas
-            st.session_state.error_message = f"⚠️ ¡Alto! Responde las {questions_on_page_count - answered_on_current_page} preguntas de la página actual antes de continuar."
+            st.session_state.error_message = f"⚠️ ¡Alto! Responde las **{questions_on_page_count - answered_on_current_page}** preguntas de la página actual antes de continuar."
             return 
         else:
             # Pasa la validación
@@ -696,7 +695,7 @@ def run_test():
                 st.markdown(f"""
                 <div style="font-size: 0.9rem; color: #555;">Nivel Detectado: <b>{results['level']} ({results['color_label']})</b></div>
                 <div style="height: 20px; border-radius: 10px; background-color: #E0E0E0; margin-top: 5px; overflow: hidden;">
-                    <div style="width: {normalized_score*100}%; height: 100%; background-color: {results['color_hex']}; border-radius: 10px; transition: width 1s;"></div>
+                    <div style="width: {normalized_score*100}%; height: 100%; background-color: {results['color_hex']}; border-radius: 1px; transition: width 1s;"></div>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -744,21 +743,18 @@ def run_test():
         # Invertir el diccionario para que el value sea el score y el key sea la descripción (para el format_func)
         likert_options_tuple = [(v, k) for k, v in LIKERT_OPTIONS.items()] 
 
-        # --- FUNCIÓN DE CALLBACK CORREGIDA PARA LA ESTABILIDAD ---
-        def update_answer(_, q_id):
+        # --- FUNCIÓN DE CALLBACK CORREGIDA PARA LA ESTABILIDAD (VERSIÓN DEFINITIVA) ---
+        def update_answer(selected_value, q_id):
             """
-            Callback: Ignora el valor del widget (primer argumento) y obtiene la respuesta 
-            directamente de st.session_state usando la clave del radio, con triple validación de tipo.
+            Callback: Utiliza el valor del widget (selected_value) directamente 
+            en lugar de acceder a st.session_state.
             """
-            widget_key = f"radio_{q_id}"
+            # selected_value debe ser una tupla como ("De acuerdo", 4) o None
             
-            # 1. Usar .get() para evitar KeyError si la clave no está presente
-            response = st.session_state.get(widget_key) 
-            
-            # 2. Verificar que la respuesta sea una tupla y tenga 2 elementos
-            if isinstance(response, tuple) and len(response) == 2:
-                # response[1] es el score (el entero)
-                st.session_state.answers[q_id] = response[1]
+            # Triple verificación de seguridad en el valor PASADO al callback
+            if isinstance(selected_value, tuple) and len(selected_value) == 2:
+                # selected_value[1] es el score (el entero)
+                st.session_state.answers[q_id] = selected_value[1]
             else:
                 # Si es None o un tipo incorrecto/incompleto, lo establece como None
                 st.session_state.answers[q_id] = None
@@ -772,13 +768,13 @@ def run_test():
             # Recuperar el valor actual del estado de sesión (solo el score)
             current_score = st.session_state.answers.get(q_id)
             
-            # Determinar qué índice debe estar seleccionado
-            selected_index = None
+            # Determinar qué opción debe estar seleccionada
+            selected_option = None
             if current_score is not None:
                 # Buscamos la tupla (descripción, score) cuyo score coincida
-                for i, (_, score_val) in enumerate(likert_options_tuple):
-                    if score_val == current_score:
-                        selected_index = i
+                for option_tuple in likert_options_tuple:
+                    if option_tuple[1] == current_score:
+                        selected_option = option_tuple
                         break
             
             # Usar st.radio para mostrar el widget
@@ -786,9 +782,10 @@ def run_test():
                 label=f"**{q_id}.** {q['text']}",
                 options=likert_options_tuple,
                 key=f"radio_{q_id}", 
-                index=selected_index, # Si es None, no selecciona nada inicialmente
+                index=likert_options_tuple.index(selected_option) if selected_option else None,
                 format_func=lambda x: x[0],
                 on_change=update_answer,
+                # El primer argumento es el valor del widget, el segundo es q_id (del args)
                 args=(q_id,) 
             )
         
