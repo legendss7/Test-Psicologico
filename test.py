@@ -15,7 +15,8 @@ QUESTIONS = [
     {"id": "O6", "text": "Soy una persona curiosa intelectualmente.", "trait": "O", "reverse": False},
     {"id": "O7", "text": "Me encanta explorar teorías filosóficas y debatir conceptos.", "trait": "O", "reverse": False},
     {"id": "O8", "text": "Soy capaz de ignorar el ruido o las distracciones fácilmente.", "trait": "O", "reverse": True},
-    {"id: "O9", "text": "A menudo me pierdo en mis pensamientos o ideas.", "trait": "O", "reverse": False},
+    # ¡CORRECCIÓN APLICADA AQUÍ!
+    {"id": "O9", "text": "A menudo me pierdo en mis pensamientos o ideas.", "trait": "O", "reverse": False},
     {"id": "O10", "text": "Raramente busco aprender habilidades que no sean directamente útiles.", "trait": "O", "reverse": True},
     {"id": "O11", "text": "Disfruto de exposiciones de arte y música poco convencional.", "trait": "O", "reverse": False},
     {"id": "O12", "text": "Para mí, 'lo nuevo' a menudo significa 'peligroso'.", "trait": "O", "reverse": True},
@@ -26,7 +27,7 @@ QUESTIONS = [
     {"id": "C3", "text": "A menudo me olvido de mis deberes y responsabilidades.", "trait": "C", "reverse": True},
     {"id": "C4", "text": "Trabajo con diligencia hasta completar cualquier tarea que comience.", "trait": "C", "reverse": False},
     {"id": "C5", "text": "No me importa dejar las cosas sin terminar si pierdo el interés.", "trait": "C", "reverse": True},
-    {"id: "C6", "text": "Siempre procuro mantener mis promesas y compromisos.", "trait": "C", "reverse": False},
+    {"id": "C6", "text": "Siempre procuro mantener mis promesas y compromisos.", "trait": "C", "reverse": False},
     {"id": "C7", "text": "Soy visto por otros como una persona muy fiable y puntual.", "trait": "C", "reverse": False},
     {"id": "C8", "text": "Tengo dificultades para concentrarme en una sola cosa por mucho tiempo.", "trait": "C", "reverse": True},
     {"id": "C9", "text": "Establezco objetivos claros y trabajo sistemáticamente para alcanzarlos.", "trait": "C", "reverse": False},
@@ -58,7 +59,7 @@ QUESTIONS = [
     {"id": "A7", "text": "Me resulta fácil perdonar a quienes me han ofendido.", "trait": "A", "reverse": False},
     {"id": "A8", "text": "A veces manipulo a los demás para conseguir lo que quiero.", "trait": "A", "reverse": True},
     {"id": "A9", "text": "Me gusta ayudar a quienes lo necesitan, incluso a expensas de mi tiempo.", "trait": "A", "reverse": False},
-    {"id: "A10", "text": "Soy muy directo y no me importa criticar a los demás.", "trait": "A", "reverse": True},
+    {"id": "A10", "text": "Soy muy directo y no me importa criticar a los demás.", "trait": "A", "reverse": True},
     {"id": "A11", "text": "Considero importante la armonía en mis relaciones.", "trait": "A", "reverse": False},
     {"id": "A12", "text": "Me resulta difícil simpatizar con la gente que se queja mucho.", "trait": "A", "reverse": True},
     
@@ -446,7 +447,8 @@ def set_professional_style():
                     window.scrollTo(0, 0);
                 }
             }
-            scrollToTop();
+            // Se ejecuta en la carga inicial y en cada reruns de Streamlit
+            scrollToTop(); 
         </script>
         """,
         unsafe_allow_html=True
@@ -589,7 +591,7 @@ def run_test():
 
         
         # Controles de la Página Actual (DENTRO DEL FORMULARIO)
-        # Esto soluciona el problema del doble click al asegurar que los valores se actualicen al someter el form.
+        # Se usa un formulario para manejar la validación en el submit, resolviendo el doble click.
         with st.form(key=f'page_form_{current_page}'):
             
             # Lista de opciones con el formato (Etiqueta, Valor)
@@ -621,13 +623,13 @@ def run_test():
             st.markdown("---")
             col_prev, col_next_finish = st.columns([1, 1])
 
-            with col_prev:
-                if current_page > 0:
+            prev_button = None
+            if current_page > 0:
+                with col_prev:
                     prev_button = st.form_submit_button("← Anterior")
 
+            is_last_page = current_page == TOTAL_PAGES - 1
             with col_next_finish:
-                is_last_page = current_page == TOTAL_PAGES - 1
-                
                 if is_last_page:
                     submit_button = st.form_submit_button("Finalizar Test y Ver Mi Perfil", type="primary")
                 else:
@@ -635,12 +637,12 @@ def run_test():
         
         # --- Lógica de Manejo de Formulario (Fuera del bloque `with st.form`) ---
         
-        if 'prev_button' in locals() and prev_button:
+        if prev_button:
             # Si se presiona Anterior, simplemente se navega (no necesita validación)
             prev_page()
             st.rerun()
 
-        if 'submit_button' in locals() and submit_button:
+        if submit_button:
             # Primero, actualizamos el estado de la sesión con las respuestas del formulario
             st.session_state.answers.update(form_answers_current_page)
             
