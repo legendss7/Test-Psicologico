@@ -368,21 +368,23 @@ def scroll_to_top():
         <script>
         // Función principal que intenta forzar el scroll al inicio usando múltiples métodos
         function forceScrollToTop() {
-            window.scrollTo({ top: 0, behavior: 'instant' });
+            // Intento 1: Scroll suave al cuerpo del documento
+            window.scrollTo({ top: 0, behavior: 'smooth' }); 
+            
+            // Intento 2 y 3: Scroll forzado inmediato al nivel del documento/body
             document.body.scrollTop = 0; // Para Safari
             document.documentElement.scrollTop = 0; // Para Chrome, Firefox, IE
         }
 
-        // 1. Primer intento rápido (100ms): Generalmente funciona para la mayoría de los re-renders.
-        setTimeout(forceScrollToTop, 100); 
+        // 1. Primer intento rápido (10ms): Captura la mayoría de las recargas.
+        setTimeout(forceScrollToTop, 10); 
 
-        // 2. Segundo intento de respaldo (500ms): 
-        // Se ejecuta si el navegador es lento en restablecer su posición después de la recarga del DOM,
-        // asegurando que si el primero falló, este lo capture.
-        setTimeout(forceScrollToTop, 500); 
+        // 2. Segundo intento de respaldo (200ms): 
+        // Se ejecuta si el navegador es lento en restablecer su posición después de la recarga del DOM.
+        setTimeout(forceScrollToTop, 200); 
         
-        // 3. Tercer intento de máxima seguridad (1000ms): 
-        setTimeout(forceScrollToTop, 1000); 
+        // 3. Tercer intento de máxima seguridad (500ms): 
+        setTimeout(forceScrollToTop, 500); 
         </script>
         """,
         unsafe_allow_html=True
@@ -422,10 +424,9 @@ def add_debounce_script():
                             
                             // 2. Deshabilitar los otros botones del formulario (Anterior, si existe)
                             buttons.forEach(btn => {
-                                if (btn !== this) {
-                                    btn.disabled = true;
-                                    btn.style.opacity = '0.7';
-                                }
+                                // Deshabilitar todos los botones de navegación
+                                btn.disabled = true;
+                                btn.style.opacity = '0.7';
                             });
                         });
                         button.setAttribute('data-debounced', 'true');
@@ -661,7 +662,7 @@ def run_test():
     """Función principal para correr la aplicación."""
     
     set_playful_style()
-    add_debounce_script() # <<<< INYECCIÓN DE DEBOUNCE PARA EVITAR DOBLE CLIC
+    add_debounce_script() # <<<< Mantiene la prevención de doble clic
 
     # Inicializar el estado de la sesión
     if 'answers' not in st.session_state: st.session_state.answers = {}
@@ -865,7 +866,7 @@ def run_test():
                     # st.rerun() provocará que se ejecute la sección B y el scroll_to_top al final.
                     st.rerun() 
         
-        # === APLICACIÓN DE LA SOLUCIÓN MULTI-ETAPA ===
+        # === APLICACIÓN DE LA SOLUCIÓN MULTI-ETAPA PARA SCROLL ===
         # Llamar a scroll_to_top() de forma incondicional al final del bloque de renderizado
         scroll_to_top()
 
