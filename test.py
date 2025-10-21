@@ -411,7 +411,7 @@ def handle_navigation(action):
         
         if answered_on_current_page < questions_on_page_count:
             # Falla la validación
-            st.session_state.error_message = f"⚠️ ¡Alto! Responde las {questions_on_current_page - answered_on_current_page} preguntas de la página actual antes de continuar."
+            st.session_state.error_message = f"⚠️ ¡Alto! Responde las {questions_on_page_count - answered_on_current_page} preguntas de la página actual antes de continuar."
             # NO se llama a rerun(), para que se muestre el error y se quede en la misma página.
             return 
         else:
@@ -744,15 +744,25 @@ def run_test():
         # Invertir el diccionario para que el value sea el score y el key sea la descripción (para el format_func)
         likert_options_tuple = [(v, k) for k, v in LIKERT_OPTIONS.items()] 
 
-        # --- FUNCIÓN DE CALLBACK CORREGIDA ---
-        def update_answer(new_response_tuple, q_id):
-            """Callback que recibe el nuevo valor del widget y el q_id como args."""
-            if new_response_tuple is not None:
-                # new_response_tuple es (Descripción, Score), queremos el Score [1]
-                st.session_state.answers[q_id] = new_response_tuple[1]
+        # --- FUNCIÓN DE CALLBACK CORREGIDA PARA ESTABILIDAD ---
+        # El primer argumento '_' es el valor del widget, pasado automáticamente por Streamlit,
+        # pero lo ignoramos para evitar el TypeError al confiar en el st.session_state Key.
+        def update_answer(_, q_id):
+            """
+            Callback: Ignora el valor del widget (primer argumento) y obtiene la respuesta 
+            directamente de st.session_state usando la clave del radio (el método más estable).
+            """
+            widget_key = f"radio_{q_id}"
+            
+            # El valor almacenado es la tupla (Descripción, Score)
+            response_tuple = st.session_state[widget_key] 
+            
+            if response_tuple is not None:
+                # Extraemos solo el score (el segundo elemento de la tupla)
+                st.session_state.answers[q_id] = response_tuple[1]
             else:
                 st.session_state.answers[q_id] = None
-            # Limpiamos el mensaje de error al responder (feedback inmediato)
+
             st.session_state.error_message = "" 
         # --- FIN FUNCIÓN DE CALLBACK CORREGIDA ---
 
@@ -778,8 +788,7 @@ def run_test():
                 index=selected_index if selected_index != -1 else None,
                 format_func=lambda x: x[0],
                 on_change=update_answer,
-                # FIX: Ahora solo pasamos el q_id. Streamlit pasa el valor seleccionado 
-                # como primer argumento de la función de callback.
+                # args=(q_id,) pasa q_id como el SEGUNDO argumento de la función de callback
                 args=(q_id,) 
             )
         
