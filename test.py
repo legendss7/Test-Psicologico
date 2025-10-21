@@ -1,7 +1,6 @@
 import streamlit as st
-import numpy as np
 from collections import defaultdict
-import time # Para simular una pequeña espera de carga de resultados
+import time 
 
 # --- 1. CONFIGURACIÓN DEL TEST (BIG FIVE - OCEAN) ---
 
@@ -16,7 +15,7 @@ QUESTIONS = [
     {"id": "O6", "text": "Soy una persona curiosa intelectualmente.", "trait": "O", "reverse": False},
     {"id": "O7", "text": "Me encanta explorar teorías filosóficas y debatir conceptos.", "trait": "O", "reverse": False},
     {"id": "O8", "text": "Soy capaz de ignorar el ruido o las distracciones fácilmente.", "trait": "O", "reverse": True},
-    {"id": "O9", "text": "A menudo me pierdo en mis pensamientos o ideas.", "trait": "O", "reverse": False},
+    {"id: "O9", "text": "A menudo me pierdo en mis pensamientos o ideas.", "trait": "O", "reverse": False},
     {"id": "O10", "text": "Raramente busco aprender habilidades que no sean directamente útiles.", "trait": "O", "reverse": True},
     {"id": "O11", "text": "Disfruto de exposiciones de arte y música poco convencional.", "trait": "O", "reverse": False},
     {"id": "O12", "text": "Para mí, 'lo nuevo' a menudo significa 'peligroso'.", "trait": "O", "reverse": True},
@@ -27,7 +26,7 @@ QUESTIONS = [
     {"id": "C3", "text": "A menudo me olvido de mis deberes y responsabilidades.", "trait": "C", "reverse": True},
     {"id": "C4", "text": "Trabajo con diligencia hasta completar cualquier tarea que comience.", "trait": "C", "reverse": False},
     {"id": "C5", "text": "No me importa dejar las cosas sin terminar si pierdo el interés.", "trait": "C", "reverse": True},
-    {"id": "C6", "text": "Siempre procuro mantener mis promesas y compromisos.", "trait": "C", "reverse": False},
+    {"id: "C6", "text": "Siempre procuro mantener mis promesas y compromisos.", "trait": "C", "reverse": False},
     {"id": "C7", "text": "Soy visto por otros como una persona muy fiable y puntual.", "trait": "C", "reverse": False},
     {"id": "C8", "text": "Tengo dificultades para concentrarme en una sola cosa por mucho tiempo.", "trait": "C", "reverse": True},
     {"id": "C9", "text": "Establezco objetivos claros y trabajo sistemáticamente para alcanzarlos.", "trait": "C", "reverse": False},
@@ -59,7 +58,7 @@ QUESTIONS = [
     {"id": "A7", "text": "Me resulta fácil perdonar a quienes me han ofendido.", "trait": "A", "reverse": False},
     {"id": "A8", "text": "A veces manipulo a los demás para conseguir lo que quiero.", "trait": "A", "reverse": True},
     {"id": "A9", "text": "Me gusta ayudar a quienes lo necesitan, incluso a expensas de mi tiempo.", "trait": "A", "reverse": False},
-    {"id": "A10", "text": "Soy muy directo y no me importa criticar a los demás.", "trait": "A", "reverse": True},
+    {"id: "A10", "text": "Soy muy directo y no me importa criticar a los demás.", "trait": "A", "reverse": True},
     {"id": "A11", "text": "Considero importante la armonía en mis relaciones.", "trait": "A", "reverse": False},
     {"id": "A12", "text": "Me resulta difícil simpatizar con la gente que se queja mucho.", "trait": "A", "reverse": True},
     
@@ -82,6 +81,8 @@ QUESTIONS = [
 QUESTIONS_PER_PAGE = 10
 TOTAL_QUESTIONS = len(QUESTIONS)
 TOTAL_PAGES = (TOTAL_QUESTIONS + QUESTIONS_PER_PAGE - 1) // QUESTIONS_PER_PAGE # 60/10 = 6 páginas
+MAX_SCORE_PER_TRAIT = 12 * 5 # 12 preguntas * 5 puntos max = 60
+MIN_SCORE_PER_TRAIT = 12 * 1 # 12 preguntas * 1 punto min = 12
 
 # Opciones de respuesta para el Likert Scale
 LIKERT_OPTIONS = {
@@ -104,7 +105,7 @@ TRAIT_LABELS = {
 # Colores para la visualización de resultados (Profesional)
 LEVEL_COLORS = {
     "Alto_Positivo": "#004AAD",  # Azul Corporativo
-    "Bajo_Negativo": "#C0392B",  # Rojo (para Baja Positiva o Alta Negativa)
+    "Bajo_Negativo": "#C0392B",  # Rojo
     "Medio": "#F39C12",         # Amarillo/Naranja
     "Estable": "#16A085"        # Verde (para Baja en Neuroticismo)
 }
@@ -126,7 +127,6 @@ def calculate_score(answers):
             score = response
             
             if is_reverse:
-                # El score de un item invertido (1-5) es (6 - score)
                 score = 6 - score 
             
             scores[trait] += score
@@ -135,11 +135,10 @@ def calculate_score(answers):
 
 def interpret_score(score, trait):
     """
-    Interpreta la puntuación (Bajo, Medio, Alto) y devuelve el texto del perfil y el color.
-    Nuevo rango de score: 12 (min) a 60 (max).
+    Interpreta la puntuación (Bajo, Medio, Alto) y devuelve el texto del perfil y las áreas de mejora.
+    Rango de score: 12 (min) a 60 (max).
     """
     # Umbrales (Aproximadamente tercios del rango 12-60. Ancho de rango: 48)
-    # Bajo: 12-28 | Medio: 29-43 | Alto: 44-60
     LOW_THRESHOLD = 28
     HIGH_THRESHOLD = 44
     
@@ -150,38 +149,82 @@ def interpret_score(score, trait):
     else:
         level = "Medio"
         
-    # --- Descripciones de Perfil ---
+    # --- Descripciones Detalladas y Áreas de Mejora ---
     profiles = {
         "O": {
-            "Alto": "**Alto en Apertura (Explorador):** Eres sumamente curioso, creativo y prefieres la variedad. Te sientes atraído por el arte, las ideas abstractas y la exploración de nuevas culturas o filosofías. Muestras una gran flexibilidad mental.",
-            "Medio": "**Moderado en Apertura (Equilibrado):** Eres práctico pero estás abierto al cambio cuando se justifica. Tienes intereses variados y disfrutas de la cultura, pero valoras la estabilidad y la tradición en igual medida.",
-            "Bajo": "**Bajo en Apertura (Pragmático):** Eres más tradicional, pragmático y prefieres lo conocido y familiar. Te enfocas en hechos concretos, eres reservado con las ideas abstractas y valoras la rutina y la seguridad."
+            "Alto": {
+                "desc": "Eres un **Explorador** innato, sumamente curioso, creativo y con una mente siempre abierta. Disfrutas de la complejidad, el arte y la diversidad. Esto te impulsa a la innovación y al crecimiento constante. Sin embargo, debes tener cuidado de no perder el foco en la practicidad.",
+                "improvement": "A veces, la búsqueda constante de novedad puede llevarte a iniciar muchos proyectos sin finalizar ninguno. **Mejora:** Practica la disciplina de terminar lo que empiezas, enfocándote en implementar las ideas brillantes que ya tienes antes de pasar a la siguiente."
+            },
+            "Medio": {
+                "desc": "Tienes un **perfil Equilibrado**, combinando la curiosidad y la apertura al cambio con un fuerte sentido de la estabilidad. Eres adaptable, pero no impulsivo, y puedes interactuar con éxito tanto en entornos creativos como tradicionales.",
+                "improvement": "Tu equilibrio es tu fuerza, pero a veces puedes caer en una 'zona de confort'. **Mejora:** Desafíate a salir de la rutina de forma intencional y a profundizar en un área de conocimiento completamente nueva, superando la tendencia a ser demasiado pragmático."
+            },
+            "Bajo": {
+                "desc": "Eres **Pragmático y Convencional**. Prefieres la familiaridad, la tradición y los métodos probados. Tu enfoque está en los hechos concretos y la utilidad práctica, lo que te hace muy eficiente en tareas bien definidas. Tiendes a resistirte a ideas demasiado abstractas.",
+                "improvement": "Tu aversión al riesgo y a lo desconocido puede limitar tu potencial de crecimiento. **Mejora:** Busca activamente perspectivas diferentes a las tuyas, lee sobre temas que te incomoden intelectualmente y practica la empatía cognitiva para entender cómo otros abordan el mundo."
+            }
         },
         "C": {
-            "Alto": "**Alto en Responsabilidad (Organizado):** Eres extremadamente organizado, disciplinado, orientado a metas y muy confiable. Planificas con antelación, persistes en la dificultad y demuestras un alto nivel de autodisciplina.",
-            "Medio": "**Moderado en Responsabilidad (Eficaz):** Eres capaz de ser organizado y cumplir tus metas, pero no te estresas excesivamente por la perfección. Eres confiable, pero te permites ser espontáneo cuando es necesario.",
-            "Bajo": "**Bajo en Responsabilidad (Espontáneo):** Eres más flexible, espontáneo y, a veces, informal. Tiendes a posponer tareas, prefieres la improvisación y puedes carecer de un enfoque riguroso en los detalles."
+            "Alto": {
+                "desc": "Eres un **Estratega y Organizado**. Muestras un alto nivel de autodisciplina, eres confiable, orientado a metas y meticuloso en los detalles. Tu ética de trabajo es ejemplar y siempre planeas con mucha antelación.",
+                "improvement": "Tu perfeccionismo y rigor pueden llevar al agotamiento o a la inflexibilidad. **Mejora:** Aprende a delegar y a aceptar que 'suficientemente bueno' es a veces mejor que perfecto. Permítete períodos de espontaneidad para recargar tu energía y reducir el estrés."
+            },
+            "Medio": {
+                "desc": "Eres una persona **Eficaz y Flexible**. Tienes la capacidad de organizarte y cumplir con los plazos, pero valoras la flexibilidad. Eres confiable, pero no te agobia la rigidez, permitiendo ajustes cuando la situación lo requiere.",
+                "improvement": "Asegúrate de que tu flexibilidad no se convierta en inconsistencia. **Mejora:** Define objetivos intermedios más claros para evitar la procrastinación en tareas de baja prioridad y utiliza herramientas de gestión de tiempo para monitorear tu progreso de manera más sistemática."
+            },
+            "Bajo": {
+                "desc": "Eres **Espontáneo y Despreocupado**. Priorizas la flexibilidad y la improvisación sobre el orden riguroso. Te sientes cómodo con el caos y puedes adaptarte rápidamente a los cambios, pero tiendes a la procrastinación y a un enfoque desorganizado.",
+                "improvement": "Tu falta de estructura puede sabotear el logro de objetivos a largo plazo. **Mejora:** Implementa pequeñas rutinas diarias (ej. 15 minutos de planificación) y divide las tareas grandes en pasos minúsculos. Concéntrate en cumplir los compromisos, pues tu reputación depende de ello."
+            }
         },
         "E": {
-            "Alto": "**Alto en Extraversión (Sociable):** Eres exuberante, sociable, enérgico y asertivo. Buscas activamente la interacción social, disfrutas de los grandes grupos y te sientes energizado al estar rodeado de gente.",
-            "Medio": "**Moderado en Extraversión (Ambivertido):** Tienes un equilibrio entre la vida social y la soledad. Disfrutas de la compañía, pero también necesitas tiempo a solas para recargar energías. Eres un buen comunicador, pero sabes escuchar.",
-            "Bajo": "**Bajo en Extraversión (Reservado):** Eres más reservado, pensativo y tranquilo. Prefieres las interacciones profundas uno a uno a las grandes multitudes y te sientes más cómodo trabajando solo o en entornos de baja estimulación."
+            "Alto": {
+                "desc": "Eres un **Líder Sociable**, enérgico, asertivo y te revitalizas con la interacción. Disfrutas siendo el centro de atención, eres entusiasta y buscas activamente el contacto social. Tienes una gran influencia en grupos.",
+                "improvement": "Tu necesidad de estimulación puede hacer que hables antes de escuchar o que evites la introspección. **Mejora:** Cultiva la escucha activa y programa tiempo de reflexión a solas. Desarrolla la empatía y asegúrate de que tu entusiasmo no abrume a las personas más reservadas."
+            },
+            "Medio": {
+                "desc": "Tienes un **perfil Ambivertido**. Disfrutas de la compañía, pero también valoras profundamente el tiempo a solas. Eres un buen comunicador y puedes adaptarte a roles tanto sociales como independientes, gestionando bien tus niveles de energía.",
+                "improvement": "Tu versatilidad puede llevar a la confusión sobre lo que realmente te energiza. **Mejora:** Sé más consciente de tus límites sociales; cuando te sientas agotado, no temas rechazar planes para dedicarte al tiempo de inactividad necesario para recargarte."
+            },
+            "Bajo": {
+                "desc": "Eres **Reservado e Introvertido**. Prefieres la soledad, las interacciones profundas y te sientes agotado por las grandes multitudes. Eres reflexivo, observador y sueles ser muy cauteloso al hablar.",
+                "improvement": "Tu reserva puede hacer que pierdas oportunidades de *networking* o que tus ideas no sean escuchadas. **Mejora:** Practica la asertividad controlada: prepárate para compartir tus ideas en reuniones con antelación y establece un mínimo de interacciones sociales estratégicas a la semana."
+            }
         },
         "A": {
-            "Alto": "**Alto en Amabilidad (Cooperativo):** Eres compasivo, de buen corazón, cooperativo y empático. Tienes una fuerte motivación para ayudar a los demás, evitas el conflicto y tiendes a confiar fácilmente en la gente.",
-            "Medio": "**Moderado en Amabilidad (Justo):** Eres una persona generalmente agradable que valora la cooperación, pero que también puede ser escéptica o crítica cuando la situación lo requiere. Sabes defender tus propios intereses.",
-            "Bajo": "**Bajo en Amabilidad (Desafiante):** Eres competitivo, escéptico y directo, a veces hasta el punto de ser confrontacional. Tu franqueza es alta y priorizas la verdad o tus intereses por encima de la sensibilidad de los demás."
+            "Alto": {
+                "desc": "Eres **Cooperativo y Compasivo**. Eres empático, de buen corazón y buscas activamente la armonía en todas tus relaciones. Eres el mediador natural, impulsado por el deseo de ayudar y evitar el conflicto.",
+                "improvement": "Tu deseo de agradar puede llevarte a descuidar tus propias necesidades o a ser explotado. **Mejora:** Aprende a establecer límites firmes y a decir 'no' sin sentir culpa. Practica la asertividad cuando sea necesario defender tus derechos o los de tu equipo, sin buscar siempre el consenso absoluto."
+            },
+            "Medio": {
+                "desc": "Eres **Amable y Justo**. Eres generalmente agradable y cooperativo, pero mantienes un saludable escepticismo y puedes defender tus propios intereses. Eres un buen jugador de equipo que exige reciprocidad y justicia.",
+                "improvement": "En situaciones de conflicto, puedes volverte excesivamente cauteloso para no ofender. **Mejora:** Aumenta tu confianza para expresar críticas constructivas directamente. Trabaja en distinguir entre amabilidad genuina y la necesidad de aprobación."
+            },
+            "Bajo": {
+                "desc": "Eres **Desafiante y Escéptico**. Tiendes a ser competitivo, directo, y priorizas la verdad y tus intereses sobre la sensibilidad ajena. Tu escepticismo te hace resistente a la manipulación y excelente para negociar.",
+                "improvement": "Tu franqueza puede ser percibida como frialdad o hostilidad, dificultando las alianzas. **Mejora:** Esfuérzate por 'suavizar el mensaje'. Antes de criticar, valida el esfuerzo del otro. Desarrolla activamente la empatía para entender por qué otros reaccionan emocionalmente."
+            }
         },
         "N": {
-            "Alto": "**Alto en Neuroticismo (Baja Estabilidad Emocional):** Eres propenso a experimentar ansiedad, tristeza, preocupación e inestabilidad emocional. Reaccionas intensamente al estrés y te cuesta recuperar la calma tras un evento negativo.",
-            "Medio": "**Moderado en Neuroticismo (Sensible):** Eres capaz de gestionar el estrés en la mayoría de las situaciones, aunque puedes experimentar cierta ansiedad o preocupación en momentos de gran presión o incertidumbre.",
-            "Bajo": "**Bajo en Neuroticismo (Alta Estabilidad Emocional):** Eres tranquilo, estable, resiliente y rara vez te sientes ansioso o perturbado. Muestras una gran capacidad para manejar el estrés y mantener un estado de ánimo positivo y uniforme."
+            "Alto": {
+                "desc": "Tu **Estabilidad Emocional es Baja (Reactiva)**. Eres muy sensible al estrés y experimentas ansiedad, preocupación e ira con facilidad. Tu estado de ánimo es a menudo volátil y te cuesta recuperar la calma tras un evento negativo.",
+                "improvement": "La alta reactividad emocional consume energía y dificulta la toma de decisiones. **Mejora:** Implementa técnicas de manejo del estrés (meditación, respiración). Cuestiona tus pensamientos negativos (¿es esto un hecho o una emoción?). Busca la estabilidad en rutinas diarias predecibles."
+            },
+            "Medio": {
+                "desc": "Tienes una **Estabilidad Emocional Moderada (Sensible)**. Eres capaz de gestionar el estrés diario, pero puedes volverte ansioso o preocupado bajo presión intensa. Eres empático con las emociones, pero mantienes un buen control la mayoría del tiempo.",
+                "improvement": "Asegúrate de que no estás suprimiendo la ansiedad en lugar de gestionarla. **Mejora:** Identifica los detonantes de tu estrés y trabaja en estrategias preventivas. Evita la sobrecarga de trabajo y asegúrate de tener válvulas de escape saludables."
+            },
+            "Bajo": {
+                "desc": "Tu **Estabilidad Emocional es Alta (Resiliente)**. Eres tranquilo, estable, resiliente y rara vez te sientes perturbado. Muestras una gran capacidad para manejar el estrés y recuperarte rápidamente de los contratiempos.",
+                "improvement": "Tu calma puede ser malinterpretada como indiferencia o falta de compromiso. **Mejora:** Sé consciente de las emociones de quienes te rodean y valida sus sentimientos (aunque no los compartas). Esto mejorará tu conexión interpersonal sin sacrificar tu estabilidad."
+            }
         }
     }
     
-    # Determinar Color y Código de Color
+    # Determinar Color y Código de Color (sin cambios)
     if trait == 'N':
-        # Neuroticism: Bajo (Low N) es deseable/estable.
         if level == "Bajo":
             color_hex = LEVEL_COLORS["Estable"] 
             color_label = "Muy Estable"
@@ -192,7 +235,6 @@ def interpret_score(score, trait):
             color_hex = LEVEL_COLORS["Medio"]
             color_label = "Moderado"
     else:
-        # Otros rasgos: Alto es más pronunciado.
         if level == "Alto":
             color_hex = LEVEL_COLORS["Alto_Positivo"] 
             color_label = "Muy Pronunciado"
@@ -202,8 +244,15 @@ def interpret_score(score, trait):
         else:
             color_hex = LEVEL_COLORS["Medio"]
             color_label = "Moderado"
-
-    return profiles[trait][level], level, color_hex, color_label
+            
+    # Retorna un diccionario más estructurado
+    return {
+        "level": level, 
+        "color_hex": color_hex, 
+        "color_label": color_label,
+        "description": profiles[trait][level]["desc"],
+        "improvement": profiles[trait][level]["improvement"]
+    }
 
 # --- 3. FUNCIONES DE NAVEGACIÓN Y REINICIO ---
 
@@ -211,7 +260,7 @@ def next_page():
     """Avanza a la siguiente página del test."""
     if st.session_state.current_page < TOTAL_PAGES - 1:
         st.session_state.current_page += 1
-        st.session_state.error_message = "" # Limpia el mensaje de error al avanzar
+        st.session_state.error_message = "" 
 
 def prev_page():
     """Retrocede a la página anterior del test."""
@@ -219,45 +268,18 @@ def prev_page():
         st.session_state.current_page -= 1
         st.session_state.error_message = ""
 
-def check_page_completion(action):
-    """Verifica que todas las preguntas de la página actual estén respondidas."""
-    current_page = st.session_state.current_page
-    start_index = current_page * QUESTIONS_PER_PAGE
-    end_index = min(start_index + QUESTIONS_PER_PAGE, TOTAL_QUESTIONS)
-    
-    questions_on_page = [q['id'] for q in QUESTIONS[start_index:end_index]]
-    
-    # Comprobar cuántas preguntas han sido respondidas en esta página
-    answered_count = sum(1 for q_id in questions_on_page if q_id in st.session_state.answers)
-    
-    if answered_count == len(questions_on_page):
-        # Si están todas respondidas
-        if action == "next":
-            next_page()
-        elif action == "finish":
-            # Si es la última página, procede a finalizar el test
-            st.session_state.test_completed = True
-            st.session_state.error_message = ""
-    else:
-        # Si faltan preguntas
-        st.session_state.error_message = "⚠️ Por favor, responde las " + str(len(questions_on_page) - answered_count) + " preguntas restantes de esta página antes de continuar."
-
-
 def restart_test():
-    """
-    Resets the session state to restart the test.
-    (Fix: Avoids st.rerun() in callback to prevent the 'no-op' warning)
-    """
+    """Resets the session state to restart the test."""
     st.session_state.answers = {}
     st.session_state.test_completed = False
     st.session_state.current_page = 0
     st.session_state.error_message = ""
-    # st.rerun() ya no es necesario aquí, la modificación del estado provoca la reejecución.
+    # No se usa st.rerun() en el callback, lo que soluciona la advertencia "no-op".
 
 # --- 4. CONFIGURACIÓN VISUAL Y DE INTERFAZ (CSS Profesional + Print Media) ---
 
 def set_professional_style():
-    """Aplica estilos CSS profesionales y de impresión."""
+    """Aplica estilos CSS profesionales, de impresión y el script para scroll."""
     st.markdown(f"""
     <style>
         /* Fuente y Estilo General */
@@ -381,16 +403,15 @@ def set_professional_style():
         @media print {{
             /* Ocultar todos los controles de la encuesta y la navegación */
             .stRadio, .stButton, .css-18z244q, .css-1d2a4o5, .stProgress:not(.results-progress), 
-            .stAlert, .stSelectbox, .stTextInput, .print-button-container, 
-            .stButton, .stProgress, 
+            .stAlert:not(.result-alert), .stSelectbox, .stTextInput, .print-button-container, 
+            .stButton, 
             .stMarkdown:first-of-type, /* Esconde la descripción inicial */
-            .css-fg4pbf, /* Esconde la navegación con columnas */
-            .stMetric [data-testid="stMetricDelta"] /* Oculta el delta para limpiar */
+            .css-fg4pbf, .stMetric [data-testid="stMetricDelta"] /* Oculta el delta */
             {{
                 display: none !important;
             }}
             /* Forzar visualización de Títulos y Resultados */
-            .profile-container, .trait-header, .stAlert, .stMetric, .stMarkdown, .stMarkdown > div > hr {{
+            .profile-container, .trait-header, .stAlert.result-alert, .stMetric, .stMarkdown, .stMarkdown > div > hr {{
                 display: block !important;
                 visibility: visible !important;
             }}
@@ -401,14 +422,35 @@ def set_professional_style():
                 border: none !important;
                 box-shadow: none !important;
             }}
+            .stAlert {{
+                border-left: 5px solid #004AAD !important;
+            }}
             /* Asegurar visibilidad de texto */
-            .profile-container h2, .trait-header, .stAlert p {{
+            .profile-container h2, .trait-header, .stAlert.result-alert p {{
                 color: #000000 !important;
             }}
         }}
 
     </style>
     """, unsafe_allow_html=True)
+    
+    # Script para forzar el scroll al inicio de la página en cada navegación
+    st.markdown(
+        """
+        <script>
+            function scrollToTop() {
+                const main = document.querySelector('.main');
+                if (main) {
+                    main.scrollTo(0, 0);
+                } else {
+                    window.scrollTo(0, 0);
+                }
+            }
+            scrollToTop();
+        </script>
+        """,
+        unsafe_allow_html=True
+    )
 
 # --- 5. FLUJO DE LA APLICACIÓN STREAMLIT ---
 
@@ -443,7 +485,7 @@ def run_test():
     if st.session_state.test_completed:
         
         # Simular una carga para mayor profesionalismo
-        with st.spinner('Analizando y generando perfil de personalidad...'):
+        with st.spinner('Analizando y generando perfil de personalidad detallado...'):
             time.sleep(1.5)
 
         # 1. Calcular la puntuación
@@ -453,9 +495,8 @@ def run_test():
         st.markdown(
             f"""
             <div class="profile-container">
-                <h2>✅ Perfil de Personalidad Completado: Análisis Detallado</h2>
-                <p>Tu análisis está basado en el **Modelo OCEAN**. La puntuación total por rasgo es de 60 puntos, donde 
-                una puntuación alta indica una mayor intensidad de esa característica. El siguiente reporte es apto para impresión PDF.</p>
+                <h2>✅ Informe de Perfil Detallado</h2>
+                <p>Este análisis se basa en el **Modelo OCEAN**. La puntuación máxima por rasgo es 60. Utiliza la opción de "Imprimir" en tu navegador para guardar este informe como PDF.</p>
             </div>
             """, 
             unsafe_allow_html=True
@@ -463,16 +504,16 @@ def run_test():
         
         # 3. Iterar y Mostrar Resultados
         for trait_code, score in scores.items():
-            profile_text, level, color_hex, color_label = interpret_score(score, trait_code)
+            results = interpret_score(score, trait_code)
             trait_label = TRAIT_LABELS[trait_code]
             
             # Normalizar score para la barra de progreso (0 a 1.0). Rango 12-60 (48 puntos)
-            normalized_score = (score - 12) / 48
+            normalized_score = (score - MIN_SCORE_PER_TRAIT) / (MAX_SCORE_PER_TRAIT - MIN_SCORE_PER_TRAIT)
             
             # Encabezado del Trait y Score
             st.markdown(f"""
             <div class="trait-header">
-                {trait_label}
+                <h3>{trait_label}</h3>
             </div>
             """, unsafe_allow_html=True)
             
@@ -480,19 +521,27 @@ def run_test():
             col_bar, col_score = st.columns([0.7, 0.3])
 
             with col_bar:
-                # Se utiliza el HTML para inyectar el color dinámico y asegurar que el CSS de impresión lo mantenga
+                # Visualización de la barra de progreso con color dinámico
                 st.markdown(f"""
-                <div style="font-size: 0.9rem; color: #555;">Nivel Detectado: <b>{level}</b></div>
+                <div style="font-size: 0.9rem; color: #555;">Nivel Detectado: <b>{results['level']} ({results['color_label']})</b></div>
                 <div style="height: 20px; border-radius: 4px; background-color: #E0E0E0; margin-top: 5px;">
-                    <div style="width: {normalized_score*100}%; height: 100%; background-color: {color_hex}; border-radius: 4px;"></div>
+                    <div style="width: {normalized_score*100}%; height: 100%; background-color: {results['color_hex']}; border-radius: 4px;"></div>
                 </div>
                 """, unsafe_allow_html=True)
 
             with col_score:
-                st.metric(label="Puntuación", value=f"{score}/60")
+                st.metric(label="Puntuación", value=f"{score}/{MAX_SCORE_PER_TRAIT}")
             
-            # Mostrar la descripción
-            st.info(profile_text, icon="💡")
+            # Mostrar la descripción detallada
+            st.markdown(f"**Análisis:** {results['description']}")
+            
+            # Mostrar las áreas de mejora en un bloque distintivo
+            st.markdown(
+                f'<div class="result-alert">', unsafe_allow_html=True
+            )
+            st.info(f"**💡 Consejos y Áreas de Crecimiento:** {results['improvement']}", icon="⭐")
+            st.markdown('</div>', unsafe_allow_html=True)
+            
             st.markdown("---")
         
         st.success("El análisis de tu perfil de personalidad ha concluido con éxito.")
@@ -533,44 +582,40 @@ def run_test():
         st.progress(answered_total / TOTAL_QUESTIONS, text=progress_text)
         
         st.subheader(f"Página {current_page + 1} de {TOTAL_PAGES}")
-        st.markdown("---")
 
         # Mensaje de error (si existe)
         if st.session_state.error_message:
             st.error(st.session_state.error_message)
 
         
-        # Controles de la Página Actual
+        # Controles de la Página Actual (DENTRO DEL FORMULARIO)
+        # Esto soluciona el problema del doble click al asegurar que los valores se actualicen al someter el form.
         with st.form(key=f'page_form_{current_page}'):
             
             # Lista de opciones con el formato (Etiqueta, Valor)
             likert_options_tuple = [(v, k) for k, v in LIKERT_OPTIONS.items()]
+            
+            # Diccionario para almacenar las respuestas de la página antes de la validación
+            form_answers_current_page = {}
 
             for q in current_questions:
-                try:
-                    # Recupera el valor de la respuesta si existe para mantener la selección
-                    current_value = st.session_state.answers.get(q['id'])
-                    # La tupla de opciones está en formato (String, Int). Buscamos por el valor.
-                    current_index = [t[1] for t in likert_options_tuple].index(current_value) if current_value else -1
-                    # Nota: Streamlit usa index para el valor inicial de radio, -1 si no hay valor
-                except (ValueError, KeyError):
-                    current_index = -1
-
-                # El índice inicial en st.radio debe ser None o el índice (0-base) de la opción.
-                # Si current_value es 1 (Totalmente en desacuerdo), su índice en likert_options_tuple es 4
-                selected_index = current_index if current_index != -1 else None
+                q_id = q['id']
+                
+                # Recuperar valor actual de la sesión (para que persista)
+                current_value = st.session_state.answers.get(q_id)
+                selected_index = [t[1] for t in likert_options_tuple].index(current_value) if current_value else -1
                 
                 response_tuple = st.radio(
-                    label=f"**{q['id']}.** {q['text']}",
+                    label=f"**{q_id}.** {q['text']}",
                     options=likert_options_tuple,
-                    key=f"question_{q['id']}",
-                    index=selected_index,
+                    key=f"radio_{q_id}", # La clave debe ser única
+                    index=selected_index if selected_index != -1 else None,
                     format_func=lambda x: x[0]
                 )
                 
-                # Almacenar el valor (el entero, que está en response_tuple[1])
+                # Almacenar el valor seleccionado dentro del contexto del formulario
                 if response_tuple is not None:
-                    st.session_state.answers[q['id']] = response_tuple[1]
+                    form_answers_current_page[q_id] = response_tuple[1]
 
             # --- Botones de Navegación ---
             st.markdown("---")
@@ -578,16 +623,47 @@ def run_test():
 
             with col_prev:
                 if current_page > 0:
-                    st.form_submit_button("← Anterior", on_click=prev_page)
+                    prev_button = st.form_submit_button("← Anterior")
 
             with col_next_finish:
                 is_last_page = current_page == TOTAL_PAGES - 1
                 
                 if is_last_page:
-                    st.form_submit_button("Finalizar Test y Ver Mi Perfil", on_click=check_page_completion, args=("finish",), type="primary")
+                    submit_button = st.form_submit_button("Finalizar Test y Ver Mi Perfil", type="primary")
                 else:
-                    st.form_submit_button(f"Siguiente → (Pág. {current_page + 2})", on_click=check_page_completion, args=("next",), type="secondary")
-                    
+                    submit_button = st.form_submit_button(f"Siguiente → (Pág. {current_page + 2})", type="secondary")
+        
+        # --- Lógica de Manejo de Formulario (Fuera del bloque `with st.form`) ---
+        
+        if 'prev_button' in locals() and prev_button:
+            # Si se presiona Anterior, simplemente se navega (no necesita validación)
+            prev_page()
+            st.rerun()
+
+        if 'submit_button' in locals() and submit_button:
+            # Primero, actualizamos el estado de la sesión con las respuestas del formulario
+            st.session_state.answers.update(form_answers_current_page)
+            
+            # 1. Validar si todas las preguntas de esta página fueron respondidas
+            answered_count_on_page = len(form_answers_current_page)
+            questions_on_page_count = len(current_questions)
+
+            if answered_count_on_page < questions_on_page_count:
+                # Falla la validación
+                st.session_state.error_message = f"⚠️ Por favor, responde las {questions_on_page_count - answered_count_on_page} preguntas restantes antes de continuar."
+                st.rerun()
+            else:
+                # Pasa la validación
+                st.session_state.error_message = "" # Limpiar error
+                
+                if is_last_page:
+                    st.session_state.test_completed = True
+                    st.rerun()
+                else:
+                    # Avanzar a la siguiente página
+                    next_page()
+                    st.rerun() # Forzar la reejecución para mostrar la nueva página
+
 # Ejecutar la aplicación
 if __name__ == '__main__':
     run_test()
