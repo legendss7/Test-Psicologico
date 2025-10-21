@@ -105,7 +105,7 @@ QUESTIONS = [
     {"id": "A11", "text": "Considero esencial la armonía en mis relaciones personales.", "trait": "A", "reverse": False},
     {"id": "A12", "text": "Me resulta difícil simpatizar con la gente que se queja constantemente.", "trait": "A", "reverse": True},
     {"id": "A13", "text": "Siento un gran afecto por los animales y los niños.", "trait": "A", "reverse": False},
-    {"id": "A14", "text": "No me molesta hacer trampa si todos los demás lo están haciendo.", "trait": "A", "reverse": True},
+    {"id": "A14", "text": "No me importa hacer trampa si todos los demás lo están haciendo.", "trait": "A", "reverse": True},
     {"id": "A15", "text": "Soy conocido por ser indulgente y de mente abierta.", "trait": "A", "reverse": False},
     {"id": "A16", "text": "Creo que la ley del más fuerte es la que debe prevalecer.", "trait": "A", "reverse": True},
     {"id": "A17", "text": "Prefiero cooperar antes que competir en casi cualquier situación.", "trait": "A", "reverse": False},
@@ -587,6 +587,7 @@ def set_playful_style():
         <script>
             // Función para forzar el scroll al inicio del contenedor principal
             function scrollToTop() {
+                // Buscamos el contenedor principal de Streamlit
                 const main = document.querySelector('.main');
                 if (main) {
                     main.scrollTo({ top: 0, behavior: 'smooth' });
@@ -594,8 +595,9 @@ def set_playful_style():
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 }
             }
-            // Ejecutar la función inmediatamente después de la renderización (al avanzar/retroceder)
-            scrollToTop(); 
+            // Ejecutar la función DESPUÉS de un breve retraso (50ms) para 
+            // permitir que Streamlit termine de renderizar la página nueva.
+            setTimeout(scrollToTop, 50); 
         </script>
         """,
         unsafe_allow_html=True
