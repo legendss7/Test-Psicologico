@@ -143,7 +143,7 @@ preguntas_test = {
         "Prefiero la variedad a la rutina.",
         "Me considero una persona creativa.",
         "Estoy dispuesto/a a cuestionar mis propias creencias y valores.",
-        "Me gusta leer sobre temas diversos y explorar nuevas ideas.",
+        "Me gusta leer sobre temas diversas y explorar nuevas ideas.",
         "Siento una profunda conexión con mis emociones.",
         "Disfruto de la belleza en sus diferentes formas.",
         "No me gusta que mi vida sea predecible.",
@@ -288,7 +288,8 @@ def reiniciar_test():
     st.session_state.test_started = False
     st.session_state.test_completed = False
     st.session_state.start_time = 0
-    st.experimental_rerun()
+    # FIX: Reemplazado st.experimental_rerun() por st.rerun()
+    st.rerun()
 
 # Función para convertir DataFrame a Excel
 @st.cache_data
@@ -323,7 +324,8 @@ if not st.session_state.test_started:
     if st.button("🚀 Comenzar el Test", key="start_button"):
         st.session_state.test_started = True
         st.session_state.start_time = time.time()
-        st.experimental_rerun()
+        # FIX: Reemplazado st.experimental_rerun() por st.rerun()
+        st.rerun()
 
 # --- PANTALLA DEL TEST ---
 elif not st.session_state.test_completed:
@@ -338,10 +340,19 @@ elif not st.session_state.test_completed:
     st.markdown(f"### {pregunta_actual['pregunta']}")
 
     # Opciones de respuesta
+    # Intentar cargar la respuesta previamente guardada
+    current_answer_index = None
+    if idx in st.session_state.answers:
+        try:
+            current_answer_text = st.session_state.answers[idx]['respuesta']
+            current_answer_index = pregunta_actual['opciones'].index(current_answer_text)
+        except ValueError:
+            current_answer_index = None # Si la respuesta guardada no está en opciones, no seleccionar nada
+
     respuesta = st.radio(
         "Selecciona tu respuesta:",
         options=pregunta_actual['opciones'],
-        index=None, # Para que no haya ninguna opción pre-seleccionada
+        index=current_answer_index, # Usar la respuesta guardada
         key=f"q_{idx}"
     )
 
@@ -364,7 +375,8 @@ elif not st.session_state.test_completed:
             if st.button("⬅️ Anterior"):
                 st.session_state.current_question -= 1
                 scroll_to_top()
-                st.experimental_rerun()
+                # FIX: Reemplazado st.experimental_rerun() por st.rerun()
+                st.rerun()
 
     with col3:
         # Validar que se haya respondido
@@ -373,11 +385,13 @@ elif not st.session_state.test_completed:
                 if st.button("Siguiente ➡️"):
                     st.session_state.current_question += 1
                     scroll_to_top()
-                    st.experimental_rerun()
+                    # FIX: Reemplazado st.experimental_rerun() por st.rerun()
+                    st.rerun()
             else:
                 if st.button("🎉 Finalizar Test"):
                     st.session_state.test_completed = True
-                    st.experimental_rerun()
+                    # FIX: Reemplazado st.experimental_rerun() por st.rerun()
+                    st.rerun()
         else:
             st.warning("Por favor, selecciona una respuesta para continuar.")
 
@@ -469,7 +483,7 @@ else:
             st.markdown(f"- {item}")
     
     with col2:
-        st.markdown('<div class="result-card"><h3> weaknesses</h3></div>', unsafe_allow_html=True)
+        st.markdown('<div class="result-card"><h3>⚠️ Debilidades</h3></div>', unsafe_allow_html=True)
         for item in debilidades_list:
             st.markdown(f"- {item}")
 
