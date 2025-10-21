@@ -3,7 +3,13 @@ from collections import defaultdict
 import time
 import pandas as pd
 import plotly.graph_objects as go
-
+def scroll_to_top():
+    """Fuerza que la vista de la página suba al inicio."""
+    st.markdown("""
+        <script>
+            window.scrollTo(0, 0);
+        </script>
+        """, unsafe_allow_html=True)
 # --- CONFIGURACIÓN DE PÁGINA PARA RESPONSIVIDAD ---
 # Usamos el layout "wide" para aprovechar el espacio en escritorio.
 st.set_page_config(layout="wide", page_title="Test Big Five Detallado", initial_sidebar_state="expanded")
@@ -405,19 +411,25 @@ def restart_test():
 def go_next():
     """Avanza a la siguiente página."""
     # Verificar que todas las preguntas de la página actual estén respondidas (solo si no es la página de inicio)
-    if st.session_state['page'] > 0:
-        start_index = (st.session_state['page'] - 1) * QUESTIONS_PER_PAGE
-        end_index = min(start_index + QUESTIONS_PER_PAGE, TOTAL_QUESTIONS)
-        current_questions_ids = [q['id'] for q in QUESTIONS[start_index:end_index]]
-        
-        unanswered = [q_id for q_id in current_questions_ids if q_id not in st.session_state['answers']]
-        
-        if unanswered:
-            st.warning("⚠️ Debes responder todas las preguntas antes de avanzar. Las preguntas sin responder son: " + ", ".join(unanswered))
-            return # Detener la navegación si faltan respuestas
+# --- CONTROL DE NAVEGACIÓN ENTRE PÁGINAS ---
+if "page" not in st.session_state:
+    st.session_state.page = 0
 
-    if st.session_state['page'] < TOTAL_PAGES + 1:
-        st.session_state['page'] += 1
+# Botones de navegación
+col1, col2 = st.columns(2)
+
+with col1:
+    if st.session_state.page > 0:
+        if st.button("⬅️ Anterior"):
+            st.session_state.page -= 1
+            scroll_to_top()  # <-- vuelve al inicio al cambiar
+
+with col2:
+    if st.session_state.page < TOTAL_PAGES - 1:
+        if st.button("Siguiente ➡️"):
+            st.session_state.page += 1
+            scroll_to_top()  # <-- vuelve al inicio al cambiar
+
     
     # Llamamos a scroll_to_top después de cambiar de página para aplicar la corrección
     scroll_to_top()
@@ -651,3 +663,4 @@ def main_app():
 # Ejecución de la aplicación
 if __name__ == "__main__":
     main_app()
+
