@@ -581,27 +581,34 @@ def set_playful_style():
     </style>
     """, unsafe_allow_html=True)
     
-    # --- JS para Scroll al Top (SOLUCIÓN MÁS CONCRETA Y DIRIGIDA AL CONTENEDOR DE STREAMLIT) ---
+    # --- JS para Scroll al Top (SOLUCIÓN AGRESIVA Y REDUNDANTE) ---
     st.markdown(
         """
         <script>
-            function scrollToTopTargeted() {
-                // 1. Intentamos encontrar el contenedor principal de Streamlit que maneja el scroll.
-                // Este selector es común en los iframes que alojan aplicaciones Streamlit.
-                const stScrollableContainer = document.querySelector('[data-testid="stAppViewContainer"]');
-
-                if (stScrollableContainer) {
-                    stScrollableContainer.scrollTop = 0;
-                } else {
-                    // 2. Si el selector específico falla, volvemos a la estrategia agresiva.
-                    window.scrollTo(0, 0); 
-                    document.documentElement.scrollTop = 0;
-                    document.body.scrollTop = 0;
+            function scrollToTopAggressive() {
+                // 1. Intentar el contenedor principal de Streamlit (el más probable)
+                const stAppContainer = document.querySelector('[data-testid="stAppViewContainer"]');
+                if (stAppContainer) {
+                    stAppContainer.scrollTop = 0;
+                    return; 
                 }
+
+                // 2. Intentar el contenedor de contenido principal (otra convención de Streamlit)
+                const mainContent = document.querySelector('.main-content'); 
+                if (mainContent) {
+                    mainContent.scrollTop = 0;
+                    return; 
+                }
+
+                // 3. Estrategia de ventana (por si el scroll está a nivel del iframe/ventana principal)
+                window.scrollTo(0, 0); 
+                document.documentElement.scrollTop = 0;
+                document.body.scrollTop = 0;
             }
             
-            // Ejecutar la función con un pequeño retraso para que el DOM se actualice.
-            setTimeout(scrollToTopTargeted, 10); 
+            // Ejecutar la función con un pequeño retraso para asegurar que la re-ejecución 
+            // del script (rerun) ya haya cargado el nuevo contenido.
+            setTimeout(scrollToTopAggressive, 50); 
         </script>
         """,
         unsafe_allow_html=True
