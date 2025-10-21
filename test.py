@@ -2,6 +2,11 @@ import streamlit as st
 from collections import defaultdict
 import time 
 
+# --- CONFIGURACIÓN DE PÁGINA PARA RESPONSIVIDAD ---
+# Usamos el layout "wide" para aprovechar el espacio en escritorio.
+# Streamlit y el CSS inyectado aseguran la responsividad en móvil.
+st.set_page_config(layout="wide", page_title="Test Big Five Detallado")
+
 # --- 1. CONFIGURACIÓN DEL TEST (BIG FIVE - OCEAN) ---
 
 # Se ha escalado el test a 130 preguntas (26 por rasgo) para una medición más precisa.
@@ -372,7 +377,7 @@ def restart_test():
     st.session_state.current_page = 0
     st.session_state.error_message = ""
 
-# --- 4. CONFIGURACIÓN VISUAL Y DE INTERFAZ (CSS Divertido y Dinámico + Print Media) ---
+# --- 4. CONFIGURACIÓN VISUAL Y DE INTERFAZ (CSS y Script de Scroll) ---
 
 def set_playful_style():
     """Aplica estilos CSS divertidos, dinámicos, de impresión y el script para scroll."""
@@ -381,6 +386,7 @@ def set_playful_style():
     M_GREEN = "#50E3C2"
     D_RED = "#D0021B"
     
+    # --- CSS Styles ---
     st.markdown(f"""
     <style>
         /* === ANIMACIONES DIVERTIDAS === */
@@ -441,7 +447,7 @@ def set_playful_style():
             transform: translateY(-2px);
         }}
 
-        /* Opciones de Radio Button */
+        /* Opciones de Radio Button - Flexbox y Responsive */
         .stRadio div[role="radiogroup"] {{
             display: flex;
             flex-direction: row; 
@@ -449,7 +455,7 @@ def set_playful_style():
             padding-bottom: 20px;
             border-bottom: 1px solid #E5E7EB;
             margin-bottom: 25px;
-            flex-wrap: wrap; 
+            flex-wrap: wrap; /* Asegura que las opciones se envuelvan en móvil */
         }}
         .stRadio div[role="radiogroup"] > label {{
             font-size: 0.85rem !important;
@@ -463,7 +469,9 @@ def set_playful_style():
             text-align: center;
             border-left: none !important; 
             box-shadow: none !important;
+            min-width: 120px; /* Asegura un buen tamaño para el dedo en móvil */
         }}
+        /* Destacar la opción seleccionada */
         .stRadio div[role="radiogroup"] input:checked + div + div > label {{
             background-color: {V_BLUE} !important;
             color: white !important;
@@ -514,25 +522,6 @@ def set_playful_style():
             background-color: {M_GREEN} !important; 
             color: #1F2937 !important;
         }}
-        .stButton>button[kind="primary"]:hover {{
-            background-color: #3CCEA9 !important; 
-            box-shadow: 0 6px 10px rgba(80, 227, 194, 0.5);
-        }}
-        .stButton>button[kind="secondary"] {{
-            background-color: #FFC0CB !important;
-            color: {V_BLUE} !important;
-            border: 1px solid {V_BLUE} !important;
-        }}
-        .stButton>button[kind="secondary"]:hover {{
-            background-color: #FFB3C7 !important;
-        }}
-
-        /* Botón de Reinicio (Gris/Neutral) */
-        .restart-btn button {{
-            background-color: #A9A9A9 !important;
-            color: white !important;
-        }}
-        
         /* Botón de Imprimir/PDF (Acción Final) */
         .print-button-container button {{
             background-color: {V_BLUE} !important; 
@@ -581,34 +570,40 @@ def set_playful_style():
     </style>
     """, unsafe_allow_html=True)
     
-    # --- JS para Scroll al Top (SOLUCIÓN AGRESIVA Y REDUNDANTE) ---
+    # --- JS para Scroll al Top (SOLUCIÓN DEFINITIVA Y EXTREMA) ---
     st.markdown(
         """
         <script>
-            function scrollToTopAggressive() {
-                // 1. Intentar el contenedor principal de Streamlit (el más probable)
-                const stAppContainer = document.querySelector('[data-testid="stAppViewContainer"]');
-                if (stAppContainer) {
-                    stAppContainer.scrollTop = 0;
-                    return; 
-                }
+            function definitiveScrollToTop() {
+                // Lista de contenedores de desplazamiento de alta prioridad y genéricos
+                const targets = [
+                    // El wrapper principal de Streamlit
+                    document.querySelector('[data-testid="stAppViewContainer"]'),
+                    // Elemento principal genérico de Streamlit
+                    document.querySelector('.main'), 
+                    // Contenedores más probables para la ventana incrustada (Canvas)
+                    document.body,
+                    document.documentElement 
+                ];
 
-                // 2. Intentar el contenedor de contenido principal (otra convención de Streamlit)
-                const mainContent = document.querySelector('.main-content'); 
-                if (mainContent) {
-                    mainContent.scrollTop = 0;
-                    return; 
+                // Intenta desplazar cada objetivo
+                for (let i = 0; i < targets.length; i++) {
+                    const target = targets[i];
+                    if (target && target.scrollTop !== undefined) {
+                        target.scrollTop = 0;
+                    }
                 }
-
-                // 3. Estrategia de ventana (por si el scroll está a nivel del iframe/ventana principal)
+                
+                // Reserva final para la ventana global
                 window.scrollTo(0, 0); 
-                document.documentElement.scrollTop = 0;
-                document.body.scrollTop = 0;
             }
             
-            // Ejecutar la función con un pequeño retraso para asegurar que la re-ejecución 
-            // del script (rerun) ya haya cargado el nuevo contenido.
-            setTimeout(scrollToTopAggressive, 50); 
+            // Ejecutar inmediatamente al cargar/re-ejecutar
+            definitiveScrollToTop(); 
+            
+            // Ejecutar de nuevo con un pequeño retraso (100ms) para asegurar que se ejecuta 
+            // DESPUÉS de que Streamlit haya renderizado completamente el nuevo contenido.
+            setTimeout(definitiveScrollToTop, 100); 
         </script>
         """,
         unsafe_allow_html=True
@@ -682,6 +677,7 @@ def run_test():
             </div>
             """, unsafe_allow_html=True)
             
+            # Las columnas de Streamlit se apilan automáticamente en móvil
             col_bar, col_score = st.columns([0.7, 0.3])
 
             with col_bar:
@@ -766,6 +762,7 @@ def run_test():
 
             # --- Botones de Navegación ---
             st.markdown("<br>", unsafe_allow_html=True)
+            # Columnas para navegación (se apilan en móvil automáticamente)
             col_prev, col_next_finish = st.columns([1, 1])
 
             prev_button = None
