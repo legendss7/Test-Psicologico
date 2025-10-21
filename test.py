@@ -359,22 +359,32 @@ def interpret_score(score, trait):
 
 def scroll_to_top():
     """
-    [FIX FINAL DE SCROLL]
-    Inyecta JavaScript con un retraso y múltiples métodos para forzar el scroll 
-    de la ventana al inicio (0, 0), contrarrestando la memoria de scroll del navegador
-    tras un st.rerun(). Aumentamos el retraso a 200ms (Ajuste Final).
+    [SOLUCIÓN MULTI-ETAPA AGRESIVA PARA SCROLL]
+    Inyecta JavaScript con múltiples intentos cronometrados para asegurar el scroll 
+    al inicio (0, 0), contrarrestando la memoria de scroll del navegador.
     """
     st.markdown(
         """
         <script>
-        // Aplicamos un retraso de 200ms para asegurar que el DOM de la nueva página se haya
-        // cargado completamente antes de ejecutar el scroll.
-        setTimeout(() => {
-            // Intentamos con múltiples métodos para mayor compatibilidad
-            window.scrollTo(0, 0); 
+        // Función principal que intenta forzar el scroll al inicio usando múltiples métodos
+        function forceScrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'instant' });
             document.body.scrollTop = 0; // Para Safari
             document.documentElement.scrollTop = 0; // Para Chrome, Firefox, IE
-        }, 200); // AJUSTE FINAL a 200ms
+        }
+
+        // 1. Primer intento rápido (100ms): Generalmente funciona para la mayoría de los re-renders.
+        setTimeout(forceScrollToTop, 100); 
+
+        // 2. Segundo intento de respaldo (500ms): 
+        // Se ejecuta si el navegador es lento en restablecer su posición después de la recarga del DOM,
+        // asegurando que si el primero falló, este lo capture.
+        setTimeout(forceScrollToTop, 500); 
+        
+        // 3. Tercer intento de máxima seguridad (1000ms): 
+        // Esto solo es necesario en entornos extremadamente lentos o si hay elementos 
+        // de carga diferida que empujan el scroll hacia abajo.
+        setTimeout(forceScrollToTop, 1000); 
         </script>
         """,
         unsafe_allow_html=True
@@ -799,9 +809,8 @@ def run_test():
                     # st.rerun() provocará que se ejecute la sección B y el scroll_to_top al final.
                     st.rerun() 
         
-        # === SOLUCIÓN FINAL ===
+        # === APLICACIÓN DE LA SOLUCIÓN MULTI-ETAPA ===
         # Llamar a scroll_to_top() de forma incondicional al final del bloque de renderizado
-        # de las preguntas. El script ahora usa un retraso de 200ms.
         scroll_to_top()
 
 # Ejecutar la aplicación
