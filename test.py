@@ -360,8 +360,8 @@ def interpret_score(score, trait):
 def scroll_to_top():
     """
     [SOLUCIÓN MULTI-ETAPA AGRESIVA PARA SCROLL]
-    Inyecta JavaScript con múltiples intentos cronometrados para asegurar el scroll 
-    al inicio (0, 0), contrarrestando la memoria de scroll del navegador.
+    Inyecta JavaScript con múltiples intentos cronometrados (incluyendo 0ms) 
+    para asegurar el scroll al inicio (0, 0), contrarrestando la memoria del navegador.
     """
     st.markdown(
         """
@@ -376,15 +376,16 @@ def scroll_to_top():
             document.documentElement.scrollTop = 0; // Para Chrome, Firefox, IE
         }
 
-        // 1. Primer intento rápido (10ms): Captura la mayoría de las recargas.
+        // 1. Primer intento CERO DELAY (0ms): Ejecutado inmediatamente después de que el stack actual se vacía, 
+        // ideal para garantizar que el DOM de la nueva página esté listo.
+        setTimeout(forceScrollToTop, 0); 
+
+        // 2. Segundo intento rápido (10ms): Captura la mayoría de las recargas rápidas.
         setTimeout(forceScrollToTop, 10); 
 
-        // 2. Segundo intento de respaldo (200ms): 
+        // 3. Tercer intento de respaldo (200ms): 
         // Se ejecuta si el navegador es lento en restablecer su posición después de la recarga del DOM.
         setTimeout(forceScrollToTop, 200); 
-        
-        // 3. Tercer intento de máxima seguridad (500ms): 
-        setTimeout(forceScrollToTop, 500); 
         </script>
         """,
         unsafe_allow_html=True
