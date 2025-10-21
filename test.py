@@ -4,86 +4,157 @@ import time
 
 # --- 1. CONFIGURACIÓN DEL TEST (BIG FIVE - OCEAN) ---
 
-# Hemos expandido el test a 60 preguntas (12 por rasgo)
+# Se ha escalado el test a 130 preguntas (26 por rasgo) para una medición más precisa.
+# La estructura del test es (ID, Texto, Rasgo, Inversa)
 QUESTIONS = [
-    # O - Apertura a la Experiencia (Openness)
-    {"id": "O1", "text": "Tengo una imaginación muy activa y disfruto soñando despierto.", "trait": "O", "reverse": False},
-    {"id": "O2", "text": "Disfruto con las ideas complejas y abstractas.", "trait": "O", "reverse": False},
-    {"id": "O3", "text": "Suelo probar comidas nuevas y viajar a lugares desconocidos.", "trait": "O", "reverse": False},
-    {"id": "O4", "text": "Prefiero la rutina a los cambios o las novedades.", "trait": "O", "reverse": True},
-    {"id": "O5", "text": "No me interesa mucho el arte ni la poesía.", "trait": "O", "reverse": True},
-    {"id": "O6", "text": "Soy una persona curiosa intelectualmente.", "trait": "O", "reverse": False},
-    {"id": "O7", "text": "Me encanta explorar teorías filosóficas y debatir conceptos.", "trait": "O", "reverse": False},
-    {"id": "O8", "text": "Soy capaz de ignorar el ruido o las distracciones fácilmente.", "trait": "O", "reverse": True},
-    # ¡CORRECCIÓN APLICADA AQUÍ!
-    {"id": "O9", "text": "A menudo me pierdo en mis pensamientos o ideas.", "trait": "O", "reverse": False},
-    {"id": "O10", "text": "Raramente busco aprender habilidades que no sean directamente útiles.", "trait": "O", "reverse": True},
-    {"id": "O11", "text": "Disfruto de exposiciones de arte y música poco convencional.", "trait": "O", "reverse": False},
-    {"id": "O12", "text": "Para mí, 'lo nuevo' a menudo significa 'peligroso'.", "trait": "O", "reverse": True},
-    
-    # C - Responsabilidad (Conscientiousness)
-    {"id": "C1", "text": "Siempre me preparo con antelación para mis tareas y compromisos.", "trait": "C", "reverse": False},
-    {"id": "C2", "text": "Soy muy metódico y ordenado en mi trabajo y mi casa.", "trait": "C", "reverse": False},
-    {"id": "C3", "text": "A menudo me olvido de mis deberes y responsabilidades.", "trait": "C", "reverse": True},
+    # O - Apertura a la Experiencia (Openness) - 26 items
+    {"id": "O1", "text": "Disfruto profundamente con la exploración de ideas abstractas.", "trait": "O", "reverse": False},
+    {"id": "O2", "text": "Tengo una imaginación muy vívida y disfruto soñando despierto.", "trait": "O", "reverse": False},
+    {"id": "O3", "text": "Suelo probar comidas nuevas y explorar culturas diferentes.", "trait": "O", "reverse": False},
+    {"id": "O4", "text": "Prefiero seguir métodos tradicionales y probados.", "trait": "O", "reverse": True},
+    {"id": "O5", "text": "El arte y la poesía no me resultan particularmente interesantes.", "trait": "O", "reverse": True},
+    {"id": "O6", "text": "Soy una persona muy curiosa intelectualmente y busco aprender.", "trait": "O", "reverse": False},
+    {"id": "O7", "text": "Me encanta debatir conceptos filosóficos complejos.", "trait": "O", "reverse": False},
+    {"id": "O8", "text": "Soy capaz de ignorar el ruido y las distracciones fácilmente.", "trait": "O", "reverse": True},
+    {"id": "O9", "text": "A menudo me pierdo en mis pensamientos profundos.", "trait": "O", "reverse": False},
+    {"id": "O10", "text": "No me molesta si mi entorno permanece igual durante mucho tiempo.", "trait": "O", "reverse": True},
+    {"id": "O11", "text": "Valoro la belleza y la estética de las cosas que me rodean.", "trait": "O", "reverse": False},
+    {"id": "O12", "text": "Me siento incómodo cuando las cosas cambian repentinamente.", "trait": "O", "reverse": True},
+    {"id": "O13", "text": "Busco activamente experiencias que me hagan ver el mundo de otra manera.", "trait": "O", "reverse": False},
+    {"id": "O14", "text": "Soy más un pensador práctico que teórico.", "trait": "O", "reverse": True},
+    {"id": "O15", "text": "Disfruto de la música poco convencional o experimental.", "trait": "O", "reverse": False},
+    {"id": "O16", "text": "Me resulta difícil entender las emociones ajenas a través del arte.", "trait": "O", "reverse": True},
+    {"id": "O17", "text": "Siempre estoy abierto a reconsiderar mis puntos de vista sobre el universo.", "trait": "O", "reverse": False},
+    {"id": "O18", "text": "El futuro me parece más seguro si es predecible.", "trait": "O", "reverse": True},
+    {"id": "O19", "text": "Disfruto improvisando y creando cosas nuevas sin planificación.", "trait": "O", "reverse": False},
+    {"id": "O20", "text": "No me gusta perder el tiempo en fantasías o especulaciones.", "trait": "O", "reverse": True},
+    {"id": "O21", "text": "Me emociona aprender nuevos idiomas o habilidades complejas.", "trait": "O", "reverse": False},
+    {"id": "O22", "text": "Prefiero las películas que son realistas a las de ciencia ficción.", "trait": "O", "reverse": True},
+    {"id": "O23", "text": "Tengo la capacidad de relacionar ideas que parecen inconexas.", "trait": "O", "reverse": False},
+    {"id": "O24", "text": "Sigo una línea estricta de pensamiento lógico y objetivo.", "trait": "O", "reverse": True},
+    {"id": "O25", "text": "Me gusta experimentar con diferentes estilos de vida o roles.", "trait": "O", "reverse": False},
+    {"id": "O26", "text": "Las teorías científicas complejas me aburren rápidamente.", "trait": "O", "reverse": True},
+
+    # C - Responsabilidad (Conscientiousness) - 26 items
+    {"id": "C1", "text": "Siempre me preparo meticulosamente con antelación.", "trait": "C", "reverse": False},
+    {"id": "C2", "text": "Soy muy metódico, organizado y ordenado.", "trait": "C", "reverse": False},
+    {"id": "C3", "text": "A menudo me olvido de mis deberes y responsabilidades importantes.", "trait": "C", "reverse": True},
     {"id": "C4", "text": "Trabajo con diligencia hasta completar cualquier tarea que comience.", "trait": "C", "reverse": False},
-    {"id": "C5", "text": "No me importa dejar las cosas sin terminar si pierdo el interés.", "trait": "C", "reverse": True},
-    {"id": "C6", "text": "Siempre procuro mantener mis promesas y compromisos.", "trait": "C", "reverse": False},
-    {"id": "C7", "text": "Soy visto por otros como una persona muy fiable y puntual.", "trait": "C", "reverse": False},
+    {"id": "C5", "text": "Dejo cosas sin terminar si pierdo el interés inicial.", "trait": "C", "reverse": True},
+    {"id": "C6", "text": "Siempre procuro mantener mis promesas, incluso las pequeñas.", "trait": "C", "reverse": False},
+    {"id": "C7", "text": "Soy visto por otros como una persona extremadamente fiable y puntual.", "trait": "C", "reverse": False},
     {"id": "C8", "text": "Tengo dificultades para concentrarme en una sola cosa por mucho tiempo.", "trait": "C", "reverse": True},
     {"id": "C9", "text": "Establezco objetivos claros y trabajo sistemáticamente para alcanzarlos.", "trait": "C", "reverse": False},
-    {"id": "C10", "text": "Mi espacio de trabajo o estudio es a menudo un desorden.", "trait": "C", "reverse": True},
-    {"id": "C11", "text": "Soy perfeccionista y reviso mi trabajo varias veces.", "trait": "C", "reverse": False},
-    {"id": "C12", "text": "Tienden a describirme como impulsivo e irreflexivo.", "trait": "C", "reverse": True},
+    {"id": "C10", "text": "Mi espacio de trabajo o estudio es a menudo caótico.", "trait": "C", "reverse": True},
+    {"id": "C11", "text": "Soy un perfeccionista que revisa cada detalle.", "trait": "C", "reverse": False},
+    {"id": "C12", "text": "Tienden a describirme como impulsivo e irreflexivo en mis acciones.", "trait": "C", "reverse": True},
+    {"id": "C13", "text": "Nunca llego tarde a una cita o compromiso.", "trait": "C", "reverse": False},
+    {"id": "C14", "text": "Mis decisiones se basan a menudo en el impulso del momento.", "trait": "C", "reverse": True},
+    {"id": "C15", "text": "Hago listas de tareas pendientes y las sigo rigurosamente.", "trait": "C", "reverse": False},
+    {"id": "C16", "text": "No me importa si las cosas están ligeramente desordenadas.", "trait": "C", "reverse": True},
+    {"id": "C17", "text": "Soy cauteloso y pienso en las consecuencias antes de actuar.", "trait": "C", "reverse": False},
+    {"id": "C18", "text": "A veces pospongo mis tareas importantes hasta el último minuto.", "trait": "C", "reverse": True},
+    {"id": "C19", "text": "Mantengo un horario estricto y lo sigo diariamente.", "trait": "C", "reverse": False},
+    {"id": "C20", "text": "Soy perezoso y no me gusta hacer un esfuerzo extra.", "trait": "C", "reverse": True},
+    {"id": "C21", "text": "Siempre busco la mejor manera y más eficiente de hacer una tarea.", "trait": "C", "reverse": False},
+    {"id": "C22", "text": "Suelo perder o extraviar mis pertenencias personales.", "trait": "C", "reverse": True},
+    {"id": "C23", "text": "Soy muy consciente de mis obligaciones financieras y las cumplo a tiempo.", "trait": "C", "reverse": False},
+    {"id": "C24", "text": "No me gusta la planificación a largo plazo; prefiero la sorpresa.", "trait": "C", "reverse": True},
+    {"id": "C25", "text": "La gente me pide ayuda para organizar eventos o proyectos.", "trait": "C", "reverse": False},
+    {"id": "C26", "text": "Me rindo fácilmente cuando una tarea se vuelve demasiado difícil.", "trait": "C", "reverse": True},
 
-    # E - Extraversión (Extraversion)
-    {"id": "E1", "text": "Soy el alma de la fiesta; disfruto siendo el centro de atención.", "trait": "E", "reverse": False},
-    {"id": "E2", "text": "Me gusta tener mucha gente a mi alrededor.", "trait": "E", "reverse": False},
+    # E - Extraversión (Extraversion) - 26 items
+    {"id": "E1", "text": "Soy el alma de la fiesta y busco el centro de atención.", "trait": "E", "reverse": False},
+    {"id": "E2", "text": "Me gusta tener mucha gente a mi alrededor la mayor parte del tiempo.", "trait": "E", "reverse": False},
     {"id": "E3", "text": "Soy bastante reservado y tiendo a quedarme en un segundo plano.", "trait": "E", "reverse": True},
-    {"id": "E4", "text": "Cuando hablo en un grupo, tiendo a dominar la conversación.", "trait": "E", "reverse": False},
-    {"id": "E5", "text": "Prefiero las actividades que puedo realizar solo.", "trait": "E", "reverse": True},
+    {"id": "E4", "text": "Cuando estoy en un grupo, tiendo a ser el que más habla.", "trait": "E", "reverse": False},
+    {"id": "E5", "text": "Prefiero las actividades que puedo realizar solo en casa.", "trait": "E", "reverse": True},
     {"id": "E6", "text": "Expreso mis opiniones y sentimientos con facilidad y confianza.", "trait": "E", "reverse": False},
-    {"id": "E7", "text": "Soy muy entusiasta y enérgico en casi todo lo que hago.", "trait": "E", "reverse": False},
-    {"id": "E8", "text": "Me aburro fácilmente si no hay mucha actividad o estimulación.", "trait": "E", "reverse": False},
+    {"id": "E7", "text": "Soy muy entusiasta, ruidoso y enérgico.", "trait": "E", "reverse": False},
+    {"id": "E8", "text": "Me aburro fácilmente si no hay mucha actividad o estimulación social.", "trait": "E", "reverse": False},
     {"id": "E9", "text": "Me resulta agotador pasar demasiado tiempo con otras personas.", "trait": "E", "reverse": True},
     {"id": "E10", "text": "Normalmente me siento incómodo al hablar con extraños.", "trait": "E", "reverse": True},
     {"id": "E11", "text": "Busco activamente nuevas amistades y contactos sociales.", "trait": "E", "reverse": False},
-    {"id": "E12", "text": "Mi voz es baja y tiendo a hablar con cautela.", "trait": "E", "reverse": True},
+    {"id": "E12", "text": "Mi voz es baja y tiendo a hablar con mucha cautela.", "trait": "E", "reverse": True},
+    {"id": "E13", "text": "Soy propenso a tomar riesgos y a buscar la aventura.", "trait": "E", "reverse": False},
+    {"id": "E14", "text": "Disfruto en entornos silenciosos y de baja estimulación.", "trait": "E", "reverse": True},
+    {"id": "E15", "text": "Me río mucho y mi risa es a menudo fuerte.", "trait": "E", "reverse": False},
+    {"id": "E16", "text": "Soy lento para hacer nuevos amigos y conectar con la gente.", "trait": "E", "reverse": True},
+    {"id": "E17", "text": "Me gusta organizar eventos sociales y reuniones.", "trait": "E", "reverse": False},
+    {"id": "E18", "text": "Tiendo a ser un observador en lugar de un participante activo.", "trait": "E", "reverse": True},
+    {"id": "E19", "text": "Cuando me siento feliz, lo muestro abiertamente.", "trait": "E", "reverse": False},
+    {"id": "E20", "text": "No me gusta que me hagan preguntas personales.", "trait": "E", "reverse": True},
+    {"id": "E21", "text": "En un equipo, prefiero tomar el papel de líder.", "trait": "E", "reverse": False},
+    {"id": "E22", "text": "Me considero una persona sombría o seria.", "trait": "E", "reverse": True},
+    {"id": "E23", "text": "Busco elogios y reconocimiento por mis logros.", "trait": "E", "reverse": False},
+    {"id": "E24", "text": "Me siento más cómodo expresándome por escrito que hablando.", "trait": "E", "reverse": True},
+    {"id": "E25", "text": "Soy rápido para responder y reaccionar en una conversación.", "trait": "E", "reverse": False},
+    {"id": "E26", "text": "Necesito mucho tiempo a solas para pensar y recargar energía.", "trait": "E", "reverse": True},
 
-    # A - Amabilidad (Agreeableness)
-    {"id": "A1", "text": "Siento mucha empatía y compasión por los demás.", "trait": "A", "reverse": False},
-    {"id": "A2", "text": "Generalmente confío en las intenciones de otras personas.", "trait": "A", "reverse": False},
-    {"id": "A3", "text": "Pienso que la mayoría de la gente intenta aprovecharse de mí.", "trait": "A", "reverse": True},
-    {"id": "A4", "text": "Evito las discusiones y prefiero el consenso.", "trait": "A", "reverse": False},
-    {"id": "A5", "text": "No me molesta insultar a las personas si es necesario para ganar.", "trait": "A", "reverse": True},
-    {"id": "A6", "text": "Tienden a describirme como una persona amable y considerada.", "trait": "A", "reverse": False},
-    {"id": "A7", "text": "Me resulta fácil perdonar a quienes me han ofendido.", "trait": "A", "reverse": False},
-    {"id": "A8", "text": "A veces manipulo a los demás para conseguir lo que quiero.", "trait": "A", "reverse": True},
-    {"id": "A9", "text": "Me gusta ayudar a quienes lo necesitan, incluso a expensas de mi tiempo.", "trait": "A", "reverse": False},
-    {"id": "A10", "text": "Soy muy directo y no me importa criticar a los demás.", "trait": "A", "reverse": True},
-    {"id": "A11", "text": "Considero importante la armonía en mis relaciones.", "trait": "A", "reverse": False},
-    {"id": "A12", "text": "Me resulta difícil simpatizar con la gente que se queja mucho.", "trait": "A", "reverse": True},
-    
-    # N - Neuroticismo (Neuroticism)
+    # A - Amabilidad (Agreeableness) - 26 items
+    {"id": "A1", "text": "Siento una profunda empatía y compasión por los demás.", "trait": "A", "reverse": False},
+    {"id": "A2", "text": "Generalmente confío en las buenas intenciones de la gente.", "trait": "A", "reverse": False},
+    {"id": "A3", "text": "Pienso que la mayoría de la gente intenta aprovecharse de los demás.", "trait": "A", "reverse": True},
+    {"id": "A4", "text": "Evito las discusiones y prefiero buscar el consenso rápidamente.", "trait": "A", "reverse": False},
+    {"id": "A5", "text": "No dudo en insultar o manipular a las personas si es necesario para ganar.", "trait": "A", "reverse": True},
+    {"id": "A6", "text": "Tienden a describirme como una persona amable, cálida y considerada.", "trait": "A", "reverse": False},
+    {"id": "A7", "text": "Me resulta fácil perdonar a quienes me han ofendido o traicionado.", "trait": "A", "reverse": False},
+    {"id": "A8", "text": "A veces manipulo a los demás para conseguir mis metas.", "trait": "A", "reverse": True},
+    {"id": "A9", "text": "Me gusta ayudar activamente a quienes lo necesitan, sin esperar nada a cambio.", "trait": "A", "reverse": False},
+    {"id": "A10", "text": "Soy muy directo y no me importa criticar a los demás abiertamente.", "trait": "A", "reverse": True},
+    {"id": "A11", "text": "Considero esencial la armonía en mis relaciones personales.", "trait": "A", "reverse": False},
+    {"id": "A12", "text": "Me resulta difícil simpatizar con la gente que se queja constantemente.", "trait": "A", "reverse": True},
+    {"id": "A13", "text": "Siento un gran afecto por los animales y los niños.", "trait": "A", "reverse": False},
+    {"id": "A14", "text": "No me molesta hacer trampa si todos los demás lo están haciendo.", "trait": "A", "reverse": True},
+    {"id": "A15", "text": "Soy conocido por ser indulgente y de mente abierta.", "trait": "A", "reverse": False},
+    {"id": "A16", "text": "Creo que la ley del más fuerte es la que debe prevalecer.", "trait": "A", "reverse": True},
+    {"id": "A17", "text": "Prefiero cooperar antes que competir en casi cualquier situación.", "trait": "A", "reverse": False},
+    {"id": "A18", "text": "A menudo me burlo de los defectos de los demás.", "trait": "A", "reverse": True},
+    {"id": "A19", "text": "Siempre asumo lo mejor de las personas hasta que se demuestre lo contrario.", "trait": "A", "reverse": False},
+    {"id": "A20", "text": "Soy rencoroso y me cuesta olvidar cuando me han hecho daño.", "trait": "A", "reverse": True},
+    {"id": "A21", "text": "Dedico tiempo a escuchar los problemas de mis amigos.", "trait": "A", "reverse": False},
+    {"id": "A22", "text": "Tiendo a ser sarcástico o cínico en mis comentarios.", "trait": "A", "reverse": True},
+    {"id": "A23", "text": "Me considero una persona humilde y modesta.", "trait": "A", "reverse": False},
+    {"id": "A24", "text": "No siento remordimiento por mis errores pasados.", "trait": "A", "reverse": True},
+    {"id": "A25", "text": "Soy muy paciente con la gente lenta o incompetente.", "trait": "A", "reverse": False},
+    {"id": "A26", "text": "Me cuesta ponerme en el lugar de alguien que sufre mucho.", "trait": "A", "reverse": True},
+
+    # N - Neuroticismo (Neuroticism) - 26 items
     {"id": "N1", "text": "Me preocupo a menudo por cosas pequeñas o insignificantes.", "trait": "N", "reverse": False},
-    {"id": "N2", "text": "A veces me siento deprimido o melancólico sin razón aparente.", "trait": "N", "reverse": False},
+    {"id": "N2", "text": "A veces me siento deprimido, melancólico o infeliz.", "trait": "N", "reverse": False},
     {"id": "N3", "text": "Tienden a estresarme las situaciones inesperadas o difíciles.", "trait": "N", "reverse": False},
     {"id": "N4", "text": "Soy una persona muy relajada y rara vez me siento ansioso.", "trait": "N", "reverse": True},
-    {"id": "N5", "text": "Puedo mantener la calma en situaciones de alta presión.", "trait": "N", "reverse": True},
-    {"id": "N6", "text": "Mi estado de ánimo es generalmente estable y tranquilo.", "trait": "N", "reverse": True},
-    {"id": "N7", "text": "Me ofendo o me irrito con mucha facilidad.", "trait": "N", "reverse": False},
-    {"id": "N8", "text": "Me cuesta volver a la normalidad después de un disgusto.", "trait": "N", "reverse": False},
-    {"id": "N9", "text": "Soy propenso a sentirme celoso o envidioso.", "trait": "N", "reverse": False},
-    {"id": "N10", "text": "Raramente me siento tenso o nervioso.", "trait": "N", "reverse": True},
-    {"id": "N11", "text": "Siempre me siento seguro y optimista sobre el futuro.", "trait": "N", "reverse": True},
+    {"id": "N5", "text": "Puedo mantener la calma bajo presión extrema.", "trait": "N", "reverse": True},
+    {"id": "N6", "text": "Mi estado de ánimo es generalmente estable, tranquilo y predecible.", "trait": "N", "reverse": True},
+    {"id": "N7", "text": "Me ofendo o me irrito con mucha facilidad por comentarios ajenos.", "trait": "N", "reverse": False},
+    {"id": "N8", "text": "Me cuesta volver a la normalidad después de un disgusto o un enfado.", "trait": "N", "reverse": False},
+    {"id": "N9", "text": "Soy propenso a sentir celos o envidia de los logros de otros.", "trait": "N", "reverse": False},
+    {"id": "N10", "text": "Raramente me siento tenso, nervioso o asustado.", "trait": "N", "reverse": True},
+    {"id": "N11", "text": "Siempre me siento seguro y optimista sobre mi futuro.", "trait": "N", "reverse": True},
     {"id": "N12", "text": "Mis emociones son a menudo volátiles e inestables.", "trait": "N", "reverse": False},
+    {"id": "N13", "text": "Tengo un miedo persistente de que algo terrible va a suceder.", "trait": "N", "reverse": False},
+    {"id": "N14", "text": "No me tomo las críticas personales, las veo como una oportunidad para mejorar.", "trait": "N", "reverse": True},
+    {"id": "N15", "text": "Me preocupo mucho por lo que los demás piensan de mí.", "trait": "N", "reverse": False},
+    {"id": "N16", "text": "Soy capaz de ignorar los pensamientos negativos y destructivos.", "trait": "N", "reverse": True},
+    {"id": "N17", "text": "La presión me hace trabajar mejor y me enfoca.", "trait": "N", "reverse": True},
+    {"id": "N18", "text": "A menudo me siento solo o abandonado.", "trait": "N", "reverse": False},
+    {"id": "N19", "text": "Sufro de cambios de humor sin una causa obvia.", "trait": "N", "reverse": False},
+    {"id": "N20", "text": "Raramente siento lástima por mí mismo.", "trait": "N", "reverse": True},
+    {"id": "N21", "text": "Mi salud y estado de ánimo se ven afectados por el estrés.", "trait": "N", "reverse": False},
+    {"id": "N22", "text": "Tengo una actitud de 'dejar que las cosas pasen' ante los problemas.", "trait": "N", "reverse": True},
+    {"id": "N23", "text": "Soy hipersensible a los ruidos fuertes o a la luz intensa.", "trait": "N", "reverse": False},
+    {"id": "N24", "text": "Me siento seguro de mi capacidad para resolver cualquier crisis.", "trait": "N", "reverse": True},
+    {"id": "N25", "text": "Tiendo a ver la vida a través de un cristal de color gris.", "trait": "N", "reverse": False},
+    {"id": "N26", "text": "Soy una persona que se rinde fácilmente ante la desesperación.", "trait": "N", "reverse": False},
 ]
 
-# Parámetros de la Paginación
+# Parámetros del Test (Ajustados a 130 preguntas)
+TOTAL_QUESTIONS = len(QUESTIONS) # 130 preguntas
 QUESTIONS_PER_PAGE = 10
-TOTAL_QUESTIONS = len(QUESTIONS)
-TOTAL_PAGES = (TOTAL_QUESTIONS + QUESTIONS_PER_PAGE - 1) // QUESTIONS_PER_PAGE # 60/10 = 6 páginas
-MAX_SCORE_PER_TRAIT = 12 * 5 # 12 preguntas * 5 puntos max = 60
-MIN_SCORE_PER_TRAIT = 12 * 1 # 12 preguntas * 1 punto min = 12
+TOTAL_PAGES = (TOTAL_QUESTIONS + QUESTIONS_PER_PAGE - 1) // QUESTIONS_PER_PAGE # 13 páginas
+ITEMS_PER_TRAIT = 26
+MAX_SCORE_PER_TRAIT = ITEMS_PER_TRAIT * 5 # 26 * 5 = 130
+MIN_SCORE_PER_TRAIT = ITEMS_PER_TRAIT * 1 # 26 * 1 = 26
 
 # Opciones de respuesta para el Likert Scale
 LIKERT_OPTIONS = {
@@ -94,7 +165,7 @@ LIKERT_OPTIONS = {
     1: "Totalmente en desacuerdo"
 }
 
-# Etiquetas para la barra de progreso
+# Etiquetas y Colores (sin cambios)
 TRAIT_LABELS = {
     "O": "Apertura a la Experiencia (Openness)",
     "C": "Responsabilidad (Conscientiousness)",
@@ -103,12 +174,16 @@ TRAIT_LABELS = {
     "N": "Neuroticismo (Neuroticism)"
 }
 
-# Colores para la visualización de resultados (Profesional)
+COLOR_VIBRANT_BLUE = "#4A90E2"
+COLOR_MINT_GREEN = "#50E3C2"
+COLOR_WARNING_ORANGE = "#F5A623"
+COLOR_DANGER_RED = "#D0021B"
+
 LEVEL_COLORS = {
-    "Alto_Positivo": "#004AAD",  # Azul Corporativo
-    "Bajo_Negativo": "#C0392B",  # Rojo
-    "Medio": "#F39C12",         # Amarillo/Naranja
-    "Estable": "#16A085"        # Verde (para Baja en Neuroticismo)
+    "Alto_Positivo": COLOR_VIBRANT_BLUE,
+    "Bajo_Negativo": COLOR_DANGER_RED,
+    "Medio": COLOR_WARNING_ORANGE,
+    "Estable": COLOR_MINT_GREEN
 }
 
 # --- 2. LÓGICA DE PUNTUACIÓN Y PERFIL ---
@@ -128,6 +203,7 @@ def calculate_score(answers):
             score = response
             
             if is_reverse:
+                # La puntuación invertida es (Max Score + 1) - Score = 6 - Score
                 score = 6 - score 
             
             scores[trait] += score
@@ -136,12 +212,15 @@ def calculate_score(answers):
 
 def interpret_score(score, trait):
     """
-    Interpreta la puntuación (Bajo, Medio, Alto) y devuelve el texto del perfil y las áreas de mejora.
-    Rango de score: 12 (min) a 60 (max).
+    Interpreta la puntuación (Bajo, Medio, Alto) y devuelve el texto del perfil,
+    incluyendo la Fortaleza y el Desafío Clave (los aspectos "malos").
+    Rango de score: 26 (min) a 130 (max).
     """
-    # Umbrales (Aproximadamente tercios del rango 12-60. Ancho de rango: 48)
-    LOW_THRESHOLD = 28
-    HIGH_THRESHOLD = 44
+    # Umbrales ajustados para el rango 26-130 (Ancho de rango: 104)
+    # LOW_THRESHOLD: 26 + (104/3) ~ 60
+    # HIGH_THRESHOLD: 130 - (104/3) ~ 96
+    LOW_THRESHOLD = 60
+    HIGH_THRESHOLD = 96
     
     if score <= LOW_THRESHOLD:
         level = "Bajo"
@@ -150,81 +229,96 @@ def interpret_score(score, trait):
     else:
         level = "Medio"
         
-    # --- Descripciones Detalladas y Áreas de Mejora ---
+    # --- Descripciones Detalladas, Fortalezas y Desafíos Clave (Cosas "malas") ---
     profiles = {
         "O": {
             "Alto": {
-                "desc": "Eres un **Explorador** innato, sumamente curioso, creativo y con una mente siempre abierta. Disfrutas de la complejidad, el arte y la diversidad. Esto te impulsa a la innovación y al crecimiento constante. Sin embargo, debes tener cuidado de no perder el foco en la practicidad.",
-                "improvement": "A veces, la búsqueda constante de novedad puede llevarte a iniciar muchos proyectos sin finalizar ninguno. **Mejora:** Practica la disciplina de terminar lo que empiezas, enfocándote en implementar las ideas brillantes que ya tienes antes de pasar a la siguiente."
+                "desc": "¡Eres un **Explorador Ilimitado**! Mente creativa y abierta, curiosidad insaciable por las ideas abstractas y la estética. Eres el motor de la innovación.",
+                "strength": "Tu capacidad para conectar ideas dispares y tu visión no convencional te hacen un pensador excepcionalmente original y adaptable.",
+                "challenge": "⚠️ **Desafío Clave (Riesgo de Falla):** Tendencia al escapismo y a la desconexión con la realidad práctica. Puedes ser visto como poco realista o inestable, iniciando proyectos sin la disciplina de finalizarlos."
             },
             "Medio": {
-                "desc": "Tienes un **perfil Equilibrado**, combinando la curiosidad y la apertura al cambio con un fuerte sentido de la estabilidad. Eres adaptable, pero no impulsivo, y puedes interactuar con éxito tanto en entornos creativos como tradicionales.",
-                "improvement": "Tu equilibrio es tu fuerza, pero a veces puedes caer en una 'zona de confort'. **Mejora:** Desafíate a salir de la rutina de forma intencional y a profundizar en un área de conocimiento completamente nueva, superando la tendencia a ser demasiado pragmático."
+                "desc": "Tienes un **perfil Balanceado**. Combina la apertura al cambio con un sentido de la estabilidad. Eres adaptable y puedes interactuar con éxito en entornos creativos y pragmáticos.",
+                "strength": "Posees la versatilidad para apreciar la novedad sin caer en la impulsividad, lo que te permite aprender sin rechazar lo ya conocido.",
+                "challenge": "⚠️ **Desafío Clave (Riesgo de Falla):** Puedes caer en una 'zona de confort' intelectual, mostrando resistencia a invertir tiempo en ideas que percibas como innecesariamente complejas o demasiado disruptivas."
             },
             "Bajo": {
-                "desc": "Eres **Pragmático y Convencional**. Prefieres la familiaridad, la tradición y los métodos probados. Tu enfoque está en los hechos concretos y la utilidad práctica, lo que te hace muy eficiente en tareas bien definidas. Tiendes a resistirte a ideas demasiado abstractas.",
-                "improvement": "Tu aversión al riesgo y a lo desconocido puede limitar tu potencial de crecimiento. **Mejora:** Busca activamente perspectivas diferentes a las tuyas, lee sobre temas que te incomoden intelectualmente y practica la empatía cognitiva para entender cómo otros abordan el mundo."
+                "desc": "Eres **Pragmático y Convencional**. Prefieres la familiaridad, la tradición y los métodos probados. Tu enfoque está en los hechos concretos y la utilidad práctica, lo que te hace eficiente en tareas definidas.",
+                "strength": "Tu estabilidad, tu enfoque en la realidad y tu resistencia a las modas pasajeras te hacen un pilar de fiabilidad en entornos que requieren estructura y lógica.",
+                "challenge": "⚠️ **Desafío Clave (Riesgo de Falla):** Excesiva rigidez mental y aversión al cambio. Puedes ser percibido como dogmático o resistente a nuevas perspectivas, limitando tu potencial de crecimiento personal y profesional."
             }
         },
         "C": {
             "Alto": {
-                "desc": "Eres un **Estratega y Organizado**. Muestras un alto nivel de autodisciplina, eres confiable, orientado a metas y meticuloso en los detalles. Tu ética de trabajo es ejemplar y siempre planeas con mucha antelación.",
-                "improvement": "Tu perfeccionismo y rigor pueden llevar al agotamiento o a la inflexibilidad. **Mejora:** Aprende a delegar y a aceptar que 'suficientemente bueno' es a veces mejor que perfecto. Permítete períodos de espontaneidad para recargar tu energía y reducir el estrés."
+                "desc": "¡Eres un **Súper Organizador Meticuloso**! Muestras un alto nivel de autodisciplina, eres confiable, orientado a metas y obsesivo con los detalles. Tu ética de trabajo es ejemplar.",
+                "strength": "Tu rigor, planificación y perseverancia garantizan la alta calidad de tu trabajo y te permiten alcanzar objetivos ambiciosos a largo plazo.",
+                "challenge": "⚠️ **Desafío Clave (Riesgo de Falla):** Propensión al perfeccionismo paralizante y al agotamiento ('burnout'). Puedes experimentar altos niveles de estrés por el miedo a cometer errores y dificultad para delegar o improvisar."
             },
             "Medio": {
-                "desc": "Eres una persona **Eficaz y Flexible**. Tienes la capacidad de organizarte y cumplir con los plazos, pero valoras la flexibilidad. Eres confiable, pero no te agobia la rigidez, permitiendo ajustes cuando la situación lo requiere.",
-                "improvement": "Asegúrate de que tu flexibilidad no se convierta en inconsistencia. **Mejora:** Define objetivos intermedios más claros para evitar la procrastinación en tareas de baja prioridad y utiliza herramientas de gestión de tiempo para monitorear tu progreso de manera más sistemática."
+                "desc": "Eres una persona **Eficaz y Flexible**. Tienes la capacidad de organizarte y cumplir con los plazos, pero valoras la flexibilidad. Eres confiable, pero no te agobia la rigidez.",
+                "strength": "Tienes un equilibrio práctico: eres lo suficientemente responsable para ser productivo, pero flexible para ajustarte a circunstancias cambiantes sin estresarte en exceso.",
+                "challenge": "⚠️ **Desafío Clave (Riesgo de Falla):** Riesgo de inconsistencia. Puedes procrastinar en tareas de baja prioridad o fallar en el último detalle si no mantienes un sistema de seguimiento constante."
             },
             "Bajo": {
-                "desc": "Eres **Espontáneo y Despreocupado**. Priorizas la flexibilidad y la improvisación sobre el orden riguroso. Te sientes cómodo con el caos y puedes adaptarte rápidamente a los cambios, pero tiendes a la procrastinación y a un enfoque desorganizado.",
-                "improvement": "Tu falta de estructura puede sabotear el logro de objetivos a largo plazo. **Mejora:** Implementa pequeñas rutinas diarias (ej. 15 minutos de planificación) y divide las tareas grandes en pasos minúsculos. Concéntrate en cumplir los compromisos, pues tu reputación depende de ello."
+                "desc": "¡Eres **Espontáneo y Vives el Momento**! Priorizas la flexibilidad y la improvisación sobre el orden riguroso. Te sientes cómodo con el caos y puedes adaptarte rápidamente a los cambios.",
+                "strength": "Tu adaptabilidad, creatividad bajo presión y capacidad de improvisación te permiten responder rápidamente a las crisis y aprovechar oportunidades inesperadas.",
+                "challenge": "⚠️ **Desafío Clave (Riesgo de Falla):** Alta tendencia a la procrastinación crónica y a la desorganización. Tu falta de estructura puede afectar tu reputación y sabotear el logro de objetivos a largo plazo, resultando en fracasos por falta de seguimiento."
             }
         },
         "E": {
             "Alto": {
-                "desc": "Eres un **Líder Sociable**, enérgico, asertivo y te revitalizas con la interacción. Disfrutas siendo el centro de atención, eres entusiasta y buscas activamente el contacto social. Tienes una gran influencia en grupos.",
-                "improvement": "Tu necesidad de estimulación puede hacer que hables antes de escuchar o que evites la introspección. **Mejora:** Cultiva la escucha activa y programa tiempo de reflexión a solas. Desarrolla la empatía y asegúrate de que tu entusiasmo no abrume a las personas más reservadas."
+                "desc": "¡Eres la **Estrella del Escenario y Fuente de Energía**! Eres enérgico, asertivo y te revitalizas con la interacción social. Buscas activamente el contacto social y tienes una gran influencia en grupos.",
+                "strength": "Tu entusiasmo es contagioso. Tu asertividad te convierte en un líder natural y tu amplia red social te abre constantemente nuevas oportunidades.",
+                "challenge": "⚠️ **Desafío Clave (Riesgo de Falla):** Necesidad constante de atención, interrupción y tendencia a la **superficialidad** en las relaciones. Puedes ser percibido como dominante, ruidoso o incapaz de escuchar profundamente a los demás."
             },
             "Medio": {
-                "desc": "Tienes un **perfil Ambivertido**. Disfrutas de la compañía, pero también valoras profundamente el tiempo a solas. Eres un buen comunicador y puedes adaptarte a roles tanto sociales como independientes, gestionando bien tus niveles de energía.",
-                "improvement": "Tu versatilidad puede llevar a la confusión sobre lo que realmente te energiza. **Mejora:** Sé más consciente de tus límites sociales; cuando te sientas agotado, no temas rechazar planes para dedicarte al tiempo de inactividad necesario para recargarte."
+                "desc": "Tienes un **perfil Ambivertido**. Disfrutas de la compañía, pero también valoras el tiempo a solas. Puedes adaptarte a roles tanto sociales como independientes, gestionando bien tus niveles de energía.",
+                "strength": "Tu versatilidad te permite ser un puente entre diferentes tipos de personas y entornos, lo que te convierte en un comunicador y colaborador eficaz.",
+                "challenge": "⚠️ **Desafío Clave (Riesgo de Falla):** A veces puedes confundir tus propias necesidades de energía, lo que puede llevar al agotamiento social por exceso o al arrepentimiento por haber rechazado oportunidades por introversión temporal."
             },
             "Bajo": {
                 "desc": "Eres **Reservado e Introvertido**. Prefieres la soledad, las interacciones profundas y te sientes agotado por las grandes multitudes. Eres reflexivo, observador y sueles ser muy cauteloso al hablar.",
-                "improvement": "Tu reserva puede hacer que pierdas oportunidades de *networking* o que tus ideas no sean escuchadas. **Mejora:** Practica la asertividad controlada: prepárate para compartir tus ideas en reuniones con antelación y establece un mínimo de interacciones sociales estratégicas a la semana."
+                "strength": "Tu capacidad de reflexión profunda, tu independencia y tu enfoque en la calidad de las relaciones te hacen un pensador estratégico y un amigo leal y profundo.",
+                "challenge": "⚠️ **Desafío Clave (Riesgo de Falla):** Riesgo de aislamiento social excesivo o de ser invisible. Te resulta difícil defender tus ideas o ser escuchado en grupos, lo que puede estancar tu carrera o vida social."
             }
         },
         "A": {
             "Alto": {
-                "desc": "Eres **Cooperativo y Compasivo**. Eres empático, de buen corazón y buscas activamente la armonía en todas tus relaciones. Eres el mediador natural, impulsado por el deseo de ayudar y evitar el conflicto.",
-                "improvement": "Tu deseo de agradar puede llevarte a descuidar tus propias necesidades o a ser explotado. **Mejora:** Aprende a establecer límites firmes y a decir 'no' sin sentir culpa. Practica la asertividad cuando sea necesario defender tus derechos o los de tu equipo, sin buscar siempre el consenso absoluto."
+                "desc": "¡Eres el **Agente de la Armonía**! Eres empático, de buen corazón y buscas activamente la cooperación. Eres el mediador natural, impulsado por el deseo de ayudar y evitar el conflicto a toda costa.",
+                "strength": "Tu empatía, generosidad y capacidad de colaboración construyen relaciones sólidas y de confianza, creando un entorno pacífico y de apoyo mutuo.",
+                "challenge": "⚠️ **Desafío Clave (Riesgo de Falla):** Evitar conflictos a toda costa, lo que lleva a la **sumisión**, a ser manipulado o a la dificultad para decir 'no'. Corres el riesgo de descuidar tus propias necesidades y sentirte resentido."
             },
             "Medio": {
-                "desc": "Eres **Amable y Justo**. Eres generalmente agradable y cooperativo, pero mantienes un saludable escepticismo y puedes defender tus propios intereses. Eres un buen jugador de equipo que exige reciprocidad y justicia.",
-                "improvement": "En situaciones de conflicto, puedes volverte excesivamente cauteloso para no ofender. **Mejora:** Aumenta tu confianza para expresar críticas constructivas directamente. Trabaja en distinguir entre amabilidad genuina y la necesidad de aprobación."
+                "desc": "Eres **Amable, Justo y Pragmático**. Eres generalmente agradable y cooperativo, pero mantienes un saludable escepticismo y puedes defender tus propios intereses cuando es necesario.",
+                "strength": "Eres un colaborador valioso que equilibra la justicia con la calidez, ofreciendo ayuda, pero esperando reciprocidad y manteniendo la dignidad personal.",
+                "challenge": "⚠️ **Desafío Clave (Riesgo de Falla):** Puedes dudar al tomar una postura moral o crítica para no ofender a nadie. Esto te hace parecer inconsistente en situaciones que exigen un liderazgo firme y polarizado."
             },
             "Bajo": {
-                "desc": "Eres **Desafiante y Escéptico**. Tiendes a ser competitivo, directo, y priorizas la verdad y tus intereses sobre la sensibilidad ajena. Tu escepticismo te hace resistente a la manipulación y excelente para negociar.",
-                "improvement": "Tu franqueza puede ser percibida como frialdad o hostilidad, dificultando las alianzas. **Mejora:** Esfuérzate por 'suavizar el mensaje'. Antes de criticar, valida el esfuerzo del otro. Desarrolla activamente la empatía para entender por qué otros reaccionan emocionalmente."
+                "desc": "Eres **Desafiante y Escepticismo**. Tiendes a ser competitivo, directo, y priorizas la verdad y tus intereses sobre la sensibilidad ajena. Eres excelente para negociar.",
+                "strength": "Tu capacidad para la franqueza brutal, tu resistencia a la manipulación y tu enfoque en la competencia te hacen altamente efectivo en entornos de negociación y alta presión.",
+                "challenge": "⚠️ **Desafío Clave (Riesgo de Falla):** Frecuente **hostilidad** y dificultad para confiar. Los demás te ven como insensible, frío o conflictivo, dificultando la construcción de alianzas a largo plazo y la lealtad de equipo."
             }
         },
         "N": {
             "Alto": {
-                "desc": "Tu **Estabilidad Emocional es Baja (Reactiva)**. Eres muy sensible al estrés y experimentas ansiedad, preocupación e ira con facilidad. Tu estado de ánimo es a menudo volátil y te cuesta recuperar la calma tras un evento negativo.",
-                "improvement": "La alta reactividad emocional consume energía y dificulta la toma de decisiones. **Mejora:** Implementa técnicas de manejo del estrés (meditación, respiración). Cuestiona tus pensamientos negativos (¿es esto un hecho o una emoción?). Busca la estabilidad en rutinas diarias predecibles."
+                "desc": "Tu **Estabilidad Emocional es Baja (Reactiva)**. Eres muy sensible al estrés y experimentas ansiedad, preocupación e ira con facilidad. Tu estado de ánimo es a menudo volátil.",
+                "strength": "Tu alta sensibilidad te permite experimentar las emociones y el arte profundamente. Tu capacidad de sentir la alarma rápidamente puede protegerte de riesgos inminentes.",
+                "challenge": "⚠️ **Desafío Clave (Riesgo de Falla):** **Ansiedad crónica** y altos niveles de estrés que paralizan la acción. Tu inestabilidad dificulta la toma de decisiones objetivas y puede dañar tu salud y relaciones interpersonales."
             },
             "Medio": {
-                "desc": "Tienes una **Estabilidad Emocional Moderada (Sensible)**. Eres capaz de gestionar el estrés diario, pero puedes volverte ansioso o preocupado bajo presión intensa. Eres empático con las emociones, pero mantienes un buen control la mayoría del tiempo.",
-                "improvement": "Asegúrate de que no estás suprimiendo la ansiedad en lugar de gestionarla. **Mejora:** Identifica los detonantes de tu estrés y trabaja en estrategias preventivas. Evita la sobrecarga de trabajo y asegúrate de tener válvulas de escape saludables."
+                "desc": "Tienes una **Estabilidad Emocional Moderada (Sensible)**. Eres capaz de gestionar el estrés diario, pero puedes volverte ansioso o preocupado bajo presión intensa. Eres empático, pero mantienes el control la mayoría del tiempo.",
+                "strength": "Tu sensibilidad moderada te permite ser consciente de los riesgos sin ser abrumado por ellos, manteniendo la prudencia sin caer en el pánico.",
+                "challenge": "⚠️ **Desafío Clave (Riesgo de Falla):** Tiendes a la rumiación mental y a la preocupación excesiva por el futuro. Puedes caer en la sobrecarga de trabajo al intentar controlar todas las variables externas."
             },
             "Bajo": {
-                "desc": "Tu **Estabilidad Emocional es Alta (Resiliente)**. Eres tranquilo, estable, resiliente y rara vez te sientes perturbado. Muestras una gran capacidad para manejar el estrés y recuperarte rápidamente de los contratiempos.",
-                "improvement": "Tu calma puede ser malinterpretada como indiferencia o falta de compromiso. **Mejora:** Sé consciente de las emociones de quienes te rodean y valida sus sentimientos (aunque no los compartas). Esto mejorará tu conexión interpersonal sin sacrificar tu estabilidad."
+                "desc": "¡Eres **Zen y Súper Resiliente**! Eres tranquilo, estable y rara vez te sientes perturbado. Muestras una gran capacidad para manejar el estrés y recuperarte rápidamente de los contratiempos.",
+                "strength": "Tu calma, tu resiliencia y tu optimismo natural te permiten afrontar crisis y contratiempos con una cabeza fría, siendo un faro de estabilidad para los demás.",
+                "challenge": "⚠️ **Desafío Clave (Riesgo de Falla):** Puedes parecer **indiferente o desinteresado** en los problemas emocionales ajenos. Corres el riesgo de subestimar peligros o de no prepararte adecuadamente para desastres por exceso de confianza."
             }
         }
     }
     
-    # Determinar Color y Código de Color (sin cambios)
+    # Determinación de color y nivel de estabilidad (sin cambios)
     if trait == 'N':
         if level == "Bajo":
             color_hex = LEVEL_COLORS["Estable"] 
@@ -252,19 +346,21 @@ def interpret_score(score, trait):
         "color_hex": color_hex, 
         "color_label": color_label,
         "description": profiles[trait][level]["desc"],
-        "improvement": profiles[trait][level]["improvement"]
+        "strength": profiles[trait][level]["strength"],
+        "challenge": profiles[trait][level]["challenge"]
     }
 
 # --- 3. FUNCIONES DE NAVEGACIÓN Y REINICIO ---
+# (Se mantienen iguales)
 
 def next_page():
-    """Avanza a la siguiente página del test."""
+    """Avanza a la siguiente página del test y activa el scroll."""
     if st.session_state.current_page < TOTAL_PAGES - 1:
         st.session_state.current_page += 1
         st.session_state.error_message = "" 
 
 def prev_page():
-    """Retrocede a la página anterior del test."""
+    """Retrocede a la página anterior del test y activa el scroll."""
     if st.session_state.current_page > 0:
         st.session_state.current_page -= 1
         st.session_state.error_message = ""
@@ -275,139 +371,189 @@ def restart_test():
     st.session_state.test_completed = False
     st.session_state.current_page = 0
     st.session_state.error_message = ""
-    # No se usa st.rerun() en el callback, lo que soluciona la advertencia "no-op".
 
-# --- 4. CONFIGURACIÓN VISUAL Y DE INTERFAZ (CSS Profesional + Print Media) ---
+# --- 4. CONFIGURACIÓN VISUAL Y DE INTERFAZ (CSS Divertido y Dinámico + Print Media) ---
 
-def set_professional_style():
-    """Aplica estilos CSS profesionales, de impresión y el script para scroll."""
+def set_playful_style():
+    """Aplica estilos CSS divertidos, dinámicos, de impresión y el script para scroll."""
+    
+    V_BLUE = "#4A90E2"
+    M_GREEN = "#50E3C2"
+    D_RED = "#D0021B"
+    
     st.markdown(f"""
     <style>
+        /* === ANIMACIONES DIVERTIDAS === */
+        @keyframes bounce {{
+            0%, 20%, 50%, 80%, 100% {{transform: translateY(0);}}
+            40% {{transform: translateY(-5px);}}
+            60% {{transform: translateY(-3px);}}
+        }}
+        .bouncing-header {{
+            animation: bounce 2s infinite 0.5s;
+            display: inline-block;
+        }}
+
         /* Fuente y Estilo General */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Varela+Round&display=swap');
         html, body, [class*="st-"] {{
-            font-family: 'Inter', sans-serif;
+            font-family: 'Varela Round', sans-serif;
         }}
         
-        /* Contenedor Principal */
+        /* Contenedor Principal y Fondo */
         .main {{
-            background-color: #F8F9FA; 
-            border-radius: 12px;
-            padding: 20px;
+            background: linear-gradient(135deg, #F9F9FB 0%, #E0F7FA 100%); 
+            border-radius: 18px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
         }}
         
         /* Títulos y Encabezados */
         h1 {{
-            color: #004AAD; 
-            border-bottom: 3px solid #004AAD;
+            color: {V_BLUE}; 
+            border-bottom: 3px solid {M_GREEN};
             padding-bottom: 0.5rem;
             margin-bottom: 1.5rem;
             font-weight: 700;
         }}
         h2 {{
-            color: #004AAD;
+            color: {V_BLUE};
             font-weight: 600;
             margin-top: 2rem;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
         }}
 
-        /* Estilo de las Preguntas (Controles) */
+        /* Contenedor de Preguntas (Cards) */
         .stRadio > label {{
             font-size: 1.05rem;
             font-weight: 500;
             color: #1f2937;
-            margin-bottom: 15px;
-            padding: 10px 0;
+            padding: 15px;
             display: block;
-            border-left: 4px solid #D1D5DB; 
-            padding-left: 15px;
+            border-radius: 10px;
             background-color: #FFFFFF;
-            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            margin-bottom: 15px;
+            transition: transform 0.2s;
+            border-left: 6px solid {V_BLUE};
         }}
+        .stRadio > label:hover {{
+            transform: translateY(-2px);
+        }}
+
+        /* Opciones de Radio Button */
         .stRadio div[role="radiogroup"] {{
             display: flex;
             flex-direction: row; 
-            gap: 15px;
+            gap: 8px;
             padding-bottom: 20px;
             border-bottom: 1px solid #E5E7EB;
             margin-bottom: 25px;
             flex-wrap: wrap; 
         }}
-        /* Estilo para los labels del radio button para que sean claros */
         .stRadio div[role="radiogroup"] > label {{
-            font-size: 0.9rem !important;
+            font-size: 0.85rem !important;
             border: 1px solid #CCC !important;
-            padding: 8px 12px !important;
-            border-radius: 6px !important;
+            padding: 8px 10px !important;
+            border-radius: 20px !important;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.3s ease;
             background-color: #F9F9F9;
+            flex-grow: 1;
+            text-align: center;
+            border-left: none !important; 
+            box-shadow: none !important;
         }}
-        /* Estilo cuando el radio button está seleccionado */
         .stRadio div[role="radiogroup"] input:checked + div + div > label {{
-            background-color: #004AAD !important;
+            background-color: {V_BLUE} !important;
             color: white !important;
-            border-color: #004AAD !important;
+            border-color: {V_BLUE} !important;
             font-weight: 600;
+            transform: scale(1.05);
         }}
 
-        /* Contenedor de Resultados (para el PDF) */
+        /* Contenedor de Resultados */
         .profile-container {{
             background-color: #ffffff;
             border: 1px solid #E5E7EB;
-            border-radius: 10px;
-            padding: 25px;
+            border-radius: 15px;
+            padding: 30px;
             margin-top: 30px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+            border-top: 5px solid {M_GREEN};
+        }}
+        .trait-header h3 {{
+            color: {V_BLUE};
+            border-bottom: 2px dashed #EEE;
+            padding-bottom: 10px;
+        }}
+        
+        /* Estilo para Desafío Clave (Lo "malo") */
+        .challenge-box {{
+            background-color: #FFEFEF; /* Fondo rojo suave */
+            border-left: 5px solid {D_RED};
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 0.95rem;
+        }}
+        .challenge-box b {{
+            color: {D_RED};
         }}
         
         /* Botones de Navegación */
-        .stButton>button:not(.restart-btn) {{
-            background-color: #004AAD; 
-            color: white;
+        .stButton>button {{
             font-weight: 600;
             padding: 10px 20px;
-            border-radius: 8px;
+            border-radius: 25px;
             border: none;
-            transition: background-color 0.3s;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
         }}
-        .stButton>button:hover:not(.restart-btn) {{
-            background-color: #003A8D; 
+        .stButton>button[kind="primary"] {{
+            background-color: {M_GREEN} !important; 
+            color: #1F2937 !important;
         }}
-        /* Botón de Reinicio */
-        .restart-btn button {{
-            background-color: #6C757D !important;
-            color: white !important;
+        .stButton>button[kind="primary"]:hover {{
+            background-color: #3CCEA9 !important; 
+            box-shadow: 0 6px 10px rgba(80, 227, 194, 0.5);
         }}
-        .restart-btn button:hover {{
-            background-color: #5A6268 !important;
+        .stButton>button[kind="secondary"] {{
+            background-color: #FFC0CB !important;
+            color: {V_BLUE} !important;
+            border: 1px solid {V_BLUE} !important;
+        }}
+        .stButton>button[kind="secondary"]:hover {{
+            background-color: #FFB3C7 !important;
         }}
 
-        /* Estilo para el botón de Imprimir/PDF (Green) */
+        /* Botón de Reinicio (Gris/Neutral) */
+        .restart-btn button {{
+            background-color: #A9A9A9 !important;
+            color: white !important;
+        }}
+        
+        /* Botón de Imprimir/PDF (Acción Final) */
         .print-button-container button {{
-            background-color: #16A085 !important; /* Success Green */
+            background-color: {V_BLUE} !important; 
             color: white !important;
             font-weight: 600;
             padding: 10px 20px;
-            border-radius: 8px;
+            border-radius: 25px;
             border: none;
             transition: background-color 0.3s;
-            box-shadow: 0 0 10px rgba(22, 160, 133, 0.4);
+            box-shadow: 0 4px 6px rgba(74, 144, 226, 0.5);
             cursor: pointer;
             width: 100%;
-        }}
-        .print-button-container button:hover {{
-            background-color: #138D73 !important;
         }}
         
         /* === Media Query para Impresión (Limpieza profesional del PDF) === */
         @media print {{
-            /* Ocultar todos los controles de la encuesta y la navegación */
+            /* Ocultar elementos de UI y navegación */
             .stRadio, .stButton, .css-18z244q, .css-1d2a4o5, .stProgress:not(.results-progress), 
             .stAlert:not(.result-alert), .stSelectbox, .stTextInput, .print-button-container, 
-            .stButton, 
-            .stMarkdown:first-of-type, /* Esconde la descripción inicial */
-            .css-fg4pbf, .stMetric [data-testid="stMetricDelta"] /* Oculta el delta */
+            .stMarkdown:first-of-type, .css-fg4pbf, .stMetric [data-testid="stMetricDelta"],
+            .stAlert button
             {{
                 display: none !important;
             }}
@@ -415,39 +561,40 @@ def set_professional_style():
             .profile-container, .trait-header, .stAlert.result-alert, .stMetric, .stMarkdown, .stMarkdown > div > hr {{
                 display: block !important;
                 visibility: visible !important;
+                color: #000 !important;
             }}
-            /* Forzar color de fondo blanco para el PDF */
+            /* Estilo de Impresión */
             .main {{
-                background-color: white !important;
+                background: white !important;
                 padding: 10px !important;
                 border: none !important;
                 box-shadow: none !important;
             }}
-            .stAlert {{
-                border-left: 5px solid #004AAD !important;
+            .challenge-box {{
+                background-color: #F8F8F8 !important; /* Gris claro para el desafío en impresión */
             }}
-            /* Asegurar visibilidad de texto */
-            .profile-container h2, .trait-header, .stAlert.result-alert p {{
-                color: #000000 !important;
+            .bouncing-header {{ 
+                animation: none !important;
             }}
         }}
 
     </style>
     """, unsafe_allow_html=True)
     
-    # Script para forzar el scroll al inicio de la página en cada navegación
+    # --- JS para Scroll al Top (Al inicio de cada página) ---
     st.markdown(
         """
         <script>
+            // Función para forzar el scroll al inicio del contenedor principal
             function scrollToTop() {
                 const main = document.querySelector('.main');
                 if (main) {
-                    main.scrollTo(0, 0);
+                    main.scrollTo({ top: 0, behavior: 'smooth' });
                 } else {
-                    window.scrollTo(0, 0);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                 }
             }
-            // Se ejecuta en la carga inicial y en cada reruns de Streamlit
+            // Ejecutar la función inmediatamente después de la renderización (al avanzar/retroceder)
             scrollToTop(); 
         </script>
         """,
@@ -459,46 +606,50 @@ def set_professional_style():
 def run_test():
     """Función principal para correr la aplicación."""
     
-    set_professional_style()
+    set_playful_style()
 
     # Inicializar el estado de la sesión
-    if 'answers' not in st.session_state:
-        st.session_state.answers = {}
-    if 'test_completed' not in st.session_state:
-        st.session_state.test_completed = False
-    if 'current_page' not in st.session_state:
-        st.session_state.current_page = 0
-    if 'error_message' not in st.session_state:
-        st.session_state.error_message = ""
+    if 'answers' not in st.session_state: st.session_state.answers = {}
+    if 'test_completed' not in st.session_state: st.session_state.test_completed = False
+    if 'current_page' not in st.session_state: st.session_state.current_page = 0
+    if 'error_message' not in st.session_state: st.session_state.error_message = ""
         
-    # Título y Encabezado
+    # Título y Encabezado con Animación
     st.markdown(f"""
     <div style="display: flex; align-items: center; margin-bottom: 20px;">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM15 16H9V14H15V16ZM15 12H9V10H15V12ZM15 8H9V6H15V8Z" fill="#004AAD"/>
-        </svg>
-        <span style="font-size: 2rem; font-weight: 700; color: #004AAD; margin-left: 10px;">Perfil | OCEAN</span>
+        <span class="bouncing-header" style="font-size: 2rem; font-weight: 700; color: {COLOR_MINT_GREEN}; margin-right: 10px;">🧠</span>
+        <h1 style="display: inline-block; margin: 0; border: none; padding: 0; color: {COLOR_VIBRANT_BLUE};">
+            Test de Personalidad: ¡Descubre tu Perfil!
+        </h1>
+        <span class="bouncing-header" style="font-size: 2rem; font-weight: 700; color: {COLOR_MINT_GREEN}; margin-left: 10px;">🌟</span>
     </div>
     """, unsafe_allow_html=True)
-    st.title("Test de Personalidad - Modelo de los Cinco Grandes (60 Ítems)")
     
+    st.markdown(f"**Modelo OCEAN (Cinco Grandes)** | **{TOTAL_QUESTIONS} Ítems** (26 por rasgo)")
+    st.markdown("---")
     
     # --- A. Mostrar Resultados (Si el test está completado) ---
     if st.session_state.test_completed:
         
-        # Simular una carga para mayor profesionalismo
-        with st.spinner('Analizando y generando perfil de personalidad detallado...'):
+        # Simular una carga divertida
+        with st.spinner('✨ Analizando tu magia interior y generando tu perfil único...'):
             time.sleep(1.5)
 
         # 1. Calcular la puntuación
         scores = calculate_score(st.session_state.answers)
         
-        # 2. Mostrar el Perfil Container
+        # 2. Mostrar el Perfil Container y Botón de Imprimir
         st.markdown(
             f"""
             <div class="profile-container">
-                <h2>✅ Informe de Perfil Detallado</h2>
-                <p>Este análisis se basa en el **Modelo OCEAN**. La puntuación máxima por rasgo es 60. Utiliza la opción de "Imprimir" en tu navegador para guardar este informe como PDF.</p>
+                <h2>🎉 ¡Tu Perfil de Personalidad ha sido Desbloqueado!</h2>
+                <p>Este análisis de 130 ítems te da una perspectiva detallada sobre tus rasgos dominantes del Modelo OCEAN. **Puntuación máxima por rasgo: {MAX_SCORE_PER_TRAIT}**.</p>
+                
+                <div class="print-button-container">
+                    <button onclick="window.print()">
+                        🖨️ ¡Guardar como PDF / Imprimir Informe Detallado!
+                    </button>
+                </div>
             </div>
             """, 
             unsafe_allow_html=True
@@ -509,64 +660,44 @@ def run_test():
             results = interpret_score(score, trait_code)
             trait_label = TRAIT_LABELS[trait_code]
             
-            # Normalizar score para la barra de progreso (0 a 1.0). Rango 12-60 (48 puntos)
+            # Normalizar score para la barra de progreso (0 a 1.0)
             normalized_score = (score - MIN_SCORE_PER_TRAIT) / (MAX_SCORE_PER_TRAIT - MIN_SCORE_PER_TRAIT)
             
-            # Encabezado del Trait y Score
             st.markdown(f"""
             <div class="trait-header">
                 <h3>{trait_label}</h3>
             </div>
             """, unsafe_allow_html=True)
             
-            # Usar columnas para la visualización del resultado
             col_bar, col_score = st.columns([0.7, 0.3])
 
             with col_bar:
-                # Visualización de la barra de progreso con color dinámico
                 st.markdown(f"""
                 <div style="font-size: 0.9rem; color: #555;">Nivel Detectado: <b>{results['level']} ({results['color_label']})</b></div>
-                <div style="height: 20px; border-radius: 4px; background-color: #E0E0E0; margin-top: 5px;">
-                    <div style="width: {normalized_score*100}%; height: 100%; background-color: {results['color_hex']}; border-radius: 4px;"></div>
+                <div style="height: 20px; border-radius: 10px; background-color: #E0E0E0; margin-top: 5px; overflow: hidden;">
+                    <div style="width: {normalized_score*100}%; height: 100%; background-color: {results['color_hex']}; border-radius: 10px; transition: width 1s;"></div>
                 </div>
                 """, unsafe_allow_html=True)
 
             with col_score:
-                st.metric(label="Puntuación", value=f"{score}/{MAX_SCORE_PER_TRAIT}")
+                st.metric(label="Puntuación", value=f"{score}/{MAX_SCORE_PER_TRAIT}", delta=f"Rango: {results['level']}")
             
-            # Mostrar la descripción detallada
-            st.markdown(f"**Análisis:** {results['description']}")
+            # Fortalezas (Aspectos "Buenos")
+            st.markdown(f"**Fortaleza Central:** {results['strength']}")
             
-            # Mostrar las áreas de mejora en un bloque distintivo
+            # Desafío Clave (Aspectos "Malos" o de Riesgo)
             st.markdown(
-                f'<div class="result-alert">', unsafe_allow_html=True
+                f'<div class="challenge-box">', unsafe_allow_html=True
             )
-            st.info(f"**💡 Consejos y Áreas de Crecimiento:** {results['improvement']}", icon="⭐")
+            st.markdown(f"**{results['challenge']}**", unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
             
-            st.markdown("---")
+            st.markdown("<br>---<br>", unsafe_allow_html=True)
         
-        st.success("El análisis de tu perfil de personalidad ha concluido con éxito.")
-
-        # 4. Botones de acción final (Imprimir y Reiniciar)
-        col_print, col_restart = st.columns([0.6, 0.4])
-        
-        # Botón para Imprimir/Guardar como PDF (usa JavaScript nativo)
-        with col_print:
-            st.markdown("""
-            <div class="print-button-container">
-                <button onclick="window.print()">
-                    🖨️ Imprimir/Guardar como PDF Profesional
-                </button>
-            </div>
-            """, unsafe_allow_html=True)
-
-
-        # Botón para reiniciar
-        with col_restart:
-            st.markdown('<div class="restart-btn">', unsafe_allow_html=True)
-            st.button("🔄 Volver a Realizar el Test", on_click=restart_test, type="secondary", use_container_width=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+        # 4. Botones de acción final (Reiniciar)
+        st.markdown('<div class="restart-btn" style="text-align: center; margin-top: 30px;">', unsafe_allow_html=True)
+        st.button("🔄 Quiero Explorar de Nuevo", on_click=restart_test, type="secondary", use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
             
             
     # --- B. Mostrar Cuestionario Paginado ---
@@ -583,7 +714,7 @@ def run_test():
         progress_text = f"Progreso General: {answered_total}/{TOTAL_QUESTIONS} Preguntas"
         st.progress(answered_total / TOTAL_QUESTIONS, text=progress_text)
         
-        st.subheader(f"Página {current_page + 1} de {TOTAL_PAGES}")
+        st.subheader(f"✨ ¡Estás en la Sección {current_page + 1} de {TOTAL_PAGES}! ¡Sigue Así!")
 
         # Mensaje de error (si existe)
         if st.session_state.error_message:
@@ -591,80 +722,86 @@ def run_test():
 
         
         # Controles de la Página Actual (DENTRO DEL FORMULARIO)
-        # Se usa un formulario para manejar la validación en el submit, resolviendo el doble click.
         with st.form(key=f'page_form_{current_page}'):
             
             # Lista de opciones con el formato (Etiqueta, Valor)
             likert_options_tuple = [(v, k) for k, v in LIKERT_OPTIONS.items()]
             
-            # Diccionario para almacenar las respuestas de la página antes de la validación
             form_answers_current_page = {}
 
             for q in current_questions:
                 q_id = q['id']
                 
-                # Recuperar valor actual de la sesión (para que persista)
                 current_value = st.session_state.answers.get(q_id)
-                selected_index = [t[1] for t in likert_options_tuple].index(current_value) if current_value else -1
                 
+                selected_index = -1
+                for i, (_, val) in enumerate(likert_options_tuple):
+                    if val == current_value:
+                        selected_index = i
+                        break
+
                 response_tuple = st.radio(
                     label=f"**{q_id}.** {q['text']}",
                     options=likert_options_tuple,
-                    key=f"radio_{q_id}", # La clave debe ser única
+                    key=f"radio_{q_id}", 
                     index=selected_index if selected_index != -1 else None,
                     format_func=lambda x: x[0]
                 )
                 
-                # Almacenar el valor seleccionado dentro del contexto del formulario
                 if response_tuple is not None:
                     form_answers_current_page[q_id] = response_tuple[1]
 
             # --- Botones de Navegación ---
-            st.markdown("---")
+            st.markdown("<br>", unsafe_allow_html=True)
             col_prev, col_next_finish = st.columns([1, 1])
 
             prev_button = None
             if current_page > 0:
                 with col_prev:
-                    prev_button = st.form_submit_button("← Anterior")
+                    prev_button = st.form_submit_button("← Volver a la Página Anterior", type="secondary", use_container_width=True)
 
             is_last_page = current_page == TOTAL_PAGES - 1
             with col_next_finish:
                 if is_last_page:
-                    submit_button = st.form_submit_button("Finalizar Test y Ver Mi Perfil", type="primary")
+                    submit_button = st.form_submit_button("🚀 Finalizar Test y Ver Mi Perfil", type="primary", use_container_width=True)
                 else:
-                    submit_button = st.form_submit_button(f"Siguiente → (Pág. {current_page + 2})", type="secondary")
+                    submit_button = st.form_submit_button(f"Siguiente → (Pág. {current_page + 2})", type="primary", use_container_width=True)
         
         # --- Lógica de Manejo de Formulario (Fuera del bloque `with st.form`) ---
         
         if prev_button:
-            # Si se presiona Anterior, simplemente se navega (no necesita validación)
             prev_page()
             st.rerun()
 
         if submit_button:
-            # Primero, actualizamos el estado de la sesión con las respuestas del formulario
+            # 1. Actualizamos el estado de la sesión con las respuestas del formulario
             st.session_state.answers.update(form_answers_current_page)
             
-            # 1. Validar si todas las preguntas de esta página fueron respondidas
+            # 2. Validar si todas las preguntas de esta página fueron respondidas
             answered_count_on_page = len(form_answers_current_page)
             questions_on_page_count = len(current_questions)
 
             if answered_count_on_page < questions_on_page_count:
                 # Falla la validación
-                st.session_state.error_message = f"⚠️ Por favor, responde las {questions_on_page_count - answered_count_on_page} preguntas restantes antes de continuar."
+                st.session_state.error_message = f"⚠️ ¡Alto! Por favor, responde las {questions_on_page_count - answered_count_on_page} preguntas restantes antes de continuar."
                 st.rerun()
             else:
                 # Pasa la validación
-                st.session_state.error_message = "" # Limpiar error
+                st.session_state.error_message = ""
                 
                 if is_last_page:
-                    st.session_state.test_completed = True
-                    st.rerun()
+                    # Si es la última página Y todo está respondido, finalizar
+                    # **Verificación de seguridad adicional (debe haber 130 respuestas)**
+                    if len(st.session_state.answers) == TOTAL_QUESTIONS:
+                        st.session_state.test_completed = True
+                        st.rerun()
+                    else:
+                        st.session_state.error_message = "Error interno: Faltan respuestas para completar el test. Por favor, revisa las páginas anteriores."
+                        st.rerun()
                 else:
                     # Avanzar a la siguiente página
                     next_page()
-                    st.rerun() # Forzar la reejecución para mostrar la nueva página
+                    st.rerun() 
 
 # Ejecutar la aplicación
 if __name__ == '__main__':
