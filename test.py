@@ -1,588 +1,539 @@
 import streamlit as st
 import pandas as pd
+import plotly.graph_objects as go
+from collections import defaultdict
 import time
-from io import BytesIO
+import random
 
-# --- CONFIGURACIÓN DE LA PÁGINA ---
+# --- 0. CONFIGURACIÓN INICIAL Y ESTÉTICA (¡AQUÍ ESTÁ EL CAMBIO PARA EL TEMA CLARO Y EL BOTÓN!) ---
+
 st.set_page_config(
-    page_title="Test Psicológico Avanzado",
-    page_icon="🧠",
-    layout="wide",
+    layout="wide", 
+    page_title="Test Big Five Detallado", 
     initial_sidebar_state="collapsed"
 )
 
-# --- ESTILOS CSS PERSONALIZADOS ---
-def load_css():
-    """Carga estilos CSS para mejorar la apariencia de la aplicación."""
-    st.markdown("""
-        <style>
-            /* --- Estilos Generales --- */
-            .stApp {
-                background-color: #f0f2f6;
-            }
-            
-            /* --- Contenedor Principal --- */
-            .main .block-container {
-                padding-top: 2rem;
-                padding-bottom: 2rem;
-                padding-left: 3rem;
-                padding-right: 3rem;
-                border-radius: 20px;
-            }
-            
-            /* --- Títulos y Texto --- */
-            h1, h2 {
-                color: #1E3A8A; /* Azul oscuro */
-                font-weight: bold;
-                text-align: center;
-            }
-            
-            .question-text {
-                font-size: 1.5rem;
-                font-weight: 600;
-                color: #334155; /* Gris oscuro */
-                text-align: center;
-                padding: 1.5rem;
-                background-color: #FFFFFF;
-                border-radius: 15px;
-                border: 1px solid #e2e8f0;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-                margin-bottom: 2rem;
-            }
-
-            /* --- Botones --- */
-            .stButton>button {
-                width: 100%;
-                border-radius: 12px;
-                padding: 1rem;
-                font-weight: bold;
-                font-size: 1.1rem;
-                color: #FFFFFF;
-                border: none;
-                transition: all 0.3s ease;
-                box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
-            }
-            
-            /* Botón Principal (Comenzar, Siguiente) */
-            div[data-testid="stHorizontalBlock"]>div:last-child .stButton>button {
-                background-color: #2563EB; /* Azul primario */
-            }
-            div[data-testid="stHorizontalBlock"]>div:last-child .stButton>button:hover {
-                background-color: #1D4ED8;
-                transform: translateY(-2px);
-            }
-            
-            /* Botón Secundario (Anterior, Reiniciar) */
-            div[data-testid="stHorizontalBlock"]>div:first-child .stButton>button, .stDownloadButton>button {
-                background-color: #64748B; /* Gris */
-            }
-             div[data-testid="stHorizontalBlock"]>div:first-child .stButton>button:hover, .stDownloadButton>button:hover {
-                background-color: #475569;
-                transform: translateY(-2px);
-            }
-            
-            /* --- Opciones de Respuesta (Radio Buttons) --- */
-            .stRadio > div {
-                display: flex;
-                flex-wrap: wrap;
-                justify-content: center;
-                gap: 1rem;
-            }
-            .stRadio > div > label {
-                background-color: #FFFFFF;
-                padding: 1.2rem 1.5rem;
-                border-radius: 12px;
-                border: 2px solid #d1d5db;
-                color: #4b5563;
-                font-weight: 500;
-                transition: all 0.2s ease-in-out;
-                cursor: pointer;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            }
-            .stRadio > div > label:hover {
-                border-color: #2563EB;
-                color: #2563EB;
-            }
-            /* Ocultar el punto del radio button original */
-            .stRadio > div > label > div:first-child {
-                display: none;
-            }
-            
-            /* --- Barra de Progreso --- */
-            .stProgress > div > div > div > div {
-                background-color: #2563EB;
-            }
-            
-            /* --- Tarjetas de Resultados --- */
-            .result-card {
-                background-color: #FFFFFF;
-                padding: 2rem;
-                border-radius: 15px;
-                box-shadow: 0 10px 20px rgba(0, 0, 0, 0.07);
-                margin-bottom: 1.5rem;
-                border-left: 8px solid #1E3A8A;
-            }
-            .result-card h3 {
-                color: #1E3A8A;
-                margin-top: 0;
-            }
-        </style>
-    """, unsafe_allow_html=True)
-
-# --- DATOS DEL TEST: 132 PREGUNTAS ---
-# Se agrupan conceptualmente para facilitar la interpretación, aunque el test se presenta secuencialmente.
-# Opciones y puntajes estandarizados:
-# "Totalmente en desacuerdo": 1, "En desacuerdo": 2, "De acuerdo": 3, "Totalmente de acuerdo": 4
-OPTIONS = ["Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo"]
-SCORES = [1, 2, 3, 4]
-
-# Función para crear una pregunta estandarizada
-def create_question(text):
-    return {"pregunta": text, "opciones": OPTIONS, "puntajes": SCORES}
-
-QUESTIONS = [
-    # Dimensión: Autoconciencia Emocional
-    create_question("Reconozco mis emociones cuando las siento."),
-    create_question("Entiendo las causas de mis sentimientos."),
-    create_question("Soy consciente de cómo mis emociones afectan mi comportamiento."),
-    create_question("Me doy cuenta de mis puntos fuertes y debilidades."),
-    create_question("Reflexiono sobre mis experiencias para aprender de ellas."),
-    create_question("Sé qué situaciones me generan estrés o ansiedad."),
-    create_question("Puedo nombrar la emoción que estoy sintiendo en un momento dado."),
-    create_question("Noto cómo cambia mi estado de ánimo a lo largo del día."),
-    create_question("Comprendo la conexión entre mi cuerpo y mis emociones (ej. nudo en el estómago por nervios)."),
-    create_question("Tengo confianza en mis capacidades."),
-    create_question("Pido feedback para entender mejor cómo me ven los demás."),
-    create_question("Reconozco cuando necesito un descanso o un tiempo para mí."),
+# CSS Personalizado para tema CLARO y amigable
+st.markdown("""
+<style>
+    /* Forzar fondo blanco y texto oscuro */
+    .stApp {
+        background-color: #f0f2f6; /* Un color muy claro, casi blanco */
+        color: #1c1e21; /* Texto oscuro */
+    }
+    /* Estilo para las tarjetas/contenedores */
+    .st-emotion-cache-1r6r82b, .st-emotion-cache-139xi5s { /* Selector de contenedores y bloques de código */
+        background-color: white !important;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        padding: 20px;
+    }
+    h1, h2, h3, .stMarkdown {
+        color: #1c1e21;
+    }
+    /* Mejora del slider para que se vea más moderno */
+    .stSlider > label {
+        font-size: 1.1em;
+        font-weight: 600;
+        color: #2a688b;
+    }
     
-    # Dimensión: Autorregulación
-    create_question("Mantengo la calma en situaciones de presión."),
-    create_question("Pienso antes de actuar cuando estoy molesto/a."),
-    create_question("Puedo manejar mis impulsos de manera efectiva."),
-    create_question("Me adapto fácilmente a los cambios inesperados."),
-    create_question("Soy capaz de decir 'no' cuando es necesario."),
-    create_question("Cumplo con mis compromisos y promesas."),
-    create_question("Manejo bien el estrés sin recurrir a hábitos poco saludables."),
-    create_question("Puedo recuperarme rápidamente de las decepciones."),
-    create_question("Mantengo una actitud positiva incluso cuando las cosas van mal."),
-    create_question("Acepto la responsabilidad por mis errores."),
-    create_question("Puedo concentrarme en una tarea a pesar de las distracciones."),
-    create_question("Gestiono mi tiempo de forma eficaz."),
+    /* ESTILO DE BOTONES: Aquí se corrige el problema del color del texto */
+    .stButton>button {
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-weight: bold;
+    }
+    /* Botones primarios (azules): Forzar texto negro o muy oscuro para legibilidad */
+    .stButton button[data-testid*="stButton-primary"] {
+        color: #000000 !important; /* Texto negro */
+        background-color: #81c784; /* Verde suave, como ejemplo amigable */
+        border: 1px solid #66bb6a;
+    }
+    .stButton button[data-testid*="stButton-primary"]:hover {
+        background-color: #66bb6a; /* Un tono más oscuro al pasar el mouse */
+    }
+</style>
+""", unsafe_allow_html=True)
 
-    # Dimensión: Motivación
-    create_question("Me siento motivado/a para alcanzar mis metas."),
-    create_question("Busco constantemente formas de mejorar."),
-    create_question("Soy optimista sobre el futuro."),
-    create_question("Tengo iniciativa y no espero a que me digan lo que tengo que hacer."),
-    create_question("Persisto en mis esfuerzos a pesar de los obstáculos."),
-    create_question("Encuentro satisfacción en el trabajo bien hecho."),
-    create_question("Estoy dispuesto/a a salir de mi zona de confort para crecer."),
-    create_question("Celebro mis logros, tanto grandes como pequeños."),
-    create_question("Veo los fracasos como oportunidades de aprendizaje."),
-    create_question("Me fijo metas desafiantes pero realistas."),
-    create_question("Me inspira el éxito de los demás."),
-    create_question("Tengo una visión clara de lo que quiero lograr en la vida."),
+# --- 1. CONSTANTES Y DATOS DEL TEST ---
 
-    # Dimensión: Empatía
-    create_question("Me doy cuenta de las emociones de las personas que me rodean."),
-    create_question("Escucho activamente cuando los demás hablan."),
-    create_question("Puedo ponerme en el lugar de otra persona."),
-    create_question("Ofrezco ayuda cuando veo que alguien la necesita."),
-    create_question("Soy sensible a las necesidades y preocupaciones de los demás."),
-    create_question("Entiendo las señales no verbales (lenguaje corporal, tono de voz)."),
-    create_question("Respeto las opiniones de los demás, aunque no las comparta."),
-    create_question("Me intereso genuinamente por las historias y experiencias de otras personas."),
-    create_question("Evito juzgar a las personas sin conocer su situación."),
-    create_question("Puedo dar feedback constructivo de manera respetuosa."),
-    create_question("Fomento un ambiente de inclusión y respeto."),
-    create_question("Me doy cuenta de las dinámicas de poder en un grupo."),
+# Opciones de respuesta para el Likert Scale
+LIKERT_OPTIONS = {
+    5: "Totalmente de acuerdo",
+    4: "De acuerdo",
+    3: "Neutral",
+    2: "En desacuerdo",
+    1: "Totalmente en desacuerdo"
+}
+LIKERT_SCORES = list(LIKERT_OPTIONS.keys()) # [5, 4, 3, 2, 1]
 
-    # Dimensión: Habilidades Sociales
-    create_question("Me resulta fácil iniciar conversaciones."),
-    create_question("Soy bueno/a construyendo y manteniendo relaciones."),
-    create_question("Puedo persuadir a otros de mi punto de vista de forma efectiva."),
-    create_question("Manejo bien los conflictos y desacuerdos."),
-    create_question("Trabajo bien en equipo y colaboro con los demás."),
-    create_question("Me comunico de forma clara y concisa."),
-    create_question("Soy capaz de inspirar y guiar a otros."),
-    create_question("Disfruto conociendo gente nueva."),
-    create_question("Sé cómo establecer límites saludables en mis relaciones."),
-    create_question("Me siento cómodo/a hablando en público."),
-    create_question("Soy un/a buen/a negociador/a."),
-    create_question("Organizo y lidero actividades sociales o de grupo con facilidad."),
+# Etiquetas de los 5 grandes rasgos (OCEAN)
+TRAIT_LABELS = {
+    "O": "Apertura a la Experiencia",
+    "C": "Concienzudo",
+    "E": "Extraversión",
+    "A": "Amabilidad",
+    "N": "Neuroticismo"
+}
 
-    # Dimensión: Resiliencia y Adaptabilidad
-    create_question("Me adapto bien a nuevas culturas o entornos."),
-    create_question("Cuando enfrento una crisis, busco soluciones activamente."),
-    create_question("Mantengo la perspectiva a largo plazo durante momentos difíciles."),
-    create_question("Aprendo de las críticas y las uso para mejorar."),
-    create_question("Soy flexible en mi forma de pensar."),
-    create_question("Puedo manejar múltiples tareas a la vez sin sentirme abrumado/a."),
-    create_question("Acepto que el cambio es una parte natural de la vida."),
-    create_question("Confío en mi capacidad para superar los desafíos."),
-    create_question("Busco apoyo en amigos, familiares o colegas cuando lo necesito."),
-    create_question("Mantengo mis rutinas de autocuidado (sueño, alimentación, ejercicio) en tiempos de estrés."),
-    create_question("Soy capaz de encontrar el lado positivo en situaciones negativas."),
-    create_question("Después de un revés, vuelvo a intentarlo con la misma o más energía."),
-    
-    # Dimensión: Organización y Planificación
-    create_question("Planifico mis tareas diarias y semanales."),
-    create_question("Priorizo mis responsabilidades de manera efectiva."),
-    create_question("Mi espacio de trabajo (físico o digital) está ordenado."),
-    create_question("Cumplo con los plazos de entrega."),
-    create_question("Divido los proyectos grandes en tareas más pequeñas y manejables."),
-    create_question("Uso herramientas como agendas o calendarios para organizarme."),
-    create_question("Preparo con antelación lo que necesito para el día siguiente."),
-    create_question("Evito la procrastinación."),
-    create_question("Termino lo que empiezo."),
-    create_question("Tomo notas en reuniones o clases para no olvidar detalles importantes."),
-    create_question("Reviso mi progreso hacia mis metas regularmente."),
-    create_question("Anticipo posibles problemas y planifico cómo abordarlos."),
+# Definición de las 130 preguntas (26 por rasgo)
+# Estructura: (ID, Texto, Rasgo (O, C, E, A, N), Inversa (True/False))
+QUESTION_DATA = [
+    # Extraversion (E) - 1 a 26
+    (1, "Soy el alma de la fiesta.", "E", False),
+    (2, "Me siento cómodo alrededor de otras personas.", "E", False),
+    (3, "Empiezo las conversaciones.", "E", False),
+    (4, "Hablo mucho con muchas personas diferentes en las fiestas.", "E", False),
+    (5, "No me importa ser el centro de atención.", "E", False),
+    (6, "No hablo mucho.", "E", True),
+    (7, "Me mantengo en segundo plano.", "E", True),
+    (8, "Tengo poco que decir.", "E", True),
+    (9, "Soy reservado.", "E", True),
+    (10, "Paso tiempo solo.", "E", True),
+    (11, "Busco emoción y aventura.", "E", False),
+    (12, "Disfruto con la compañía de la gente.", "E", False),
+    (13, "Me expreso con facilidad.", "E", False),
+    (14, "Soy una persona activa.", "E", False),
+    (15, "Soy muy enérgico.", "E", False),
+    (16, "A menudo me siento melancólico.", "E", True),
+    (17, "Me deprimo fácilmente.", "E", True),
+    (18, "Soy sociable.", "E", False),
+    (19, "Soy una persona alegre.", "E", False),
+    (20, "Hago amigos con facilidad.", "E", False),
+    (21, "Me tomo las cosas con calma.", "E", True),
+    (22, "Tiendo a ser callado.", "E", True),
+    (23, "Disfruto de grandes multitudes.", "E", False),
+    (24, "Soy tímido.", "E", True),
+    (25, "Hago que otros se sientan incómodos.", "E", True),
+    (26, "Me gusta el ruido y el alboroto.", "E", False),
 
-    # Dimensión: Mentalidad de Crecimiento
-    create_question("Creo que puedo desarrollar mis talentos y habilidades con esfuerzo."),
-    create_question("Disfruto de los desafíos y los veo como oportunidades."),
-    create_question("Me inspira el esfuerzo y la dedicación, no solo el talento innato."),
-    create_question("Busco activamente aprender cosas nuevas."),
-    create_question("No me desanimo si algo no me sale bien a la primera."),
-    create_question("Estoy abierto/a a nuevas ideas y perspectivas."),
-    create_question("Prefiero tareas que me exigen y me hacen crecer."),
-    create_question("El esfuerzo es parte fundamental del camino al éxito."),
-    create_question("Cuando alguien tiene éxito, me siento inspirado/a, no amenazado/a."),
-    create_question("Invierto tiempo en mi desarrollo personal y profesional."),
-    create_question("La palabra 'todavía' es importante para mí (ej. 'no sé hacerlo todavía')."),
-    create_question("Valoro más el proceso de aprendizaje que el resultado final."),
+    # Amabilidad (A) - 27 a 52
+    (27, "Me intereso por los demás.", "A", False),
+    (28, "Siento simpatía por los sentimientos de los demás.", "A", False),
+    (29, "Tengo un corazón blando.", "A", False),
+    (30, "Me tomo el tiempo para los demás.", "A", False),
+    (31, "Hago que la gente se sienta a gusto.", "A", False),
+    (32, "No me intereso por los problemas de los demás.", "A", True),
+    (33, "Insulto a la gente.", "A", True),
+    (34, "No me gusta la gente.", "A", True),
+    (35, "Ignoro a la gente.", "A", True),
+    (36, "Soy grosero con los demás.", "A", True),
+    (37, "Sigo las reglas.", "A", False),
+    (38, "Soy cooperativo.", "A", False),
+    (39, "Soy amable con la gente.", "A", False),
+    (40, "Soy cariñoso.", "A", False),
+    (41, "Me llevo bien con la gente.", "A", False),
+    (42, "No tengo tiempo para los demás.", "A", True),
+    (43, "Soy frío con la gente.", "A", True),
+    (44, "Confío en los demás.", "A", False),
+    (45, "No tengo paciencia.", "A", True),
+    (46, "Soy de mente abierta.", "A", False),
+    (47, "Me gusta hacer daño a los demás.", "A", True),
+    (48, "Me molesta la gente fácilmente.", "A", True),
+    (49, "Soy una persona de buen humor.", "A", False),
+    (50, "Muestro respeto.", "A", False),
+    (51, "Juzgo a los demás.", "A", True),
+    (52, "Soy considerado con los demás.", "A", False),
 
-    # Dimensión: Bienestar y Manejo del Estrés
-    create_question("Dedico tiempo a hobbies y actividades que disfruto."),
-    create_question("Duermo las horas suficientes para sentirme descansado/a."),
-    create_question("Mi alimentación es generalmente equilibrada y saludable."),
-    create_question("Realizo actividad física de forma regular."),
-    create_question("Practico técnicas de relajación como la meditación o la respiración profunda."),
-    create_question("Siento que tengo un buen equilibrio entre mi vida personal y laboral/académica."),
-    create_question("Tengo relaciones sociales que me aportan y me hacen sentir bien."),
-    create_question("Sé desconectar del trabajo o los estudios al final del día."),
-    create_question("Limito mi exposición a noticias o redes sociales si me generan ansiedad."),
-    create_question("Paso tiempo en la naturaleza."),
-    create_question("Río con frecuencia."),
-    create_question("Siento gratitud por las cosas buenas de mi vida."),
-    
-    # Dimensión: Creatividad y Curiosidad
-    create_question("Me gusta explorar ideas fuera de lo común."),
-    create_question("Hago preguntas para entender cómo funcionan las cosas."),
-    create_question("Disfruto resolviendo problemas complejos."),
-    create_question("Busco diferentes enfoques para una misma tarea."),
-    create_question("Me siento cómodo/a con la ambigüedad y la incertidumbre."),
-    create_question("Consumo contenidos variados (libros, documentales, podcasts) para ampliar mis horizontes."),
-    create_question("Tengo facilidad para encontrar conexiones entre ideas aparentemente no relacionadas."),
-    create_question("Experimento con nuevas formas de hacer las cosas."),
-    create_question("No tengo miedo a cometer errores en el proceso creativo."),
-    create_question("Tomo nota de ideas que se me ocurren de repente."),
-    create_question("Dedico tiempo a actividades artísticas o de expresión personal."),
-    create_question("Me considero una persona curiosa."),
+    # Concienzudo (C) - 53 a 78
+    (53, "Estoy siempre preparado.", "C", False),
+    (54, "Presto atención a los detalles.", "C", False),
+    (55, "Hago mis tareas de inmediato.", "C", False),
+    (56, "Me gusta el orden.", "C", False),
+    (57, "Sigo un horario.", "C", False),
+    (58, "Dejo mis pertenencias por ahí.", "C", True),
+    (59, "Soy descuidado con mis cosas.", "C", True),
+    (60, "Falto a mi deber.", "C", True),
+    (61, "Soy desorganizado.", "C", True),
+    (62, "Dejo las cosas sin terminar.", "C", True),
+    (63, "Soy meticuloso.", "C", False),
+    (64, "Soy eficiente.", "C", False),
+    (65, "Planifico con anticipación.", "C", False),
+    (66, "Soy fiable.", "C", False),
+    (67, "Me distraigo fácilmente.", "C", True),
+    (68, "Soy perezoso.", "C", True),
+    (69, "Me concentro en la tarea.", "C", False),
+    (70, "Soy persistente.", "C", False),
+    (71, "Me esfuerzo por la excelencia.", "C", False),
+    (72, "Me cuido.", "C", False),
+    (73, "No soy sistemático.", "C", True),
+    (74, "Trabajo duro.", "C", False),
+    (75, "Soy irresponsable.", "C", True),
+    (76, "Tengo buenas habilidades de gestión del tiempo.", "C", False),
+    (77, "Soy impulsivo.", "C", True),
+    (78, "Me gusta que todo esté limpio.", "C", False),
 
-    # Dimensión: Integridad y Ética
-    create_question("Actúo de acuerdo con mis valores, incluso si es difícil."),
-    create_question("Soy honesto/a y transparente en mis interacciones."),
-    create_question("Mantengo la confidencialidad de la información que se me confía."),
-    create_question("Trato a todas las personas con justicia y equidad."),
-    create_question("Admito mis equivocaciones sin culpar a otros."),
-    create_question("Defiendo lo que creo que es correcto."),
-    create_question("Mis acciones son consistentes con mis palabras."),
-    create_question("Se puede confiar en mí."),
-    create_question("Considero el impacto de mis decisiones en los demás."),
-    create_question("Me esfuerzo por hacer lo correcto, no solo lo más fácil."),
-    create_question("Respeto las reglas y normativas establecidas."),
-    create_question("Soy leal a las personas y causas que me importan.")
+    # Neuroticismo (N) - 79 a 104
+    (79, "Me altero fácilmente.", "N", False),
+    (80, "Cambio de humor a menudo.", "N", False),
+    (81, "Me preocupo por las cosas.", "N", False),
+    (82, "Me irrito fácilmente.", "N", False),
+    (83, "Tengo emociones inestables.", "N", False),
+    (84, "Estoy relajado la mayor parte del tiempo.", "N", True),
+    (85, "Raramente me siento azul.", "N", True),
+    (86, "No me molesto fácilmente.", "N", True),
+    (87, "Soy estable emocionalmente.", "N", True),
+    (88, "Raramente me quejo.", "N", True),
+    (89, "Me asusto fácilmente.", "N", False),
+    (90, "Soy una persona tensa.", "N", False),
+    (91, "Sufro de ansiedad.", "N", False),
+    (92, "Me siento incómodo.", "N", False),
+    (93, "Me siento triste.", "N", False),
+    (94, "Puedo manejarme a mí mismo.", "N", True),
+    (95, "Me siento seguro.", "N", True),
+    (96, "Estoy tranquilo.", "N", True),
+    (97, "Pienso en el suicidio.", "N", False),
+    (98, "Estoy de mal humor.", "N", False),
+    (99, "Soy autocrítico.", "N", False),
+    (100, "Soy inseguro.", "N", False),
+    (101, "Soy tranquilo bajo presión.", "N", True),
+    (102, "Me siento inadecuado.", "N", False),
+    (103, "Me abrumo fácilmente.", "N", False),
+    (104, "Me enojo fácilmente.", "N", False),
+
+    # Apertura a la Experiencia (O) - 105 a 130
+    (105, "Tengo un vocabulario rico.", "O", False),
+    (106, "Tengo una imaginación vívida.", "O", False),
+    (107, "Tengo excelentes ideas.", "O", False),
+    (108, "Soy rápido para entender las cosas.", "O", False),
+    (109, "Uso palabras difíciles.", "O", False),
+    (110, "No tengo buena imaginación.", "O", True),
+    (111, "No me interesan las ideas abstractas.", "O", True),
+    (112, "Tengo dificultades para entender las ideas.", "O", True),
+    (113, "No soy artístico.", "O", True),
+    (114, "Evito discusiones intelectuales.", "O", True),
+    (115, "Me gusta la poesía.", "O", False),
+    (116, "Disfruto de la belleza.", "O", False),
+    (117, "Me gusta visitar museos de arte.", "O", False),
+    (118, "Me interesan los problemas filosóficos.", "O", False),
+    (119, "Me gusta el arte.", "O", False),
+    (120, "Me intereso por el simbolismo.", "O", False),
+    (121, "Disfruto con la variedad.", "O", False),
+    (122, "No me gusta el cambio.", "O", True),
+    (123, "No me gusta la rutina.", "O", False),
+    (124, "Disfruto con actividades nuevas.", "O", False),
+    (125, "Soy tradicionalista.", "O", True),
+    (126, "Me gusta la rutina.", "O", True),
+    (127, "Prefiero lo familiar.", "O", True),
+    (128, "Soy curioso.", "O", False),
+    (129, "Soy inteligente.", "O", False),
+    (130, "Me gusta resolver problemas complejos.", "O", False),
 ]
 
-TOTAL_QUESTIONS = len(QUESTIONS)
+# Ajuste de las variables de paginación
+QUESTIONS_PER_PAGE = 10 
+TOTAL_QUESTIONS = len(QUESTION_DATA) 
+TOTAL_PAGES = (TOTAL_QUESTIONS + QUESTIONS_PER_PAGE - 1) // QUESTIONS_PER_PAGE # 130/10 = 13
 
-# --- INICIALIZACIÓN DEL ESTADO DE LA SESIÓN ---
-def initialize_session_state():
-    """Inicializa las variables necesarias en el estado de la sesión."""
-    if 'page' not in st.session_state:
-        st.session_state.page = 'home'
-    if 'current_question' not in st.session_state:
-        st.session_state.current_question = 0
-    if 'answers' not in st.session_state:
-        st.session_state.answers = {}
-    if 'start_time' not in st.session_state:
-        st.session_state.start_time = 0
+# --- 2. FUNCIONES DE LÓGICA DEL TEST ---
 
-# --- LÓGICA DE INTERPRETACIÓN DE RESULTADOS ---
-def get_profile_analysis(total_score):
-    """Genera un análisis del perfil basado en el puntaje total."""
-    strengths = []
-    weaknesses = []
-    opportunities = []
+def restart_test():
+    """Reinicia el estado de la sesión para volver a empezar."""
+    st.session_state['page'] = 0
+    st.session_state['answers'] = {}
+    st.session_state['name'] = ""
+    st.session_state['email'] = ""
+    # Uso de st.rerun() en lugar de la función obsoleta
+    st.rerun() 
 
-    # Se definen rangos de puntaje para cada dimensión (12 preguntas por dimensión, 11 dimensiones)
-    # Puntaje min: 132 * 1 = 132
-    # Puntaje máx: 132 * 4 = 528
+def next_page():
+    """Avanza a la siguiente página."""
+    st.session_state['page'] += 1
+    # Asegurar que la vista suba al principio de la nueva página
+    scroll_to_top()
+    # Uso de st.rerun() en lugar de la función obsoleta
+    st.rerun() 
+
+def prev_page():
+    """Retrocede a la página anterior."""
+    if st.session_state['page'] > 1:
+        st.session_state['page'] -= 1
+        scroll_to_top()
+        # Uso de st.rerun() en lugar de la función obsoleta
+        st.rerun() 
+
+def scroll_to_top():
+    """Fuerza que la vista de la página suba al inicio."""
+    st.markdown("""
+        <script>
+            window.scrollTo(0, 0);
+        </script>
+        """, unsafe_allow_html=True)
+
+def calculate_results():
+    """Calcula las puntuaciones finales de los 5 rasgos (escaladas de 0 a 100)."""
+    results = defaultdict(lambda: {"score": 0, "count": 0})
     
-    if total_score >= 450:
-        strengths.append("Inteligencia Emocional Excepcional: Posees un profundo conocimiento de ti mismo y de los demás. Tu capacidad para gestionar emociones, motivarte y construir relaciones es un activo invaluable.")
-        opportunities.append("Liderazgo Inspirador: Considera roles de mentoría o liderazgo donde puedas guiar a otros a desarrollar su propia inteligencia emocional.")
-    elif 400 <= total_score < 450:
-        strengths.append("Alta Inteligencia Emocional: Demuestras una sólida capacidad para manejar tus emociones y entender las de los demás. Eres empático/a, motivado/a y socialmente hábil.")
-        opportunities.append("Consolidación de Habilidades: Identifica un área específica (ej. negociación, hablar en público) y busca perfeccionarla aún más.")
-    elif 320 <= total_score < 400:
-        strengths.append("Buena Inteligencia Emocional: Tienes una base funcional de habilidades emocionales. Generalmente manejas bien las situaciones, aunque hay áreas con claro potencial de mejora.")
-        weaknesses.append("Inconsistencias en la Autorregulación: En momentos de alto estrés, podrías reaccionar de forma impulsiva. La práctica de la pausa consciente antes de actuar puede ser muy beneficiosa.")
-        opportunities.append("Desarrollo de la Empatía Activa: Intenta practicar la escucha activa con más frecuencia, enfocándote en entender la perspectiva del otro sin interrumpir.")
-    elif 250 <= total_score < 320:
-        strengths.append("Potencial en Desarrollo: Reconoces la importancia de las emociones, pero a menudo luchas por gestionarlas de manera efectiva. Este es un punto de partida excelente para un crecimiento significativo.")
-        weaknesses.append("Baja Autoconciencia: Puede que te cueste identificar y nombrar tus emociones, lo que dificulta su manejo. Un diario emocional puede ser una herramienta poderosa.")
-        weaknesses.append("Dificultades en las Relaciones Interpersonales: Los malentendidos pueden ser frecuentes si te cuesta leer las señales emocionales de los demás.")
-        opportunities.append("Fundamentos de la Inteligencia Emocional: Comienza con lo básico. Cursos o libros sobre autoconciencia y autorregulación pueden proporcionarte herramientas prácticas y efectivas.")
-    else: # Menor a 250
-        strengths.append("Disposición al Autoconocimiento: El hecho de haber completado este test demuestra una valiosa voluntad de conocerte y mejorar.")
-        weaknesses.append("Áreas Críticas para el Desarrollo: Las habilidades de inteligencia emocional parecen ser un desafío importante en este momento, afectando probablemente varias áreas de tu vida (trabajo, relaciones, bienestar).")
-        opportunities.append("Apoyo Profesional: Considera buscar la ayuda de un coach o terapeuta. Un profesional puede ofrecerte una guía estructurada y personalizada para un desarrollo emocional profundo y duradero.")
+    # Crear un mapeo rápido de Q_ID a datos para eficiencia
+    q_map = {q[0]: (q[2], q[3]) for q in QUESTION_DATA}
 
-    recommendations = [
-        "**Mindfulness y Meditación:** Dedica 5-10 minutos al día a prácticas de atención plena para mejorar la autoconciencia y reducir el estrés.",
-        "**Diario de Emociones:** Anota diariamente cómo te sientes y qué causó esas emociones. Esto aumenta el reconocimiento emocional.",
-        "**Busca Feedback:** Pide a personas de confianza comentarios sobre cómo manejas las situaciones sociales y emocionales.",
-        "**Lectura Focalizada:** Lee libros sobre comunicación asertiva, manejo de conflictos o el área que consideres más débil.",
-        "**Establece Metas Pequeñas:** En lugar de 'ser más empático', proponte 'preguntar a un colega cómo está y escuchar su respuesta sin interrumpir' una vez al día."
-    ]
+    for q_id, answer in st.session_state['answers'].items():
+        q_data = q_map.get(q_id)
+        
+        if q_data:
+            trait, reverse = q_data
+            
+            # Aplicar la inversión de puntaje (escala 1-5)
+            score = answer
+            if reverse:
+                score = 6 - answer 
+            
+            results[trait]["score"] += score
+            results[trait]["count"] += 1
 
-    return strengths, weaknesses, opportunities, recommendations
+    # Calcular el puntaje promedio (escala 1-5)
+    raw_scores = {
+        trait: (data["score"] / data["count"]) if data["count"] > 0 else 0
+        for trait, data in results.items()
+    }
+    
+    # Escalar la puntuación promedio (1.0 a 5.0) a un porcentaje (0 a 100)
+    # Fórmula: ((Puntuación_Obtenida - Min_Escala) / (Max_Escala - Min_Escala)) * 100
+    final_scores = {
+        trait: ((raw_score - 1) / 4) * 100 if raw_score > 0 else 0
+        for trait, raw_score in raw_scores.items()
+    }
+    
+    return {k: min(round(v), 100) for k, v in final_scores.items()}
 
-# --- FUNCIONES DE RENDERIZADO DE PÁGINAS ---
+# --- 3. PÁGINAS DE LA APLICACIÓN ---
 
-def show_home_page():
-    """Muestra la página de inicio del test."""
-    st.title("🧠 Test Psicológico de Perfil Integral")
-    st.markdown("---")
+def display_start_page():
+    """Página de bienvenida y recolección de datos."""
+    st.title("🌟 Test Detallado de los 5 Grandes Rasgos (Big Five)")
+    st.subheader("¡Descubre tu Perfil de Personalidad!")
     
     st.markdown("""
-    <div style="text-align: center; background-color: #ffffff; padding: 2rem; border-radius: 15px; box-shadow: 0 8px 16px rgba(0,0,0,0.1);">
-        <h2>Bienvenido/a</h2>
-        <p style="font-size: 1.1rem; color: #4B5569;">
-            Este test está diseñado para ayudarte a explorar diversas facetas de tu personalidad y tus habilidades socioemocionales. A través de <strong>132 preguntas</strong>, obtendrás una visión más clara de tus fortalezas, áreas de oportunidad y posibles caminos para tu desarrollo personal.
-        </p>
-        <p style="font-size: 1.1rem; color: #4B5569;">
-            No hay respuestas correctas o incorrectas. Responde con la mayor honestidad posible para que los resultados sean un reflejo fiel de quién eres. El test tomará aproximadamente <strong>15-20 minutos</strong> en completarse.
-        </p>
-        <p style="font-weight: bold; font-size: 1.1rem;">¿Estás listo/a para comenzar este viaje de autodescubrimiento?</p>
-    </div>
-    """, unsafe_allow_html=True)
+    Este es un test psicológico basado en el modelo de los **Cinco Grandes Factores** (OCEAN). 
+    Responde honestamente a cada afirmación usando la escala deslizante de **Totalmente en desacuerdo (1)** a **Totalmente de acuerdo (5)**. 
+    Tu participación es anónima (a menos que proporciones tu email) y te ayudará a obtener un perfil de personalidad detallado y amigable.
+    """)
 
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # Botón centrado
-    col1, col2, col3 = st.columns([2, 1, 2])
-    with col2:
-        if st.button("🚀 Comenzar el Test", use_container_width=True):
-            st.session_state.page = 'test'
-            st.session_state.start_time = time.time()
-            st.experimental_rerun()
-
-def show_test_page():
-    """Muestra la página del test con las preguntas."""
-    st.markdown(f'<p style="text-align:center; font-size: 1.2rem; color: #1E3A8A; font-weight: bold;">Pregunta {st.session_state.current_question + 1} de {TOTAL_QUESTIONS}</p>', unsafe_allow_html=True)
-
-    # Barra de progreso
-    progress_value = (st.session_state.current_question + 1) / TOTAL_QUESTIONS
-    st.progress(progress_value)
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    q_index = st.session_state.current_question
-    question = QUESTIONS[q_index]
-
-    # Mostrar pregunta
-    st.markdown(f'<p class="question-text">{question["pregunta"]}</p>', unsafe_allow_html=True)
+    # Campos de entrada
+    st.markdown("---")
     
-    # Scroll al principio de la página
-    st.components.v1.html("<script>window.parent.document.body.scrollTop = 0;</script>", height=0)
+    with st.container():
+        st.subheader("Antes de empezar...")
+        
+        name = st.text_input("Tu Nombre (Opcional)", value=st.session_state['name'], max_chars=50)
+        email = st.text_input("Tu Email (Opcional, para recibir resultados)", value=st.session_state['email'], max_chars=100)
 
-    # Opciones de respuesta
-    # Usamos el texto de la pregunta como clave única para el radio button
-    answer_key = f"q_{q_index}"
-    current_answer_index = st.session_state.answers.get(q_index, None)
+        # Actualizar el estado de la sesión
+        st.session_state['name'] = name
+        st.session_state['email'] = email
     
-    # Convertir el puntaje guardado de nuevo a su índice en la lista de opciones
-    if current_answer_index is not None:
-        try:
-            current_answer_index = question["puntajes"].index(current_answer_index)
-        except ValueError:
-            current_answer_index = None # Si el puntaje no está en la lista
+    st.markdown("---")
+    if st.button("Comenzar Test", type="primary", use_container_width=True):
+        # Permite empezar sin datos
+        next_page()
 
-    answer = st.radio(
-        label="Selecciona una opción:",
-        options=question["opciones"],
-        index=current_answer_index if current_answer_index is not None else None,
-        key=answer_key,
-        label_visibility="collapsed"
+
+def display_test_page(page_index):
+    """Muestra las preguntas para una página específica."""
+    
+    start_q_index = page_index * QUESTIONS_PER_PAGE
+    end_q_index = min(start_q_index + QUESTIONS_PER_PAGE, TOTAL_QUESTIONS)
+    questions_for_page = QUESTION_DATA[start_q_index:end_q_index]
+
+    current_page = page_index + 1
+    
+    st.header(f"Página {current_page} de {TOTAL_PAGES} | Big Five Test")
+    
+    # Progreso de la prueba
+    answered_count = len(st.session_state['answers'])
+    st.markdown(f"**Progreso:** **{answered_count}** de **{TOTAL_QUESTIONS}** preguntas completadas")
+    st.markdown("---")
+
+    for i, q_data in enumerate(questions_for_page):
+        q_id, q_text, q_trait, q_reverse = q_data
+
+        # Determinar el valor actual o el valor por defecto (3 = Neutral)
+        current_value = st.session_state['answers'].get(q_id, 3) 
+
+        # Asegurar que st.slider reciba min_value y max_value explícitos.
+        response = st.slider(
+            label=f"**{q_id}.** {q_text}", # Usar q_id como número de pregunta
+            min_value=1,       
+            max_value=5,       
+            value=current_value, 
+            step=1,
+            format="%d - %s",
+            key=f"q_{q_id}",
+            help=f"Rasgo: {TRAIT_LABELS[q_trait]} ({'Inversa' if q_reverse else 'Directa'})"
+        )
+        
+        # Guardar la respuesta
+        st.session_state['answers'][q_id] = response
+        
+        # Mostrar el significado de la respuesta seleccionada
+        selected_description = LIKERT_OPTIONS.get(response, "Selecciona una opción")
+        st.markdown(f"> **Tu respuesta:** *{selected_description}*")
+        
+        if i < len(questions_for_page) - 1:
+            st.markdown("---")
+
+    st.markdown("---")
+    
+    # Controles de navegación
+    col_prev, col_next = st.columns([1, 1])
+
+    with col_prev:
+        if page_index > 0:
+            st.button("↩️ Anterior", on_click=prev_page, type="secondary", use_container_width=True)
+
+    with col_next:
+        if current_page < TOTAL_PAGES:
+            st.button("Siguiente ➡️", on_click=next_page, type="primary", use_container_width=True)
+        else:
+            # Solo muestra el botón de resultados si todas las preguntas han sido respondidas
+            is_complete = len(st.session_state['answers']) == TOTAL_QUESTIONS
+            
+            if is_complete:
+                if st.button("Ver Resultados ✨", on_click=next_page, type="primary", use_container_width=True):
+                    pass # La navegación se maneja en next_page()
+
+            elif st.button("Ver Resultados (Incompleto) ⚠️", on_click=next_page, type="secondary", use_container_width=True):
+                # Permite al usuario ver resultados incompletos si lo desea
+                pass
+
+
+def display_results_page(scores):
+    """Muestra la página de resultados con el gráfico de radar y la interpretación."""
+    st.title(f"🎉 ¡{st.session_state['name'] if st.session_state['name'] else 'Tu'} Perfil de Personalidad está Listo!")
+    st.subheader("Tu Patrón Único de los 5 Grandes Rasgos")
+
+    # Muestra globos de confeti (detalles amigables)
+    st.balloons()
+
+    st.markdown("---")
+
+    # 1. Gráfico de Radar
+    traits = list(TRAIT_LABELS.values())
+    scores_list = list(scores.values())
+
+    fig = go.Figure(data=[
+        go.Scatterpolar(
+            r=scores_list + scores_list[:1], # Cierra el ciclo
+            theta=traits + traits[:1],
+            fill='toself',
+            name='Tu Perfil',
+            marker=dict(color='#2a688b'),
+            line_color='#2a688b',
+            opacity=0.8
+        )
+    ])
+
+    fig.update_layout(
+        polar=dict(
+            radialaxis=dict(
+                visible=True,
+                range=[0, 100],
+                tickvals=[20, 40, 60, 80, 100],
+                ticktext=['Bajo', 'Medio-Bajo', 'Medio', 'Medio-Alto', 'Alto'],
+            ),
+            bgcolor="#f8f9fa" # Fondo más claro para el gráfico
+        ),
+        showlegend=False,
+        height=500,
+        title='Gráfico de Patrón de Personalidad (Puntuación sobre 100)',
     )
 
-    # Guardar respuesta en session_state
-    if answer:
-        score_index = question["opciones"].index(answer)
-        st.session_state.answers[q_index] = question["puntajes"][score_index]
+    st.plotly_chart(fig, use_container_width=True)
 
-    st.markdown("<br><br>", unsafe_allow_html=True)
-
-    # --- Botones de Navegación ---
-    col1, col2, col3, col4, col5 = st.columns([2, 2, 2, 2, 2])
-
-    with col1:
-        if st.button("⬅️ Anterior", use_container_width=True, disabled=(q_index == 0)):
-            st.session_state.current_question -= 1
-            st.experimental_rerun()
-
-    with col5:
-        # Lógica para el botón "Siguiente" o "Finalizar"
-        is_last_question = (q_index == TOTAL_QUESTIONS - 1)
-        button_text = "🎉 Finalizar Test" if is_last_question else "Siguiente ➡️"
-        
-        # Validar que se haya respondido antes de avanzar
-        if st.button(button_text, use_container_width=True, disabled=(q_index not in st.session_state.answers)):
-            if is_last_question:
-                st.session_state.page = 'results'
-            else:
-                st.session_state.current_question += 1
-            st.experimental_rerun()
-
-def show_results_page():
-    """Muestra la página de resultados y análisis del perfil."""
-    st.title("✅ Resultados de tu Perfil Integral")
     st.markdown("---")
+    
+    # 2. Resumen por Rasgo (Interpretación)
+    st.header("Análisis Detallado de tus Rasgos")
+    
+    # Interpretaciones detalladas basadas en el nivel (Baja, Media, Alta)
+    INTERPRETATION_DATA = {
+        "O": {
+            "name": "Apertura a la Experiencia (O)",
+            "Alta": "Eres extremadamente creativo, tienes una curiosidad intelectual insaciable y disfrutas de la variedad, el arte y las ideas abstractas. Tiendes a ser poco convencional.",
+            "Media": "Eres flexible y abierto a nuevas ideas, pero valoras también la experiencia y la practicidad. Disfrutas de un equilibrio entre lo familiar y lo novedoso.",
+            "Baja": "Prefieres la rutina, la estabilidad y lo conocido. Tiendes a ser más pragmático, evitas las ideas abstractas o el arte complejo y te sientes cómodo con las tradiciones."
+        },
+        "C": {
+            "name": "Concienzudo (C)",
+            "Alta": "Eres altamente organizado, responsable, autodisciplinado y orientado a objetivos. Tiendes a planificar con anticipación, eres confiable y perfeccionista.",
+            "Media": "Muestras disciplina en áreas importantes, pero puedes ser flexible en otras. Eres generalmente responsable, pero permites cierta espontaneidad o desorden controlado.",
+            "Baja": "Eres más espontáneo, menos estructurado y tiendes a ser más flexible o desorganizado. Puedes tener dificultades con la gestión del tiempo y la persistencia en tareas aburridas."
+        },
+        "E": {
+            "name": "Extraversión (E)",
+            "Alta": "Eres sociable, asertivo, hablas mucho y te energizas con la interacción social. Eres el alma de la fiesta y tiendes a ser optimista y activo.",
+            "Media": "Disfrutas de las interacciones sociales, pero también valoras tu tiempo a solas. Puedes ser sociable en grupos pequeños y reservado en grandes multitudes.",
+            "Baja": "Eres reservado, reflexivo y prefieres la soledad o el trato con un círculo íntimo. Las grandes multitudes y la estimulación excesiva te agotan."
+        },
+        "A": {
+            "name": "Amabilidad (A)",
+            "Alta": "Eres muy compasivo, cooperativo, confiado, bondadoso y siempre dispuesto a ayudar. Valoras la armonía y evitas la confrontación.",
+            "Media": "Eres generalmente amable y considerado, pero puedes defender tus intereses si es necesario. Eres selectivo en tu confianza y cooperación.",
+            "Baja": "Tiendes a ser más escéptico, competitivo o crítico. Te centras en tus propios intereses y no dudas en expresar tu opinión, incluso si es dura."
+        },
+        "N": {
+            "name": "Neuroticismo (N)",
+            "Alta": "Tiendes a experimentar emociones negativas (ansiedad, preocupación, ira) con frecuencia e intensidad. Eres vulnerable al estrés y a los cambios de humor.",
+            "Media": "Experimentas altibajos emocionales típicos, manejas el estrés razonablemente, pero puedes reaccionar con preocupación en situaciones desafiantes.",
+            "Baja": "Eres emocionalmente estable, tranquilo, resiliente y capaz de manejar el estrés sin alterarte. Raramente te sientes ansioso o deprimido."
+        }
+    }
 
-    # --- Cálculo de tiempo y puntaje ---
-    total_time = time.time() - st.session_state.start_time
-    minutes, seconds = divmod(total_time, 60)
-    
-    total_score = sum(st.session_state.answers.values())
-    max_score = TOTAL_QUESTIONS * max(SCORES)
-    score_percentage = (total_score / max_score) * 100
-
-    st.info(f"Test completado en **{int(minutes)} minutos y {int(seconds)} segundos**.")
-    
-    st.markdown("### Puntuación General")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric(label="Tu Puntuación Total", value=f"{total_score} / {max_score}")
-    with col2:
-        st.metric(label="Equivalente Porcentual", value=f"{score_percentage:.2f}%")
+    for trait_key, score in scores.items():
+        data = INTERPRETATION_DATA.get(trait_key, {"name": "Rasgo Desconocido", "Alta": "No hay datos."})
         
-    st.markdown("<hr>", unsafe_allow_html=True)
-    
-    # --- Análisis del Perfil ---
-    st.header("🔍 Análisis Detallado de tu Perfil")
-    
-    strengths, weaknesses, opportunities, recommendations = get_profile_analysis(total_score)
-    
-    # Fortalezas
-    st.markdown("""
-    <div class="result-card" style="border-left-color: #10B981;">
-        <h3>💪 Fortalezas / Puntos Destacados</h3>
-    </div>
-    """, unsafe_allow_html=True)
-    for item in strengths:
-        st.markdown(f"- **{item}**")
+        # Determinar el nivel para la interpretación y el color
+        level_key = "Baja" if score < 40 else ("Media" if score < 60 else "Alta")
+        color = "#e57373" if level_key == "Baja" else ("#ffb74d" if level_key == "Media" else "#81c784")
+        interpretation = data[level_key]
+        trait_name = data["name"]
 
-    # Debilidades
-    if weaknesses:
-        st.markdown("""
-        <div class="result-card" style="border-left-color: #F59E0B;">
-            <h3>🌱 Aspectos a Mejorar</h3>
+        st.markdown(f"""
+        <div style="background-color: {color}; padding: 10px 15px; border-radius: 8px; color: white; margin-bottom: 5px;">
+            <h3 style="color: white; margin: 0; padding: 0;">{trait_name}: Nivel {level_key} ({score}%)</h3>
         </div>
+        <p style="margin-top: 5px; margin-bottom: 20px;">{interpretation}</p>
         """, unsafe_allow_html=True)
-        for item in weaknesses:
-            st.markdown(f"- {item}")
+
+
+    # Botón de reinicio
+    st.markdown("---")
+    st.button("Volver a Empezar Test", on_click=restart_test, type="secondary", use_container_width=True)
+
+
+# --- 4. LÓGICA PRINCIPAL DE LA APLICACIÓN ---
+
+def main_app():
+    """Maneja el flujo de navegación de la aplicación."""
     
-    # Áreas de Oportunidad
-    st.markdown("""
-    <div class="result-card" style="border-left-color: #3B82F6;">
-        <h3>🚀 Áreas de Oportunidad</h3>
-    </div>
-    """, unsafe_allow_html=True)
-    for item in opportunities:
-        st.markdown(f"- {item}")
-        
-    # Recomendaciones
-    with st.expander("Ver Recomendaciones Generales", expanded=True):
-        st.markdown("Aquí tienes algunas acciones prácticas que puedes empezar a implementar para tu desarrollo:")
-        for rec in recommendations:
-            st.markdown(f"- {rec}")
-            
-    st.markdown("<hr>", unsafe_allow_html=True)
+    # Inicialización del estado de la sesión
+    if 'page' not in st.session_state:
+        st.session_state['page'] = 0
+    if 'answers' not in st.session_state:
+        st.session_state['answers'] = {}
+    if 'name' not in st.session_state:
+        st.session_state['name'] = ""
+    if 'email' not in st.session_state:
+        st.session_state['email'] = ""
+
+    current_page = st.session_state['page']
     
-    # --- Opciones de Descarga y Reinicio ---
-    st.header("📥 Acciones Adicionales")
-    
-    # Preparar datos para descarga
-    results_data = []
-    for i, q in enumerate(QUESTIONS):
-        score = st.session_state.answers.get(i, 'N/A')
-        answer_text = ""
-        if score != 'N/A':
-            try:
-                answer_index = q['puntajes'].index(score)
-                answer_text = q['opciones'][answer_index]
-            except ValueError:
-                answer_text = "Respuesta inválida"
-        
-        results_data.append({
-            "Nº Pregunta": i + 1,
-            "Pregunta": q['pregunta'],
-            "Respuesta Seleccionada": answer_text,
-            "Puntaje": score
-        })
+    if current_page == 0:
+        display_start_page()
+    elif 1 <= current_page <= TOTAL_PAGES:
+        # Se muestra la página actual del test (current_page es el índice + 1)
+        display_test_page(current_page - 1)
+    elif current_page == TOTAL_PAGES + 1:
+        # Página de resultados
+        scores = calculate_results()
+        display_results_page(scores)
+    else:
+        # En caso de un estado de página inválido, volvemos a la pantalla de inicio
+        restart_test()
 
-    df = pd.DataFrame(results_data)
-    
-    # Convertir a Excel para descarga
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name='Resultados')
-        # Auto-ajustar ancho de columnas
-        worksheet = writer.sheets['Resultados']
-        for idx, col in enumerate(df):
-            series = df[col]
-            max_len = max((
-                series.astype(str).map(len).max(),
-                len(str(series.name))
-            )) + 2
-            worksheet.set_column(idx, idx, max_len)
-    excel_data = output.getvalue()
-
-    col1, col2 = st.columns(2)
-    with col1:
-        st.download_button(
-            label="📄 Descargar Resultados (Excel)",
-            data=excel_data,
-            file_name="resultados_test_psicologico.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=True
-        )
-
-    with col2:
-        if st.button("🔄 Reiniciar Test", use_container_width=True):
-            # Limpiar todo el session state
-            for key in list(st.session_state.keys()):
-                del st.session_state[key]
-            st.experimental_rerun()
-
-# --- CONTROLADOR PRINCIPAL DE LA APLICACIÓN ---
-def main():
-    """Función principal que controla el flujo de la aplicación."""
-    load_css()
-    initialize_session_state()
-
-    if st.session_state.page == 'home':
-        show_home_page()
-    elif st.session_state.page == 'test':
-        show_test_page()
-    elif st.session_state.page == 'results':
-        show_results_page()
-
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    # Streamlit por defecto busca una función llamada 'main' o ejecuta el código a nivel superior
+    # Aquí nos aseguramos de llamar a nuestra función principal
+    main_app()
 
