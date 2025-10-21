@@ -581,19 +581,21 @@ def set_playful_style():
     </style>
     """, unsafe_allow_html=True)
     
-    # --- JS para Scroll al Top (Al inicio de cada página) ---
+    # --- JS para Scroll al Top (SOLUCIÓN MÁS CONCRETA) ---
     st.markdown(
         """
         <script>
-            // Función para forzar el scroll al inicio del contenedor principal
-            function scrollToTop() {
-                // Usamos window.scrollTo como método más fiable en entornos iFrame/Canvas
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+            // Función para forzar el scroll al inicio de forma AGRESIVA.
+            function scrollToTopAggressive() {
+                // Forzamos el desplazamiento de la ventana y de los elementos HTML/BODY
+                // que son los que realmente controlan el scroll del iframe.
+                window.scrollTo(0, 0); // Mover el scroll de la ventana
+                document.documentElement.scrollTop = 0; // Mover el scroll del documento raíz (HTML)
+                document.body.scrollTop = 0; // Mover el scroll del cuerpo (BODY)
             }
-            // Ejecutar la función DESPUÉS de un retraso de 100ms. 
-            // Este retraso extra es crucial para que la UI termine de renderizar 
-            // el contenido de la nueva página antes de forzar el scroll.
-            setTimeout(scrollToTop, 100); 
+            // Ejecutar la función inmediatamente después de un micro-retraso (10ms)
+            // para asegurar que el DOM ha comenzado a renderizar la nueva página.
+            setTimeout(scrollToTopAggressive, 10); 
         </script>
         """,
         unsafe_allow_html=True
