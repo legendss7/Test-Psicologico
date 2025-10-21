@@ -202,7 +202,8 @@ def calculate_score(answers):
         is_reverse = q["reverse"]
         
         # Obtenemos la respuesta directamente del estado de sesión
-        response = answers.get(q_id)
+        # Utilizamos .get() por si alguna clave falta (aunque no debería)
+        response = answers.get(q_id) 
         
         if response is not None:
             score = response
@@ -357,8 +358,7 @@ def interpret_score(score, trait_code):
 def scroll_to_top():
     """
     [SOLUCIÓN DE SCROLL FORZADO]
-    Fuerza el scroll a la parte superior (0, 0) utilizando un 'instant' behavior 
-    dentro de un setTimeout(0) para garantizar que se ejecute después del re-render.
+    Fuerza el scroll a la parte superior (0, 0) para mejorar la UX al cambiar de página.
     """
     st.markdown(
         """
@@ -385,11 +385,11 @@ def scroll_to_top():
 
 def restart_test():
     """Resets the session state to restart the test."""
+    # Reinicia todas las claves esenciales
     st.session_state.answers = {}
     st.session_state.test_completed = False
     st.session_state.current_page = 0
     st.session_state.error_message = ""
-    # El scroll se forzará al final de run_test
     st.rerun()
 
 def handle_navigation(action):
@@ -404,15 +404,15 @@ def handle_navigation(action):
         # Contamos cuántas preguntas de la página actual tienen una respuesta válida
         answered_on_current_page = 0
         for q in current_questions:
+            # Una respuesta es válida si existe en st.session_state.answers y no es None
             if q["id"] in st.session_state.answers and st.session_state.answers[q["id"]] is not None:
                 answered_on_current_page += 1
         
         questions_on_page_count = len(current_questions)
         
         if answered_on_current_page < questions_on_page_count:
-            # Falla la validación
+            # Falla la validación: Error de respuestas incompletas
             st.session_state.error_message = f"⚠️ ¡Alto! Responde las {questions_on_page_count - answered_on_current_page} preguntas de la página actual antes de continuar."
-            # NO se llama a rerun(), para que se muestre el error y se quede en la misma página.
             return 
         else:
             # Pasa la validación
@@ -433,8 +433,7 @@ def handle_navigation(action):
             st.session_state.test_completed = True
             st.rerun()
         else:
-            # Esto puede pasar si el usuario ha respondido 129 de 130 preguntas. 
-            # Aunque la validación de la página previa debería haberlo atrapado.
+            # Mensaje de precaución para el usuario si llega aquí con respuestas faltantes
             st.session_state.error_message = "Error: Aún faltan respuestas totales para completar el test. Por favor, revisa."
             return
 
@@ -682,6 +681,7 @@ def run_test():
             results = interpret_score(score, trait_code)
             trait_label = TRAIT_LABELS[trait_code]
             
+            # Normalización del score para la barra de progreso
             normalized_score = (score - MIN_SCORE_PER_TRAIT) / (MAX_SCORE_PER_TRAIT - MIN_SCORE_PER_TRAIT)
             
             st.markdown(f"""
@@ -744,51 +744,51 @@ def run_test():
         # Invertir el diccionario para que el value sea el score y el key sea la descripción (para el format_func)
         likert_options_tuple = [(v, k) for k, v in LIKERT_OPTIONS.items()] 
 
-        # --- FUNCIÓN DE CALLBACK CORREGIDA PARA ESTABILIDAD ---
-        # El primer argumento '_' es el valor del widget, pasado automáticamente por Streamlit,
-        # pero lo ignoramos para evitar el TypeError al confiar en el st.session_state Key.
+        # --- FUNCIÓN DE CALLBACK CORREGIDA PARA LA ESTABILIDAD ---
         def update_answer(_, q_id):
             """
             Callback: Ignora el valor del widget (primer argumento) y obtiene la respuesta 
-            directamente de st.session_state usando la clave del radio (el método más estable).
+            directamente de st.session_state usando la clave del radio, con triple validación de tipo.
             """
             widget_key = f"radio_{q_id}"
             
-            # El valor almacenado es la tupla (Descripción, Score)
-            response_tuple = st.session_state[widget_key] 
+            # 1. Usar .get() para evitar KeyError si la clave no está presente
+            response = st.session_state.get(widget_key) 
             
-            if response_tuple is not None:
-                # Extraemos solo el score (el segundo elemento de la tupla)
-                st.session_state.answers[q_id] = response_tuple[1]
+            # 2. Verificar que la respuesta sea una tupla y tenga 2 elementos
+            if isinstance(response, tuple) and len(response) == 2:
+                # response[1] es el score (el entero)
+                st.session_state.answers[q_id] = response[1]
             else:
+                # Si es None o un tipo incorrecto/incompleto, lo establece como None
                 st.session_state.answers[q_id] = None
-
-            st.session_state.error_message = "" 
+                
+            st.session_state.error_message = "" # Limpiar error al interactuar
         # --- FIN FUNCIÓN DE CALLBACK CORREGIDA ---
 
         for q in current_questions:
             q_id = q['id']
             
-            # Recuperar el valor actual del estado de sesión
+            # Recuperar el valor actual del estado de sesión (solo el score)
             current_score = st.session_state.answers.get(q_id)
             
-            # Encontrar el índice del Likert si ya hay respuesta
-            selected_index = -1
+            # Determinar qué índice debe estar seleccionado
+            selected_index = None
             if current_score is not None:
+                # Buscamos la tupla (descripción, score) cuyo score coincida
                 for i, (_, score_val) in enumerate(likert_options_tuple):
                     if score_val == current_score:
                         selected_index = i
                         break
             
-            # Usar st.radio para actualizar el estado de sesión directamente
+            # Usar st.radio para mostrar el widget
             st.radio(
                 label=f"**{q_id}.** {q['text']}",
                 options=likert_options_tuple,
                 key=f"radio_{q_id}", 
-                index=selected_index if selected_index != -1 else None,
+                index=selected_index, # Si es None, no selecciona nada inicialmente
                 format_func=lambda x: x[0],
                 on_change=update_answer,
-                # args=(q_id,) pasa q_id como el SEGUNDO argumento de la función de callback
                 args=(q_id,) 
             )
         
