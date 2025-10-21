@@ -5,7 +5,7 @@ from collections import defaultdict
 import time
 import random
 
-# --- 0. CONFIGURACIÓN INICIAL Y ESTÉTICA (¡AQUÍ ESTÁ EL CAMBIO PARA EL TEMA CLARO Y EL BOTÓN!) ---
+# --- 0. CONFIGURACIÓN INICIAL Y ESTÉTICA (¡Mantenemos el diseño original!) ---
 
 st.set_page_config(
     layout="wide", 
@@ -13,7 +13,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# CSS Personalizado para tema CLARO y amigable
+# CSS Personalizado para tema CLARO, amigable y corregir el color del texto del botón principal.
 st.markdown("""
 <style>
     /* Forzar fondo blanco y texto oscuro */
@@ -38,20 +38,15 @@ st.markdown("""
         color: #2a688b;
     }
     
-    /* ESTILO DE BOTONES: Aquí se corrige el problema del color del texto */
+    /* ESTILO DE BOTONES: Mantener el color por defecto (azul) pero asegurar texto negro */
     .stButton>button {
         border-radius: 8px;
         padding: 10px 20px;
         font-weight: bold;
     }
-    /* Botones primarios (azules): Forzar texto negro o muy oscuro para legibilidad */
+    /* Corrección crítica: Botones primarios (azules por defecto) deben tener texto negro */
     .stButton button[data-testid*="stButton-primary"] {
-        color: #000000 !important; /* Texto negro */
-        background-color: #81c784; /* Verde suave, como ejemplo amigable */
-        border: 1px solid #66bb6a;
-    }
-    .stButton button[data-testid*="stButton-primary"]:hover {
-        background-color: #66bb6a; /* Un tono más oscuro al pasar el mouse */
+        color: #000000 !important; /* Texto negro forzado */
     }
 </style>
 """, unsafe_allow_html=True)
@@ -234,15 +229,14 @@ def restart_test():
     st.session_state['answers'] = {}
     st.session_state['name'] = ""
     st.session_state['email'] = ""
-    # Uso de st.rerun() en lugar de la función obsoleta
+    # Uso de st.rerun() para recargar la aplicación
     st.rerun() 
 
 def next_page():
     """Avanza a la siguiente página."""
     st.session_state['page'] += 1
-    # Asegurar que la vista suba al principio de la nueva página
     scroll_to_top()
-    # Uso de st.rerun() en lugar de la función obsoleta
+    # Uso de st.rerun() para recargar la aplicación
     st.rerun() 
 
 def prev_page():
@@ -250,7 +244,7 @@ def prev_page():
     if st.session_state['page'] > 1:
         st.session_state['page'] -= 1
         scroll_to_top()
-        # Uso de st.rerun() en lugar de la función obsoleta
+        # Uso de st.rerun() para recargar la aplicación
         st.rerun() 
 
 def scroll_to_top():
@@ -536,4 +530,3 @@ if __name__ == '__main__':
     # Streamlit por defecto busca una función llamada 'main' o ejecuta el código a nivel superior
     # Aquí nos aseguramos de llamar a nuestra función principal
     main_app()
-
