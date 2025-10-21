@@ -359,18 +359,22 @@ def interpret_score(score, trait):
 
 def scroll_to_top():
     """
-    Inyecta JavaScript con un retraso para forzar el scroll de la ventana al inicio (0, 0),
-    asegurando que se ejecute después de que Streamlit haya renderizado el nuevo DOM.
+    [FIX FINAL DE SCROLL]
+    Inyecta JavaScript con un retraso y múltiples métodos para forzar el scroll 
+    de la ventana al inicio (0, 0), contrarrestando la memoria de scroll del navegador
+    tras un st.rerun(). Aumentamos el retraso a 100ms.
     """
-    # [CORRECCIÓN APLICADA AQUÍ: Se añade setTimeout]
     st.markdown(
         """
         <script>
-        // La comunidad de Streamlit recomienda un pequeño retraso (e.g., 50ms)
-        // para garantizar que la nueva página esté cargada antes de scrollear.
+        // Aplicamos un retraso de 100ms para asegurar que el DOM de la nueva página se haya
+        // cargado completamente antes de ejecutar el scroll.
         setTimeout(() => {
-            window.scrollTo(0, 0);
-        }, 50); 
+            // Intentamos con múltiples métodos para mayor compatibilidad
+            window.scrollTo(0, 0); 
+            document.body.scrollTop = 0; // Para Safari
+            document.documentElement.scrollTop = 0; // Para Chrome, Firefox, IE
+        }, 100); 
         </script>
         """,
         unsafe_allow_html=True
@@ -797,7 +801,7 @@ def run_test():
         
         # === SOLUCIÓN FINAL ===
         # Llamar a scroll_to_top() de forma incondicional al final del bloque de renderizado
-        # de las preguntas. El script ahora tiene un retraso para funcionar correctamente.
+        # de las preguntas. El script ahora es mucho más robusto.
         scroll_to_top()
 
 # Ejecutar la aplicación
