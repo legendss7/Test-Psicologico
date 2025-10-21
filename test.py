@@ -581,21 +581,27 @@ def set_playful_style():
     </style>
     """, unsafe_allow_html=True)
     
-    # --- JS para Scroll al Top (SOLUCIÓN MÁS CONCRETA) ---
+    # --- JS para Scroll al Top (SOLUCIÓN MÁS CONCRETA Y DIRIGIDA AL CONTENEDOR DE STREAMLIT) ---
     st.markdown(
         """
         <script>
-            // Función para forzar el scroll al inicio de forma AGRESIVA.
-            function scrollToTopAggressive() {
-                // Forzamos el desplazamiento de la ventana y de los elementos HTML/BODY
-                // que son los que realmente controlan el scroll del iframe.
-                window.scrollTo(0, 0); // Mover el scroll de la ventana
-                document.documentElement.scrollTop = 0; // Mover el scroll del documento raíz (HTML)
-                document.body.scrollTop = 0; // Mover el scroll del cuerpo (BODY)
+            function scrollToTopTargeted() {
+                // 1. Intentamos encontrar el contenedor principal de Streamlit que maneja el scroll.
+                // Este selector es común en los iframes que alojan aplicaciones Streamlit.
+                const stScrollableContainer = document.querySelector('[data-testid="stAppViewContainer"]');
+
+                if (stScrollableContainer) {
+                    stScrollableContainer.scrollTop = 0;
+                } else {
+                    // 2. Si el selector específico falla, volvemos a la estrategia agresiva.
+                    window.scrollTo(0, 0); 
+                    document.documentElement.scrollTop = 0;
+                    document.body.scrollTop = 0;
+                }
             }
-            // Ejecutar la función inmediatamente después de un micro-retraso (10ms)
-            // para asegurar que el DOM ha comenzado a renderizar la nueva página.
-            setTimeout(scrollToTopAggressive, 10); 
+            
+            // Ejecutar la función con un pequeño retraso para que el DOM se actualice.
+            setTimeout(scrollToTopTargeted, 10); 
         </script>
         """,
         unsafe_allow_html=True
