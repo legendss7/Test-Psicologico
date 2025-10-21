@@ -4,8 +4,7 @@ import time
 
 # --- CONFIGURACIÓN DE PÁGINA PARA RESPONSIVIDAD ---
 # Usamos el layout "wide" para aprovechar el espacio en escritorio.
-# Streamlit y el CSS inyectado aseguran la responsividad en móvil.
-st.set_page_config(layout="wide", page_title="Test Big Five Detallado")
+st.set_page_config(layout="wide", page_title="Test Big Five Detallado", initial_sidebar_state="expanded")
 
 # --- 1. CONFIGURACIÓN DEL TEST (BIG FIVE - OCEAN) ---
 
@@ -170,7 +169,7 @@ LIKERT_OPTIONS = {
     1: "Totalmente en desacuerdo"
 }
 
-# Etiquetas y Colores (sin cambios)
+# Etiquetas y Colores
 TRAIT_LABELS = {
     "O": "Apertura a la Experiencia (Openness)",
     "C": "Responsabilidad (Conscientiousness)",
@@ -202,6 +201,7 @@ def calculate_score(answers):
         trait = q["trait"]
         is_reverse = q["reverse"]
         
+        # Obtenemos la respuesta directamente del estado de sesión
         response = answers.get(q_id)
         
         if response is not None:
@@ -218,12 +218,9 @@ def calculate_score(answers):
 def interpret_score(score, trait):
     """
     Interpreta la puntuación (Bajo, Medio, Alto) y devuelve el texto del perfil,
-    incluyendo la Fortaleza y el Desafío Clave (los aspectos "malos").
-    Rango de score: 26 (min) a 130 (max).
+    incluyendo la Fortaleza y el Desafío Clave.
     """
-    # Umbrales ajustados para el rango 26-130 (Ancho de rango: 104)
-    # LOW_THRESHOLD: 26 + (104/3) ~ 60
-    # HIGH_THRESHOLD: 130 - (104/3) ~ 96
+    # Umbrales ajustados para el rango 26-130
     LOW_THRESHOLD = 60
     HIGH_THRESHOLD = 96
     
@@ -234,7 +231,7 @@ def interpret_score(score, trait):
     else:
         level = "Medio"
         
-    # --- Descripciones Detalladas, Fortalezas y Desafíos Clave (Cosas "malas") ---
+    # --- Descripciones Detalladas, Fortalezas y Desafíos Clave ---
     profiles = {
         "O": {
             "Alto": {
@@ -323,8 +320,8 @@ def interpret_score(score, trait):
         }
     }
     
-    # Determinación de color y nivel de estabilidad (sin cambios)
-    if trait == 'N':
+    # Determinación de color y nivel de estabilidad
+    if trait_code == 'N':
         if level == "Bajo":
             color_hex = LEVEL_COLORS["Estable"] 
             color_label = "Muy Estable"
@@ -350,100 +347,41 @@ def interpret_score(score, trait):
         "level": level, 
         "color_hex": color_hex, 
         "color_label": color_label,
-        "description": profiles[trait][level]["desc"],
-        "strength": profiles[trait][level]["strength"],
-        "challenge": profiles[trait][level]["challenge"]
+        "description": profiles[trait_code][level]["desc"],
+        "strength": profiles[trait_code][level]["strength"],
+        "challenge": profiles[trait_code][level]["challenge"]
     }
 
 # --- 3. FUNCIONES DE NAVEGACIÓN Y REINICIO ---
 
 def scroll_to_top():
     """
-    [SOLUCIÓN DE SCROLL RE-OPTIMIZADA: Ejecución Asíncrona Inmediata]
+    [SOLUCIÓN DE SCROLL FORZADO]
     Fuerza el scroll a la parte superior (0, 0) utilizando un 'instant' behavior 
-    dentro de un setTimeout(0) para garantizar que se ejecute después del re-render, 
-    incluyendo selectores específicos de Streamlit.
+    dentro de un setTimeout(0) para garantizar que se ejecute después del re-render.
     """
     st.markdown(
         """
         <script>
-        // La función se ejecuta en el siguiente ciclo de eventos (0ms) para asegurar que el DOM 
-        // de la nueva página esté completamente disponible y se contrarreste la memoria de scroll.
         setTimeout(function() {
-            // Intento 1: Scroll forzado INSTANTÁNEO en la ventana
+            // 1. Scroll forzado INSTANTÁNEO en la ventana
             window.scrollTo({ top: 0, behavior: 'instant' }); 
             
-            // Intento 2 y 3: Fallbacks de compatibilidad forzada en elementos root del documento
+            // 2. Fallbacks de compatibilidad en elementos root del documento
             document.body.scrollTop = 0; 
             document.documentElement.scrollTop = 0;
             
-            // Intento 4: Selector Streamlit-específico (el contenedor principal de la aplicación)
+            // 3. Selector Streamlit-específico (el contenedor principal de la aplicación)
             const mainContent = document.querySelector('[data-testid="stAppViewBlock"]');
             if (mainContent) {
                 mainContent.scrollTop = 0;
             }
             
-        }, 0); // Cero delay, ejecución inmediata asíncrona.
+        }, 0); 
         </script>
         """,
         unsafe_allow_html=True
     )
-
-def add_debounce_script():
-    """
-    Inyecta JavaScript para deshabilitar los botones 'Siguiente' y 'Finalizar' 
-    inmediatamente al hacer clic, evitando el doble envío (double-submit).
-    """
-    st.markdown(
-        """
-        <script>
-        function debounceNavButtons() {
-            // Selecciona todos los botones de tipo submit 
-            const buttons = document.querySelectorAll('button[type="submit"]'); 
-            
-            buttons.forEach(button => {
-                if (!button.getAttribute('data-debounced')) {
-                    
-                    const buttonText = button.textContent.trim();
-                    if (buttonText.includes('Siguiente') || buttonText.includes('Finalizar')) {
-                        button.addEventListener('click', function(e) {
-                            if (this.disabled) {
-                                e.preventDefault(); 
-                                return;
-                            }
-                            
-                            // DESHABILITAR TODOS los botones de navegación inmediatamente
-                            buttons.forEach(btn => {
-                                btn.disabled = true;
-                                btn.style.opacity = '0.7';
-                            });
-                        });
-                        button.setAttribute('data-debounced', 'true');
-                    }
-                }
-            });
-        }
-        
-        // Ejecutar el debouncer en la carga inicial y tras un breve retraso por si Streamlit reestructura el DOM
-        window.onload = debounceNavButtons;
-        setTimeout(debounceNavButtons, 200); 
-        </script>
-        """,
-        unsafe_allow_html=True
-    )
-
-
-def next_page():
-    """Avanza a la siguiente página del test."""
-    if st.session_state.current_page < TOTAL_PAGES - 1:
-        st.session_state.current_page += 1
-        st.session_state.error_message = "" 
-
-def prev_page():
-    """Retrocede a la página anterior del test."""
-    if st.session_state.current_page > 0:
-        st.session_state.current_page -= 1
-        st.session_state.error_message = ""
 
 def restart_test():
     """Resets the session state to restart the test."""
@@ -451,6 +389,53 @@ def restart_test():
     st.session_state.test_completed = False
     st.session_state.current_page = 0
     st.session_state.error_message = ""
+    # El scroll se forzará al final de run_test
+    st.rerun()
+
+def handle_navigation(action):
+    """Maneja la validación de página y la navegación (Siguiente/Anterior/Finalizar)."""
+    current_page = st.session_state.current_page
+    start_index = current_page * QUESTIONS_PER_PAGE
+    end_index = min(start_index + QUESTIONS_PER_PAGE, TOTAL_QUESTIONS)
+    current_questions = QUESTIONS[start_index:end_index]
+    
+    # 1. Validar respuestas para avanzar o finalizar
+    if action == "next" or action == "finish":
+        # Contamos cuántas preguntas de la página actual tienen una respuesta válida
+        answered_on_current_page = 0
+        for q in current_questions:
+            if q["id"] in st.session_state.answers and st.session_state.answers[q["id"]] is not None:
+                answered_on_current_page += 1
+        
+        questions_on_page_count = len(current_questions)
+        
+        if answered_on_current_page < questions_on_page_count:
+            # Falla la validación
+            st.session_state.error_message = f"⚠️ ¡Alto! Responde las {questions_on_page_count - answered_on_current_page} preguntas de la página actual antes de continuar."
+            # NO se llama a rerun(), para que se muestre el error y se quede en la misma página.
+            return 
+        else:
+            # Pasa la validación
+            st.session_state.error_message = ""
+            
+    # 2. Lógica de Navegación
+    if action == "prev" and current_page > 0:
+        st.session_state.current_page -= 1
+        st.rerun()
+        
+    elif action == "next" and current_page < TOTAL_PAGES - 1:
+        st.session_state.current_page += 1
+        st.rerun()
+        
+    elif action == "finish":
+        # Finalizar el test
+        if len(st.session_state.answers) == TOTAL_QUESTIONS:
+            st.session_state.test_completed = True
+            st.rerun()
+        else:
+            # Error de conteo total
+            st.session_state.error_message = "Error: Aún faltan respuestas totales para completar el test. Por favor, revisa."
+            return
 
 # --- 4. CONFIGURACIÓN VISUAL Y DE INTERFAZ (CSS) ---
 
@@ -464,16 +449,9 @@ def set_playful_style():
     # --- CSS Styles ---
     st.markdown(f"""
     <style>
-        /* === ANIMACIONES DIVERTIDAS === */
-        @keyframes bounce {{
-            0%, 20%, 50%, 80%, 100% {{transform: translateY(0);}}
-            40% {{transform: translateY(-5px);}}
-            60% {{transform: translateY(-3px);}}
-        }}
-        .bouncing-header {{
-            animation: bounce 2s infinite 0.5s;
-            display: inline-block;
-        }}
+        /* Deshabilita la animación de rebote en los encabezados si no se usa */
+        @keyframes bounce {{ 0% {{transform: none;}} }} 
+        .bouncing-header {{ display: inline-block; }}
 
         /* Fuente y Estilo General */
         @import url('https://fonts.googleapis.com/css2?family=Varela+Round&display=swap');
@@ -504,24 +482,15 @@ def set_playful_style():
             text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
         }}
 
-        /* Contenedor de Preguntas (Cards) */
-        .stRadio > label {{
+        /* Preguntas (Cambiado: Sin Card Box alrededor del texto, solo en radio) */
+        .stRadio label {{
             font-size: 1.05rem;
             font-weight: 500;
             color: #1f2937;
-            padding: 15px;
+            padding: 15px 0 15px 0;
             display: block;
-            border-radius: 10px;
-            background-color: #FFFFFF;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            margin-bottom: 15px;
-            transition: transform 0.2s;
-            border-left: 6px solid {V_BLUE};
         }}
-        .stRadio > label:hover {{
-            transform: translateY(-2px);
-        }}
-
+        
         /* Opciones de Radio Button - Flexbox y Responsive */
         .stRadio div[role="radiogroup"] {{
             display: flex;
@@ -584,26 +553,51 @@ def set_playful_style():
             color: {D_RED};
         }}
         
-        /* Botones de Navegación */
+        /* Botones y Sidebar */
         .stButton>button {{
             font-weight: 600;
-            padding: 10px 20px;
-            border-radius: 25px;
+            padding: 10px 10px;
+            border-radius: 12px;
             border: none;
             transition: all 0.3s;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+            width: 100%; /* Ocupa todo el ancho en el sidebar */
+            margin-bottom: 10px;
         }}
+        
+        /* Botones Primarios (Finalizar / Siguiente) */
         .stButton>button[kind="primary"] {{
             background-color: {M_GREEN} !important; 
             color: #1F2937 !important;
         }}
+        /* Botón de Anterior */
+        .stButton>button[kind="secondary"] {{
+            background-color: #EFEFEF !important;
+            color: #4A90E2 !important;
+            border: 1px solid #4A90E2;
+        }}
+        
+        /* Sidebar Navigation Grouping */
+        .sidebar .stButton {{
+            margin-bottom: 10px; 
+        }}
+        
+        /* Estilo del Header del Sidebar */
+        .sidebar h2 {{
+            color: {V_BLUE};
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            border-bottom: 2px solid {M_GREEN};
+            padding-bottom: 5px;
+        }}
+
         /* Botón de Imprimir/PDF (Acción Final) */
         .print-button-container button {{
             background-color: {V_BLUE} !important; 
             color: white !important;
             font-weight: 600;
-            padding: 10px 20px;
-            border-radius: 25px;
+            padding: 12px 20px;
+            border-radius: 12px;
             border: none;
             transition: background-color 0.3s;
             box-shadow: 0 4px 6px rgba(74, 144, 226, 0.5);
@@ -613,32 +607,19 @@ def set_playful_style():
         
         /* === Media Query para Impresión (Limpieza profesional del PDF) === */
         @media print {{
-            /* Ocultar elementos de UI y navegación */
-            .stRadio, .stButton, .css-18z244q, .css-1d2a4o5, .stProgress:not(.results-progress), 
-            .stAlert:not(.result-alert), .stSelectbox, .stTextInput, .print-button-container, 
-            .stMarkdown:first-of-type, .css-fg4pbf, .stMetric [data-testid="stMetricDelta"],
-            .stAlert button
+            /* Ocultar UI de Streamlit */
+            .stSidebar, .stButton, .stProgress:not(.results-progress), 
+            .stAlert:not(.result-alert), .css-fg4pbf, .stMetric [data-testid="stMetricDelta"],
+            .st-emotion-cache-1cypcdb
             {{
                 display: none !important;
             }}
             /* Forzar visualización de Títulos y Resultados */
-            .profile-container, .trait-header, .stAlert.result-alert, .stMetric, .stMarkdown, .stMarkdown > div > hr {{
-                display: block !important;
-                visibility: visible !important;
-                color: #000 !important;
-            }}
-            /* Estilo de Impresión */
             .main {{
                 background: white !important;
                 padding: 10px !important;
                 border: none !important;
                 box-shadow: none !important;
-            }}
-            .challenge-box {{
-                background-color: #F8F8F8 !important; /* Gris claro para el desafío en impresión */
-            }}
-            .bouncing-header {{ 
-                animation: none !important;
             }}
         }}
 
@@ -650,23 +631,22 @@ def set_playful_style():
 def run_test():
     """Función principal para correr la aplicación."""
     
-    set_playful_style()
-    add_debounce_script() # <<<< Mantiene la prevención de doble clic
-
+    set_playful_style() # Aplica estilos
+    
     # Inicializar el estado de la sesión
     if 'answers' not in st.session_state: st.session_state.answers = {}
     if 'test_completed' not in st.session_state: st.session_state.test_completed = False
     if 'current_page' not in st.session_state: st.session_state.current_page = 0
     if 'error_message' not in st.session_state: st.session_state.error_message = ""
         
-    # Título y Encabezado con Animación
+    # Título y Encabezado
     st.markdown(f"""
     <div style="display: flex; align-items: center; margin-bottom: 20px;">
-        <span class="bouncing-header" style="font-size: 2rem; font-weight: 700; color: {COLOR_MINT_GREEN}; margin-right: 10px;">🧠</span>
+        <span style="font-size: 2rem; font-weight: 700; color: {COLOR_MINT_GREEN}; margin-right: 10px;">🧠</span>
         <h1 style="display: inline-block; margin: 0; border: none; padding: 0; color: {COLOR_VIBRANT_BLUE};">
             Test de Personalidad: ¡Descubre tu Perfil!
         </h1>
-        <span class="bouncing-header" style="font-size: 2rem; font-weight: 700; color: {COLOR_MINT_GREEN}; margin-left: 10px;">🌟</span>
+        <span style="font-size: 2rem; font-weight: 700; color: {COLOR_MINT_GREEN}; margin-left: 10px;">🌟</span>
     </div>
     """, unsafe_allow_html=True)
     
@@ -676,14 +656,11 @@ def run_test():
     # --- A. Mostrar Resultados (Si el test está completado) ---
     if st.session_state.test_completed:
         
-        # Simular una carga divertida
         with st.spinner('✨ Analizando tu magia interior y generando tu perfil único...'):
             time.sleep(1.5)
 
-        # 1. Calcular la puntuación
         scores = calculate_score(st.session_state.answers)
         
-        # 2. Mostrar el Perfil Container y Botón de Imprimir
         st.markdown(
             f"""
             <div class="profile-container">
@@ -700,12 +677,10 @@ def run_test():
             unsafe_allow_html=True
         )
         
-        # 3. Iterar y Mostrar Resultados
         for trait_code, score in scores.items():
             results = interpret_score(score, trait_code)
             trait_label = TRAIT_LABELS[trait_code]
             
-            # Normalizar score para la barra de progreso (0 a 1.0)
             normalized_score = (score - MIN_SCORE_PER_TRAIT) / (MAX_SCORE_PER_TRAIT - MIN_SCORE_PER_TRAIT)
             
             st.markdown(f"""
@@ -714,7 +689,6 @@ def run_test():
             </div>
             """, unsafe_allow_html=True)
             
-            # Las columnas de Streamlit se apilan automáticamente en móvil
             col_bar, col_score = st.columns([0.7, 0.3])
 
             with col_bar:
@@ -728,10 +702,8 @@ def run_test():
             with col_score:
                 st.metric(label="Puntuación", value=f"{score}/{MAX_SCORE_PER_TRAIT}", delta=f"Rango: {results['level']}")
             
-            # Fortalezas (Aspectos "Buenos")
             st.markdown(f"**Fortaleza Central:** {results['strength']}")
             
-            # Desafío Clave (Aspectos "Malos" o de Riesgo)
             st.markdown(
                 f'<div class="challenge-box">', unsafe_allow_html=True
             )
@@ -740,13 +712,11 @@ def run_test():
             
             st.markdown("<br>---<br>", unsafe_allow_html=True)
         
-        # 4. Botones de acción final (Reiniciar)
         st.markdown('<div class="restart-btn" style="text-align: center; margin-top: 30px;">', unsafe_allow_html=True)
         st.button("🔄 Quiero Explorar de Nuevo", on_click=restart_test, type="secondary", use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
             
-            
-    # --- B. Mostrar Cuestionario Paginado ---
+    # --- B. Mostrar Cuestionario Paginado y Sidebar ---
     else:
         
         current_page = st.session_state.current_page
@@ -755,108 +725,94 @@ def run_test():
         
         current_questions = QUESTIONS[start_index:end_index]
         
-        # Visualización del Progreso y Página Actual
-        answered_total = len(st.session_state.answers)
+        # 1. Visualización del Progreso y Página Actual
+        answered_total = len([ans for ans in st.session_state.answers.values() if ans is not None])
         progress_text = f"Progreso General: {answered_total}/{TOTAL_QUESTIONS} Preguntas"
         st.progress(answered_total / TOTAL_QUESTIONS, text=progress_text)
         
-        st.subheader(f"✨ ¡Estás en la Sección {current_page + 1} de {TOTAL_PAGES}! ¡Sigue Así!")
+        st.subheader(f"Sección {current_page + 1} de {TOTAL_PAGES}")
+        st.markdown("Marca tu nivel de acuerdo con cada afirmación:")
+        st.markdown("---")
+
 
         # Mensaje de error (si existe)
         if st.session_state.error_message:
             st.error(st.session_state.error_message)
-
         
-        # Controles de la Página Actual (DENTRO DEL FORMULARIO)
-        with st.form(key=f'page_form_{current_page}'):
-            
-            # Lista de opciones con el formato (Etiqueta, Valor)
-            likert_options_tuple = [(v, k) for k, v in LIKERT_OPTIONS.items()]
-            
-            form_answers_current_page = {}
+        # 2. Mostrar Preguntas (sin usar st.form)
+        likert_options_tuple = [(v, k) for k, v in LIKERT_OPTIONS.items()]
 
-            for q in current_questions:
-                q_id = q['id']
-                
-                current_value = st.session_state.answers.get(q_id)
-                
-                selected_index = -1
-                for i, (_, val) in enumerate(likert_options_tuple):
-                    if val == current_value:
-                        selected_index = i
-                        break
-
-                response_tuple = st.radio(
-                    label=f"**{q_id}.** {q['text']}",
-                    options=likert_options_tuple,
-                    key=f"radio_{q_id}", 
-                    index=selected_index if selected_index != -1 else None,
-                    format_func=lambda x: x[0]
-                )
-                
+        for q in current_questions:
+            q_id = q['id']
+            
+            # Recuperar el valor actual del estado de sesión
+            current_value = st.session_state.answers.get(q_id)
+            
+            selected_index = -1
+            for i, (_, val) in enumerate(likert_options_tuple):
+                if val == current_value:
+                    selected_index = i
+                    break
+            
+            # Usar st.radio para actualizar el estado de sesión directamente
+            # Usamos un callback para guardar la respuesta en st.session_state.answers
+            def update_answer(q_id, response_tuple):
                 if response_tuple is not None:
-                    form_answers_current_page[q_id] = response_tuple[1]
-
-            # --- Botones de Navegación ---
-            st.markdown("<br>", unsafe_allow_html=True)
-            # Columnas para navegación (se apilan en móvil automáticamente)
-            col_prev, col_next_finish = st.columns([1, 1])
-
-            prev_button = None
-            # Botón Anterior (Habilitado solo si no estamos en la primera página)
-            if current_page > 0:
-                with col_prev:
-                    # El botón de "Anterior" no necesita el debounce agresivo, pero lo ponemos en el form
-                    prev_button = st.form_submit_button("← Volver a la Página Anterior", type="secondary", use_container_width=True)
-
-            is_last_page = current_page == TOTAL_PAGES - 1
-            with col_next_finish:
-                if is_last_page:
-                    submit_button = st.form_submit_button("🚀 Finalizar Test y Ver Mi Perfil", type="primary", use_container_width=True)
+                    st.session_state.answers[q_id] = response_tuple[1]
                 else:
-                    # Este botón es el que más necesita el debounce
-                    submit_button = st.form_submit_button(f"Siguiente → (Pág. {current_page + 2})", type="primary", use_container_width=True)
-        
-        # --- Lógica de Manejo de Formulario (Fuera del bloque `with st.form`) ---
-        
-        if prev_button:
-            # Lógica de navegación
-            prev_page()
-            st.rerun()
-
-        if submit_button:
-            # 1. Actualizamos el estado de la sesión con las respuestas del formulario
-            st.session_state.answers.update(form_answers_current_page)
-            
-            # 2. Validar si todas las preguntas de esta página fueron respondidas
-            answered_count_on_page = len(form_answers_current_page)
-            questions_on_page_count = len(current_questions)
-
-            if answered_count_on_page < questions_on_page_count:
-                # Falla la validación
-                st.session_state.error_message = f"⚠️ ¡Alto! Por favor, responde las {questions_on_page_count - answered_count_on_page} preguntas restantes antes de continuar."
-                st.rerun()
-            else:
-                # Pasa la validación
-                st.session_state.error_message = ""
+                    st.session_state.answers[q_id] = None
+                # Limpiamos el mensaje de error al responder (feedback inmediato)
+                st.session_state.error_message = "" 
                 
-                if is_last_page:
-                    # Si es la última página Y todo está respondido, finalizar
-                    if len(st.session_state.answers) == TOTAL_QUESTIONS:
-                        st.session_state.test_completed = True
-                        # st.rerun() provocará que se ejecute la sección A
-                        st.rerun() 
-                    else:
-                        st.session_state.error_message = "Error interno: Faltan respuestas para completar el test. Por favor, revisa las páginas anteriores."
-                        st.rerun()
-                else:
-                    # Avanzar a la siguiente página
-                    next_page()
-                    # st.rerun() provocará que se ejecute la sección B y el scroll_to_top al final.
-                    st.rerun() 
+            response_tuple = st.radio(
+                label=f"**{q_id}.** {q['text']}",
+                options=likert_options_tuple,
+                key=f"radio_{q_id}", 
+                index=selected_index if selected_index != -1 else None,
+                format_func=lambda x: x[0],
+                on_change=update_answer,
+                args=(q_id, st.session_state[f"radio_{q_id}"]) # Pasa el nuevo valor seleccionado
+            )
         
-        # === APLICACIÓN DE LA SOLUCIÓN MULTI-ETAPA PARA SCROLL ===
-        # Llamar a scroll_to_top() de forma incondicional al final del bloque de renderizado
+        st.markdown("---")
+        
+        # 3. Controles de Navegación en el Sidebar
+        with st.sidebar:
+            st.header("Navegación del Test")
+            
+            # Botón Anterior
+            if current_page > 0:
+                st.button("← Página Anterior", on_click=handle_navigation, args=("prev",), use_container_width=True, type="secondary")
+            else:
+                st.button("Inicio (Página 1)", disabled=True, use_container_width=True, type="secondary")
+            
+            st.markdown("<hr style='border: 1px dashed #DDD;'>", unsafe_allow_html=True)
+            
+            # Botón Siguiente / Finalizar
+            is_last_page = current_page == TOTAL_PAGES - 1
+            
+            if is_last_page:
+                st.button("🚀 Finalizar Test y Ver Mi Perfil", on_click=handle_navigation, args=("finish",), use_container_width=True, type="primary")
+            else:
+                st.button(f"Siguiente → (Pág. {current_page + 2} de {TOTAL_PAGES})", on_click=handle_navigation, args=("next",), use_container_width=True, type="primary")
+                
+            # Contador de Respuestas Pendientes en el Sidebar
+            answered_current_page = 0
+            for q in current_questions:
+                if q["id"] in st.session_state.answers and st.session_state.answers[q["id"]] is not None:
+                    answered_current_page += 1
+            
+            pending_count = len(current_questions) - answered_current_page
+
+            st.markdown(f"""
+                <div style="text-align: center; margin-top: 20px; padding: 10px; border: 1px solid #EEE; border-radius: 8px;">
+                    <p style="font-size: 0.9rem; margin: 0; color: {COLOR_VIBRANT_BLUE};">Preguntas Pendientes:</p>
+                    <p style="font-size: 1.5rem; font-weight: bold; color: {COLOR_DANGER_RED}; margin: 5px 0 0 0;">{pending_count}</p>
+                </div>
+            """, unsafe_allow_html=True)
+
+        
+        # --- APLICACIÓN DEL SCROLL FORZADO ---
         scroll_to_top()
 
 # Ejecutar la aplicación
