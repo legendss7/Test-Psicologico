@@ -356,16 +356,30 @@ def interpret_score(score, trait):
     }
 
 # --- 3. FUNCIONES DE NAVEGACIÓN Y REINICIO ---
-# (Se mantienen iguales)
+
+# Función para gestionar el scroll al top
+def scroll_to_top():
+    """
+    Inyecta JavaScript para forzar el scroll de la ventana al inicio (0, 0).
+    """
+    st.markdown(
+        """
+        <script>
+        // Mueve el scroll de la ventana al inicio
+        window.scrollTo(0, 0);
+        </script>
+        """,
+        unsafe_allow_html=True
+    )
 
 def next_page():
-    """Avanza a la siguiente página del test y activa el scroll."""
+    """Avanza a la siguiente página del test."""
     if st.session_state.current_page < TOTAL_PAGES - 1:
         st.session_state.current_page += 1
         st.session_state.error_message = "" 
 
 def prev_page():
-    """Retrocede a la página anterior del test y activa el scroll."""
+    """Retrocede a la página anterior del test."""
     if st.session_state.current_page > 0:
         st.session_state.current_page -= 1
         st.session_state.error_message = ""
@@ -376,11 +390,12 @@ def restart_test():
     st.session_state.test_completed = False
     st.session_state.current_page = 0
     st.session_state.error_message = ""
+    scroll_to_top() # También al reiniciar
 
-# --- 4. CONFIGURACIÓN VISUAL Y DE INTERFAZ (CSS y Script de Scroll) ---
+# --- 4. CONFIGURACIÓN VISUAL Y DE INTERFAZ (CSS) ---
 
 def set_playful_style():
-    """Aplica estilos CSS divertidos, dinámicos, de impresión y el script para scroll."""
+    """Aplica estilos CSS divertidos, dinámicos y de impresión."""
     
     V_BLUE = "#4A90E2"
     M_GREEN = "#50E3C2"
@@ -570,45 +585,6 @@ def set_playful_style():
     </style>
     """, unsafe_allow_html=True)
     
-    # --- JS para Scroll al Top (SOLUCIÓN DEFINITIVA Y EXTREMA) ---
-    st.markdown(
-        """
-        <script>
-            function definitiveScrollToTop() {
-                // Lista de contenedores de desplazamiento de alta prioridad y genéricos
-                const targets = [
-                    // El wrapper principal de Streamlit
-                    document.querySelector('[data-testid="stAppViewContainer"]'),
-                    // Elemento principal genérico de Streamlit
-                    document.querySelector('.main'), 
-                    // Contenedores más probables para la ventana incrustada (Canvas)
-                    document.body,
-                    document.documentElement 
-                ];
-
-                // Intenta desplazar cada objetivo
-                for (let i = 0; i < targets.length; i++) {
-                    const target = targets[i];
-                    if (target && target.scrollTop !== undefined) {
-                        target.scrollTop = 0;
-                    }
-                }
-                
-                // Reserva final para la ventana global
-                window.scrollTo(0, 0); 
-            }
-            
-            // Ejecutar inmediatamente al cargar/re-ejecutar
-            definitiveScrollToTop(); 
-            
-            // Ejecutar de nuevo con un pequeño retraso (100ms) para asegurar que se ejecuta 
-            // DESPUÉS de que Streamlit haya renderizado completamente el nuevo contenido.
-            setTimeout(definitiveScrollToTop, 100); 
-        </script>
-        """,
-        unsafe_allow_html=True
-    )
-
 # --- 5. FLUJO DE LA APLICACIÓN STREAMLIT ---
 
 def run_test():
@@ -766,6 +742,7 @@ def run_test():
             col_prev, col_next_finish = st.columns([1, 1])
 
             prev_button = None
+            # Botón Anterior (Habilitado solo si no estamos en la primera página)
             if current_page > 0:
                 with col_prev:
                     prev_button = st.form_submit_button("← Volver a la Página Anterior", type="secondary", use_container_width=True)
@@ -780,6 +757,9 @@ def run_test():
         # --- Lógica de Manejo de Formulario (Fuera del bloque `with st.form`) ---
         
         if prev_button:
+            # 1. Llamar a la función de scroll antes de cambiar de página
+            scroll_to_top() 
+            # 2. Retroceder y forzar la re-ejecución
             prev_page()
             st.rerun()
 
@@ -801,15 +781,16 @@ def run_test():
                 
                 if is_last_page:
                     # Si es la última página Y todo está respondido, finalizar
-                    # **Verificación de seguridad adicional (debe haber 130 respuestas)**
                     if len(st.session_state.answers) == TOTAL_QUESTIONS:
                         st.session_state.test_completed = True
+                        scroll_to_top() # Scroll al top antes de ver resultados
                         st.rerun()
                     else:
                         st.session_state.error_message = "Error interno: Faltan respuestas para completar el test. Por favor, revisa las páginas anteriores."
                         st.rerun()
                 else:
                     # Avanzar a la siguiente página
+                    scroll_to_top() # Scroll al top antes de avanzar
                     next_page()
                     st.rerun() 
 
