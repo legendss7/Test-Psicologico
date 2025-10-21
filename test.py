@@ -215,7 +215,7 @@ def calculate_score(answers):
             
     return dict(scores)
 
-def interpret_score(score, trait):
+def interpret_score(score, trait_code):
     """
     Interpreta la puntuación (Bajo, Medio, Alto) y devuelve el texto del perfil,
     incluyendo la Fortaleza y el Desafío Clave.
@@ -411,7 +411,7 @@ def handle_navigation(action):
         
         if answered_on_current_page < questions_on_page_count:
             # Falla la validación
-            st.session_state.error_message = f"⚠️ ¡Alto! Responde las {questions_on_page_count - answered_on_current_page} preguntas de la página actual antes de continuar."
+            st.session_state.error_message = f"⚠️ ¡Alto! Responde las {questions_on_current_page - answered_on_current_page} preguntas de la página actual antes de continuar."
             # NO se llama a rerun(), para que se muestre el error y se quede en la misma página.
             return 
         else:
@@ -433,7 +433,8 @@ def handle_navigation(action):
             st.session_state.test_completed = True
             st.rerun()
         else:
-            # Error de conteo total
+            # Esto puede pasar si el usuario ha respondido 129 de 130 preguntas. 
+            # Aunque la validación de la página previa debería haberlo atrapado.
             st.session_state.error_message = "Error: Aún faltan respuestas totales para completar el test. Por favor, revisa."
             return
 
@@ -740,38 +741,46 @@ def run_test():
             st.error(st.session_state.error_message)
         
         # 2. Mostrar Preguntas (sin usar st.form)
-        likert_options_tuple = [(v, k) for k, v in LIKERT_OPTIONS.items()]
+        # Invertir el diccionario para que el value sea el score y el key sea la descripción (para el format_func)
+        likert_options_tuple = [(v, k) for k, v in LIKERT_OPTIONS.items()] 
+
+        # --- FUNCIÓN DE CALLBACK CORREGIDA ---
+        def update_answer(new_response_tuple, q_id):
+            """Callback que recibe el nuevo valor del widget y el q_id como args."""
+            if new_response_tuple is not None:
+                # new_response_tuple es (Descripción, Score), queremos el Score [1]
+                st.session_state.answers[q_id] = new_response_tuple[1]
+            else:
+                st.session_state.answers[q_id] = None
+            # Limpiamos el mensaje de error al responder (feedback inmediato)
+            st.session_state.error_message = "" 
+        # --- FIN FUNCIÓN DE CALLBACK CORREGIDA ---
 
         for q in current_questions:
             q_id = q['id']
             
             # Recuperar el valor actual del estado de sesión
-            current_value = st.session_state.answers.get(q_id)
+            current_score = st.session_state.answers.get(q_id)
             
+            # Encontrar el índice del Likert si ya hay respuesta
             selected_index = -1
-            for i, (_, val) in enumerate(likert_options_tuple):
-                if val == current_value:
-                    selected_index = i
-                    break
+            if current_score is not None:
+                for i, (_, score_val) in enumerate(likert_options_tuple):
+                    if score_val == current_score:
+                        selected_index = i
+                        break
             
             # Usar st.radio para actualizar el estado de sesión directamente
-            # Usamos un callback para guardar la respuesta en st.session_state.answers
-            def update_answer(q_id, response_tuple):
-                if response_tuple is not None:
-                    st.session_state.answers[q_id] = response_tuple[1]
-                else:
-                    st.session_state.answers[q_id] = None
-                # Limpiamos el mensaje de error al responder (feedback inmediato)
-                st.session_state.error_message = "" 
-                
-            response_tuple = st.radio(
+            st.radio(
                 label=f"**{q_id}.** {q['text']}",
                 options=likert_options_tuple,
                 key=f"radio_{q_id}", 
                 index=selected_index if selected_index != -1 else None,
                 format_func=lambda x: x[0],
                 on_change=update_answer,
-                args=(q_id, st.session_state[f"radio_{q_id}"]) # Pasa el nuevo valor seleccionado
+                # FIX: Ahora solo pasamos el q_id. Streamlit pasa el valor seleccionado 
+                # como primer argumento de la función de callback.
+                args=(q_id,) 
             )
         
         st.markdown("---")
