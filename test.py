@@ -358,26 +358,28 @@ def interpret_score(score, trait_code):
 
 def scroll_to_top():
     """
-    [SOLUCIÓN DE SCROLL FORZADO]
-    Fuerza el scroll a la parte superior (0, 0) para mejorar la UX al cambiar de página.
-    Se usa JavaScript para garantizar que el scroll se aplique al contenedor correcto.
+    [SOLUCIÓN DE SCROLL FORZADO MEJORADA]
+    Fuerza el scroll a la parte superior (0, 0) de manera más agresiva 
+    para asegurar que funcione en el entorno Streamlit.
     """
     st.markdown(
         """
         <script>
-        // Timeout asegura que el scroll se ejecute *después* de que Streamlit ha re-renderizado
+        // Un pequeño timeout para asegurar que el JS se ejecute después del render de Streamlit
         setTimeout(function() {
-            // Buscamos el contenedor principal de Streamlit
+            // 1. Intentar el selector de bloque principal de Streamlit
             const mainContent = document.querySelector('[data-testid="stAppViewBlock"]');
-            
-            // Si el contenedor existe, lo hacemos scroll
             if (mainContent) {
                 mainContent.scrollTop = 0;
-            } else {
-                // Fallback para scroll de la ventana (funciona en algunos iframes/embeds)
-                window.scrollTo({ top: 0, behavior: 'smooth' }); 
             }
-        }, 0); 
+
+            // 2. Fallback: Scroll del documento completo (funciona en muchos casos)
+            document.documentElement.scrollTop = 0; 
+            document.body.scrollTop = 0; 
+            
+            // 3. Fallback final: Scroll de la ventana (para entornos de iframe)
+            window.scrollTo(0, 0); 
+        }, 100); 
         </script>
         """,
         unsafe_allow_html=True
@@ -634,8 +636,6 @@ def set_playful_style():
 def update_answer_stable(q_id):
     """
     Callback Estables: Lee el valor directamente de st.session_state usando la clave del widget.
-    Esto es el método más seguro, ya que evita la ambigüedad del primer argumento posicional 
-    que causa el TypeError interno de Streamlit.
     """
     widget_key = f"radio_{q_id}"
     
@@ -834,11 +834,8 @@ def run_test():
                 </div>
             """, unsafe_allow_html=True)
             
-        # 4. Scroll forzado después de la renderización
-        # Importante: El scroll_to_top no se llama aquí, sino dentro de handle_navigation 
-        # (antes del st.rerun), y su JS se ejecuta con el timeout, asegurando el scroll.
-
-
+        # El scroll se activa dentro de handle_navigation justo antes de la recarga
+        
 # Ejecutar la aplicación
 if __name__ == '__main__':
     run_test()
