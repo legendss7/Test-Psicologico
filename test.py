@@ -8,6 +8,17 @@ st.set_page_config(layout="wide", page_title="Test Big Five Detallado", initial_
 
 # --- 1. CONFIGURACIÓN DEL TEST (BIG FIVE - OCEAN) ---
 
+# Opciones de respuesta para el Likert Scale (Ahora solo un mapeo de score a descripción)
+LIKERT_OPTIONS = {
+    5: "Totalmente de acuerdo",
+    4: "De acuerdo",
+    3: "Neutral",
+    2: "En desacuerdo",
+    1: "Totalmente en desacuerdo"
+}
+# La lista real de opciones para el widget es solo la lista de scores (enteros), la más estable.
+LIKERT_SCORES = list(LIKERT_OPTIONS.keys()) # [5, 4, 3, 2, 1]
+
 # Se ha escalado el test a 130 preguntas (26 por rasgo) para una medición más precisa.
 # La estructura del test es (ID, Texto, Rasgo, Inversa)
 QUESTIONS = [
@@ -160,15 +171,6 @@ ITEMS_PER_TRAIT = 26
 MAX_SCORE_PER_TRAIT = ITEMS_PER_TRAIT * 5 # 26 * 5 = 130
 MIN_SCORE_PER_TRAIT = ITEMS_PER_TRAIT * 1 # 26 * 1 = 26
 
-# Opciones de respuesta para el Likert Scale
-LIKERT_OPTIONS = {
-    5: "Totalmente de acuerdo",
-    4: "De acuerdo",
-    3: "Neutral",
-    2: "En desacuerdo",
-    1: "Totalmente en desacuerdo"
-}
-
 # Etiquetas y Colores
 TRAIT_LABELS = {
     "O": "Apertura a la Experiencia (Openness)",
@@ -201,10 +203,10 @@ def calculate_score(answers):
         trait = q["trait"]
         is_reverse = q["reverse"]
         
-        # Obtenemos la respuesta directamente del estado de sesión
+        # Obtenemos la respuesta (score entero)
         response = answers.get(q_id) 
         
-        if response is not None:
+        if response is not None and isinstance(response, int): # Doble chequeo de tipo
             score = response
             
             if is_reverse:
@@ -403,8 +405,9 @@ def handle_navigation(action):
         # Contamos cuántas preguntas de la página actual tienen una respuesta válida
         answered_on_current_page = 0
         for q in current_questions:
-            # Una respuesta es válida si existe en st.session_state.answers y no es None
-            if q["id"] in st.session_state.answers and st.session_state.answers[q["id"]] is not None:
+            # Una respuesta es válida si existe en st.session_state.answers y es un entero
+            ans = st.session_state.answers.get(q["id"])
+            if ans is not None and isinstance(ans, int) and 1 <= ans <= 5:
                 answered_on_current_page += 1
         
         questions_on_page_count = len(current_questions)
@@ -428,12 +431,15 @@ def handle_navigation(action):
         
     elif action == "finish":
         # Finalizar el test
-        if len(st.session_state.answers) == TOTAL_QUESTIONS:
+        # Chequeo final de que todas las 130 preguntas han sido respondidas
+        answered_total_final = len([ans for ans in st.session_state.answers.values() if ans is not None and isinstance(ans, int)])
+        
+        if answered_total_final == TOTAL_QUESTIONS:
             st.session_state.test_completed = True
             st.rerun()
         else:
             # Mensaje de precaución para el usuario si llega aquí con respuestas faltantes
-            st.session_state.error_message = "Error: Aún faltan respuestas totales para completar el test. Por favor, revisa."
+            st.session_state.error_message = f"Error: Aún faltan {TOTAL_QUESTIONS - answered_total_final} respuestas totales para completar el test. Por favor, revisa."
             return
 
 # --- 4. CONFIGURACIÓN VISUAL Y DE INTERFAZ (CSS) ---
@@ -625,6 +631,34 @@ def set_playful_style():
     </style>
     """, unsafe_allow_html=True)
     
+# --- FUNCIÓN DE CALLBACK REFACTORIZADA PARA LA ESTABILIDAD ---
+def update_answer_stable(q_id):
+    """
+    Callback Estables: Lee el valor directamente de st.session_state usando la clave del widget.
+    Esto es el método más seguro, ya que evita la ambigüedad del primer argumento posicional 
+    que causa el TypeError interno de Streamlit.
+    """
+    widget_key = f"radio_{q_id}"
+    
+    # 1. Obtener el valor (que ahora es un entero o None)
+    selected_score = st.session_state.get(widget_key) 
+    
+    # 2. Guardar solo si es un score válido
+    if selected_score is not None and isinstance(selected_score, int) and selected_score in LIKERT_SCORES:
+         st.session_state.answers[q_id] = selected_score
+    else:
+         # Si es None o un tipo incorrecto, lo establece como None
+         st.session_state.answers[q_id] = None 
+    
+    # 3. Limpiar el error para no interferir con la navegación
+    st.session_state.error_message = ""
+# --- FIN FUNCIÓN DE CALLBACK REFACTORIZADA ---
+
+# Función para formatear las opciones del radio
+def format_likert(score):
+    """Mapea el score numérico a la descripción de texto."""
+    return LIKERT_OPTIONS.get(score, f"ERROR: {score}")
+
 # --- 5. FLUJO DE LA APLICACIÓN STREAMLIT ---
 
 def run_test():
@@ -726,7 +760,8 @@ def run_test():
         current_questions = QUESTIONS[start_index:end_index]
         
         # 1. Visualización del Progreso y Página Actual
-        answered_total = len([ans for ans in st.session_state.answers.values() if ans is not None])
+        # Contamos solo respuestas válidas (enteros)
+        answered_total = len([ans for ans in st.session_state.answers.values() if ans is not None and isinstance(ans, int)])
         progress_text = f"Progreso General: {answered_total}/{TOTAL_QUESTIONS} Preguntas"
         st.progress(answered_total / TOTAL_QUESTIONS, text=progress_text)
         
@@ -739,54 +774,27 @@ def run_test():
         if st.session_state.error_message:
             st.error(st.session_state.error_message)
         
-        # 2. Mostrar Preguntas (sin usar st.form)
-        # Invertir el diccionario para que el value sea el score y el key sea la descripción (para el format_func)
-        likert_options_tuple = [(v, k) for k, v in LIKERT_OPTIONS.items()] 
-
-        # --- FUNCIÓN DE CALLBACK CORREGIDA PARA LA ESTABILIDAD (VERSIÓN DEFINITIVA) ---
-        def update_answer(selected_value, q_id):
-            """
-            Callback: Utiliza el valor del widget (selected_value) directamente 
-            en lugar de acceder a st.session_state.
-            """
-            # selected_value debe ser una tupla como ("De acuerdo", 4) o None
-            
-            # Triple verificación de seguridad en el valor PASADO al callback
-            if isinstance(selected_value, tuple) and len(selected_value) == 2:
-                # selected_value[1] es el score (el entero)
-                st.session_state.answers[q_id] = selected_value[1]
-            else:
-                # Si es None o un tipo incorrecto/incompleto, lo establece como None
-                st.session_state.answers[q_id] = None
-                
-            st.session_state.error_message = "" # Limpiar error al interactuar
-        # --- FIN FUNCIÓN DE CALLBACK CORREGIDA ---
-
+        # 2. Mostrar Preguntas
         for q in current_questions:
             q_id = q['id']
             
-            # Recuperar el valor actual del estado de sesión (solo el score)
+            # 1. Recuperar el valor actual (el score entero)
             current_score = st.session_state.answers.get(q_id)
             
-            # Determinar qué opción debe estar seleccionada
-            selected_option = None
-            if current_score is not None:
-                # Buscamos la tupla (descripción, score) cuyo score coincida
-                for option_tuple in likert_options_tuple:
-                    if option_tuple[1] == current_score:
-                        selected_option = option_tuple
-                        break
+            # 2. Determinar el índice
+            current_index = None
+            if current_score in LIKERT_SCORES:
+                current_index = LIKERT_SCORES.index(current_score)
             
-            # Usar st.radio para mostrar el widget
+            # 3. Renderizar el widget con las opciones de entero y la función de formato
             st.radio(
                 label=f"**{q_id}.** {q['text']}",
-                options=likert_options_tuple,
-                key=f"radio_{q_id}", 
-                index=likert_options_tuple.index(selected_option) if selected_option else None,
-                format_func=lambda x: x[0],
-                on_change=update_answer,
-                # El primer argumento es el valor del widget, el segundo es q_id (del args)
-                args=(q_id,) 
+                options=LIKERT_SCORES, # Opciones son scores (enteros)
+                key=f"radio_{q_id}", # Clave única para guardar el valor entero
+                index=current_index, # Índice para mantener la selección
+                format_func=format_likert, # Función para mostrar la descripción
+                on_change=update_answer_stable,
+                args=(q_id,) # Se pasa q_id para que el callback sepa qué pregunta actualizar
             )
         
         st.markdown("---")
@@ -814,7 +822,8 @@ def run_test():
             # Contador de Respuestas Pendientes en el Sidebar
             answered_current_page = 0
             for q in current_questions:
-                if q["id"] in st.session_state.answers and st.session_state.answers[q["id"]] is not None:
+                ans = st.session_state.answers.get(q["id"])
+                if ans is not None and isinstance(ans, int):
                     answered_current_page += 1
             
             pending_count = len(current_questions) - answered_current_page
