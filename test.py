@@ -587,17 +587,13 @@ def set_playful_style():
         <script>
             // Función para forzar el scroll al inicio del contenedor principal
             function scrollToTop() {
-                // Buscamos el contenedor principal de Streamlit
-                const main = document.querySelector('.main');
-                if (main) {
-                    main.scrollTo({ top: 0, behavior: 'smooth' });
-                } else {
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                }
+                // Usamos window.scrollTo como método más fiable en entornos iFrame/Canvas
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             }
-            // Ejecutar la función DESPUÉS de un breve retraso (50ms) para 
-            // permitir que Streamlit termine de renderizar la página nueva.
-            setTimeout(scrollToTop, 50); 
+            // Ejecutar la función DESPUÉS de un retraso de 100ms. 
+            // Este retraso extra es crucial para que la UI termine de renderizar 
+            // el contenido de la nueva página antes de forzar el scroll.
+            setTimeout(scrollToTop, 100); 
         </script>
         """,
         unsafe_allow_html=True
