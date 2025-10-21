@@ -1,5 +1,5 @@
 import streamlit as st
-import urllib.parse
+# import urllib.parse  # Eliminado, ya no es necesario para mailto
 from collections import defaultdict
 
 # --- 1. CONFIGURACIÓN DEL TEST (BIG FIVE - OCEAN) ---
@@ -165,40 +165,22 @@ def interpret_score(score, trait):
 
     return profiles[trait][level], level, color_hex, color_label
 
-# --- 3. FUNCIÓN PARA COMPARTIR POR EMAIL ---
-
-def generate_email_link(results_data):
-    """Genera un enlace mailto con los resultados formateados."""
-    subject = urllib.parse.quote("Resultados de mi Test de Personalidad - Modelo OCEAN")
-    
-    body = "¡Hola!\n\nAdjunto los resultados completos de mi Test de Personalidad de los Cinco Grandes (OCEAN):\n\n"
-    
-    for trait_code, data in results_data.items():
-        # Limpiar el texto de Markdown para el email
-        profile_text_clean = data['profile'].replace('**', '').replace('\n', ' ')
-        
-        body += f"--- {data['label']} ---\n"
-        body += f"Nivel: {data['level']} (Puntuación: {data['score']}/30)\n"
-        body += f"Interpretación: {profile_text_clean}\n\n"
-    
-    body += "Realiza tu propio test aquí: https://play.google.com/store/apps/details?id=com.dela.dela&hl=en\n"
-    
-    # Codificar el cuerpo del mensaje para la URL
-    body = urllib.parse.quote(body)
-    
-    return f"mailto:?subject={subject}&body={body}"
+# --- 3. FUNCIÓN PARA COMPARTIR POR EMAIL (ELIMINADA) ---
 
 # --- Función para reiniciar el test ---
 def restart_test():
-    """Resets the session state and reruns the app to start the test fresh."""
+    """
+    Resets the session state to restart the test.
+    (Removimos st.rerun() para evitar advertencias en callbacks).
+    """
     st.session_state.answers = {}
     st.session_state.test_completed = False
-    st.rerun() 
+    # st.rerun() ya no es necesario aquí y previene la advertencia. 
 
 # --- 4. CONFIGURACIÓN VISUAL Y DE INTERFAZ ---
 
 def set_professional_style():
-    """Aplica estilos CSS para una apariencia corporativa y profesional."""
+    """Aplica estilos CSS para una apariencia corporativa y profesional, e incluye estilos de impresión."""
     st.markdown(f"""
     <style>
         /* Fuente y Estilo General */
@@ -288,14 +270,48 @@ def set_professional_style():
             transition: background-color 0.5s ease;
         }}
 
-        /* Ajuste para el botón de email (usando un selector genérico o de clase si Streamlit lo permite) */
-        a[href^="mailto:"] > button {{
+        /* Estilo para el botón de Imprimir (reemplaza al de Email) */
+        .print-button-container button {{
             background-color: #16A085 !important; /* Success Green */
+            color: white !important;
+            font-weight: 600;
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            transition: background-color 0.3s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            width: 100%;
         }}
-        a[href^="mailto:"] > button:hover {{
+        .print-button-container button:hover {{
             background-color: #138D73 !important;
         }}
         
+        /* Media Query para Impresión (Limpieza profesional del PDF) */
+        @media print {{
+            /* Ocultar elementos de UI que no son resultados */
+            .stRadio, .stButton, .stTabs, h1, .stMarkdown:nth-child(2), .css-18z244q, .css-1d2a4o5 {{
+                display: none !important;
+            }}
+            /* Mostrar solo el contenido de resultados (h2 y st.info) */
+            .profile-container, .trait-header, .stAlert, .stProgress, .stMetric, .stMarkdown > div > hr, .stMetric > div > label > div > div > span {{
+                display: block !important;
+            }}
+            /* Forzar el color de fondo blanco para el PDF */
+            .main {{
+                background-color: white !important;
+                padding: 0;
+            }}
+            /* Asegurar que el logo y título de resultados se vean */
+            .profile-container h2, .trait-header {{
+                color: #000000 !important;
+            }}
+            /* Ocultar el botón de reinicio y el de impresión */
+            .print-button-container, .stButton:nth-child(2) {{ 
+                display: none !important; 
+            }}
+        }}
+
     </style>
     """, unsafe_allow_html=True)
 
@@ -346,7 +362,9 @@ def run_test():
 
                 for q in current_questions:
                     try:
-                        current_index = likert_options_tuple.index((LIKERT_OPTIONS[st.session_state.answers.get(q['id'])], st.session_state.answers.get(q['id'])))
+                        # Recupera el valor de la respuesta si existe para mantener la selección
+                        current_value = st.session_state.answers.get(q['id'])
+                        current_index = likert_options_tuple.index((LIKERT_OPTIONS[current_value], current_value)) if current_value else None
                     except (ValueError, KeyError):
                         current_index = None
 
@@ -375,7 +393,7 @@ def run_test():
         
         # 5. Calcular la puntuación
         scores = calculate_score(st.session_state.answers)
-        all_results_data = {} # Almacenar todos los datos para el email
+        all_results_data = {} # Almacenar todos los datos para el email (aunque ya no se use, se mantiene la estructura)
 
         # 6. Mostrar el Perfil
         st.markdown(
@@ -394,7 +412,7 @@ def run_test():
             profile_text, level, color_hex, color_label = interpret_score(score, trait_code)
             trait_label = TRAIT_LABELS[trait_code]
             
-            # Almacenar datos para el email
+            # Almacenar datos (mantenido por si se necesita exportación futura)
             all_results_data[trait_code] = {
                 "label": trait_label,
                 "score": score,
@@ -436,21 +454,22 @@ def run_test():
         
         st.success("El análisis de tu perfil de personalidad ha concluido con éxito.")
 
-        # 8. Botones de acción final
-        col_email, col_restart, col_space = st.columns([0.4, 0.4, 0.2])
+        # 8. Botones de acción final (Imprimir y Reiniciar)
+        # Se usan dos columnas de igual tamaño para los botones principales
+        col_print, col_restart = st.columns([0.5, 0.5])
         
-        # Botón para enviar por email (usa un enlace mailto)
-        email_link = generate_email_link(all_results_data)
-        with col_email:
-            st.markdown(f"""
-            <a href="{email_link}" target="_blank">
-                <button style="background-color: #16A085 !important; width: 100%;">
-                    ✉️ Enviar Resultados por Email
+        # Botón para Imprimir (usando JS para el diálogo de impresión del navegador)
+        with col_print:
+            st.markdown("""
+            <div class="print-button-container">
+                <button onclick="window.print()">
+                    🖨️ Imprimir/Guardar como PDF
                 </button>
-            </a>
+            </div>
             """, unsafe_allow_html=True)
 
-        # Botón para reiniciar
+
+        # Botón para reiniciar (llama a la función sin st.rerun())
         with col_restart:
             st.button("🔄 Volver a Realizar el Test", on_click=restart_test, type="secondary", use_container_width=True)
 
