@@ -1,11 +1,8 @@
 import streamlit as st
+import urllib.parse
+from collections import defaultdict
 
 # --- 1. CONFIGURACIÓN DEL TEST (BIG FIVE - OCEAN) ---
-# O: Openness (Apertura a la Experiencia)
-# C: Conscientiousness (Responsabilidad)
-# E: Extraversion (Extraversión)
-# A: Agreeableness (Amabilidad)
-# N: Neuroticism (Neuroticismo / Estabilidad Emocional - N-score alto = Inestable)
 
 QUESTIONS = [
     # O - Openness
@@ -60,44 +57,47 @@ LIKERT_OPTIONS = {
 
 # Etiquetas para la barra de progreso
 TRAIT_LABELS = {
-    "O": "Apertura a la Experiencia (O)",
-    "C": "Responsabilidad (C)",
-    "E": "Extraversión (E)",
-    "A": "Amabilidad (A)",
-    "N": "Neuroticismo (N)"
+    "O": "Apertura a la Experiencia (Openness)",
+    "C": "Responsabilidad (Conscientiousness)",
+    "E": "Extraversión (Extraversion)",
+    "A": "Amabilidad (Agreeableness)",
+    "N": "Neuroticismo (Neuroticism)"
+}
+
+# Colores para la visualización de resultados
+LEVEL_COLORS = {
+    # Estos colores se invertirán para Neuroticism
+    "Alto_Positivo": "#004AAD",  # Azul Corporativo (para Alto en O, C, E, A)
+    "Bajo_Negativo": "#C0392B",  # Rojo (para Bajo en O, C, E, A, y Alto en N)
+    "Medio": "#F39C12",         # Amarillo
+    "Estable": "#16A085"        # Verde (para Bajo en N)
 }
 
 # --- 2. LÓGICA DE PUNTUACIÓN Y PERFIL ---
 
 def calculate_score(answers):
     """Calcula la puntuación para cada rasgo de personalidad."""
-    scores = {"O": 0, "C": 0, "E": 0, "A": 0, "N": 0}
+    scores = defaultdict(int)
     
     for q in QUESTIONS:
         q_id = q["id"]
         trait = q["trait"]
         is_reverse = q["reverse"]
         
-        # Obtener la respuesta del estado de la sesión
         response = answers.get(q_id)
         
         if response is not None:
             score = response
             
-            # Aplicar puntuación inversa si es necesario
             if is_reverse:
-                # 1 -> 5, 2 -> 4, 3 -> 3, 4 -> 2, 5 -> 1
                 score = 6 - score
             
             scores[trait] += score
             
-    return scores
+    return dict(scores)
 
 def interpret_score(score, trait):
-    """Interpreta la puntuación (Bajo, Medio, Alto) y devuelve el texto del perfil."""
-    # Min Score: 6 (6 preguntas * 1 punto)
-    # Max Score: 30 (6 preguntas * 5 puntos)
-    # Rango: 24
+    """Interpreta la puntuación (Bajo, Medio, Alto) y devuelve el texto del perfil y el color."""
     
     # Umbrales (Aproximadamente tercios del rango 6-30)
     LOW_THRESHOLD = 14
@@ -139,213 +139,321 @@ def interpret_score(score, trait):
         }
     }
     
-    return profiles[trait][level], level
+    # Determinar Color y Código de Color
+    if trait == 'N':
+        # Neuroticism: Bajo (Low N) es deseable/estable.
+        if level == "Bajo":
+            color_hex = LEVEL_COLORS["Estable"] # Verde
+            color_label = "Estable"
+        elif level == "Alto":
+            color_hex = LEVEL_COLORS["Bajo_Negativo"] # Rojo
+            color_label = "Inestable"
+        else:
+            color_hex = LEVEL_COLORS["Medio"]
+            color_label = "Moderado"
+    else:
+        # Otros rasgos: Alto es más pronunciado.
+        if level == "Alto":
+            color_hex = LEVEL_COLORS["Alto_Positivo"] # Azul Corporativo
+            color_label = "Pronunciado"
+        elif level == "Bajo":
+            color_hex = LEVEL_COLORS["Bajo_Negativo"] # Rojo
+            color_label = "Bajo"
+        else:
+            color_hex = LEVEL_COLORS["Medio"]
+            color_label = "Moderado"
 
-# --- 3. CONFIGURACIÓN VISUAL Y DE INTERFAZ ---
+    return profiles[trait][level], level, color_hex, color_label
+
+# --- 3. FUNCIÓN PARA COMPARTIR POR EMAIL ---
+
+def generate_email_link(results_data):
+    """Genera un enlace mailto con los resultados formateados."""
+    subject = urllib.parse.quote("Resultados de mi Test de Personalidad - Modelo OCEAN")
+    
+    body = "¡Hola!\n\nAdjunto los resultados completos de mi Test de Personalidad de los Cinco Grandes (OCEAN):\n\n"
+    
+    for trait_code, data in results_data.items():
+        # Limpiar el texto de Markdown para el email
+        profile_text_clean = data['profile'].replace('**', '').replace('\n', ' ')
+        
+        body += f"--- {data['label']} ---\n"
+        body += f"Nivel: {data['level']} (Puntuación: {data['score']}/30)\n"
+        body += f"Interpretación: {profile_text_clean}\n\n"
+    
+    body += "Realiza tu propio test aquí: https://play.google.com/store/apps/details?id=com.dela.dela&hl=en\n"
+    
+    # Codificar el cuerpo del mensaje para la URL
+    body = urllib.parse.quote(body)
+    
+    return f"mailto:?subject={subject}&body={body}"
+
+# --- Función para reiniciar el test ---
+def restart_test():
+    """Resets the session state and reruns the app to start the test fresh."""
+    st.session_state.answers = {}
+    st.session_state.test_completed = False
+    st.rerun() 
+
+# --- 4. CONFIGURACIÓN VISUAL Y DE INTERFAZ ---
 
 def set_professional_style():
-    """Aplica estilos CSS para una apariencia profesional."""
-    st.markdown("""
+    """Aplica estilos CSS para una apariencia corporativa y profesional."""
+    st.markdown(f"""
     <style>
         /* Fuente y Estilo General */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-        html, body, [class*="st-"] {
+        html, body, [class*="st-"] {{
             font-family: 'Inter', sans-serif;
-        }
+        }}
         
-        /* Contenedor Principal */
-        .main {
-            background-color: #f7f9fc; /* Gris muy claro */
-            padding: 2rem;
+        /* Contenedor Principal y Header */
+        .main {{
+            background-color: #F8F9FA; /* Light Gray Background */
             border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        }
+        }}
         
         /* Títulos y Encabezados */
-        h1 {
-            color: #1e3a8a; /* Azul oscuro corporativo */
-            border-bottom: 3px solid #3b82f6; /* Azul brillante */
+        h1 {{
+            color: #004AAD; /* Corporate Blue */
+            border-bottom: 3px solid #004AAD;
             padding-bottom: 0.5rem;
             margin-bottom: 1.5rem;
             font-weight: 700;
-        }
-        h2 {
-            color: #3b82f6;
+        }}
+        h2 {{
+            color: #004AAD;
             font-weight: 600;
             margin-top: 2rem;
-        }
+        }}
+
+        /* Encabezado del Trait */
+        .trait-header {{
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+            padding: 8px 0;
+            color: #1F2937;
+        }}
         
         /* Estilo de las Preguntas (Controles) */
-        .stRadio > label {
+        .stRadio > label {{
             font-size: 1.05rem;
             font-weight: 500;
             color: #1f2937;
             margin-bottom: 10px;
             padding: 8px 0;
             display: block;
-            border-left: 5px solid #e5e7eb;
+            border-left: 4px solid #D1D5DB; /* Light gray border */
             padding-left: 15px;
-        }
-        .stRadio div[role="radiogroup"] {
+        }}
+        .stRadio div[role="radiogroup"] {{
             display: flex;
-            flex-direction: row; /* Poner opciones en fila */
-            gap: 15px;
+            flex-direction: row; 
+            gap: 10px;
             padding-bottom: 15px;
-            border-bottom: 1px dashed #e5e7eb;
+            border-bottom: 1px solid #E5E7EB;
             margin-bottom: 20px;
-        }
+            flex-wrap: wrap; /* Asegura el responsive */
+        }}
         
-        /* Botones */
-        .stButton>button {
-            background-color: #3b82f6;
+        /* Botones de Acción (Reiniciar y Enviar) */
+        .stButton>button {{
+            background-color: #004AAD; /* Corporate Blue */
             color: white;
             font-weight: 600;
             padding: 10px 20px;
             border-radius: 8px;
             border: none;
             transition: background-color 0.3s;
-        }
-        .stButton>button:hover {
-            background-color: #1e3a8a;
-        }
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }}
+        .stButton>button:hover {{
+            background-color: #003A8D; /* Darker Blue on Hover */
+        }}
 
-        /* Estilo del Perfil Final */
-        .profile-container {
+        /* Estilo del Perfil Final Container */
+        .profile-container {{
             background-color: #ffffff;
-            border: 2px solid #3b82f6;
+            border: 1px solid #004AAD;
             border-radius: 10px;
-            padding: 20px;
+            padding: 25px;
             margin-top: 30px;
-            box-shadow: 0 8px 16px rgba(59, 130, 246, 0.15);
-        }
-        .trait-result {
-            margin-bottom: 15px;
-            padding: 10px;
-            border-left: 5px solid #1e3a8a;
-            background-color: #f0f7ff;
-            border-radius: 4px;
-        }
+            box-shadow: 0 10px 20px rgba(0, 74, 173, 0.1);
+        }}
+        
+        /* Estilos para el Progress Bar dinámico */
+        .stProgress > div > div > div > div {{
+            background-color: {LEVEL_COLORS["Alto_Positivo"]};
+            transition: background-color 0.5s ease;
+        }}
+
+        /* Ajuste para el botón de email (usando un selector genérico o de clase si Streamlit lo permite) */
+        a[href^="mailto:"] > button {{
+            background-color: #16A085 !important; /* Success Green */
+        }}
+        a[href^="mailto:"] > button:hover {{
+            background-color: #138D73 !important;
+        }}
+        
     </style>
     """, unsafe_allow_html=True)
 
-# --- 4. FLUJO DE LA APLICACIÓN STREAMLIT ---
+# --- 5. FLUJO DE LA APLICACIÓN STREAMLIT ---
 
 def run_test():
     """Función principal para correr la aplicación."""
     
     set_professional_style()
-    st.title("Test de Personalidad - El Modelo de los Cinco Grandes (OCEAN)")
+
+    # Añadir un logo simple (SVG) para un toque corporativo
+    st.markdown(f"""
+    <div style="display: flex; align-items: center; margin-bottom: 20px;">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM15 16H9V14H15V16ZM15 12H9V10H15V12ZM15 8H9V6H15V8Z" fill="#004AAD"/>
+        </svg>
+        <span style="font-size: 2rem; font-weight: 700; color: #004AAD; margin-left: 10px;">Perfil | OCEAN</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.title("Test de Personalidad - El Modelo de los Cinco Grandes")
     st.markdown("""
-        Este cuestionario consta de 30 preguntas diseñadas para evaluar tu perfil de personalidad
-        en cinco dimensiones principales: Apertura, Responsabilidad, Extraversión, Amabilidad y Neuroticismo.
+        Este cuestionario de 30 preguntas está diseñado para evaluar tu perfil en las cinco dimensiones clave de la personalidad (Apertura, Responsabilidad, Extraversión, Amabilidad y Neuroticismo). 
         Selecciona la opción que mejor describa tu acuerdo o desacuerdo con cada afirmación.
-        **No hay respuestas correctas o incorrectas, solo tu perspectiva.**
+        **Tu honestidad garantiza un perfil más preciso.**
     """)
     
-    # Inicializar el estado de la sesión si es la primera vez
+    # Inicializar el estado de la sesión
     if 'answers' not in st.session_state:
         st.session_state.answers = {}
     if 'test_completed' not in st.session_state:
         st.session_state.test_completed = False
         
-    # Crear una lista de opciones con el formato (Etiqueta, Valor)
-    # Streamlit usa el valor para el callback, lo que facilita el cálculo.
+    # Lista de opciones con el formato (Etiqueta, Valor)
     likert_options_tuple = [(v, k) for k, v in LIKERT_OPTIONS.items()]
 
-    # Dividir las 30 preguntas en 5 pestañas de 6 preguntas cada una
     tabs = st.tabs([f"Bloque {i+1} ({i*6 + 1}-{i*6 + 6})" for i in range(5)])
     
-    # Usar un formulario para agrupar las preguntas y el botón de enviar
     with st.form(key='personality_test_form'):
         
         for i, tab in enumerate(tabs):
             with tab:
-                st.markdown(f"## Bloque {i+1}: Sentimientos, Acciones y Pensamientos")
+                st.markdown(f"## Bloque {i+1}: Evaluación")
                 
-                # Cargar 6 preguntas por tab
                 start_index = i * 6
                 end_index = start_index + 6
                 current_questions = QUESTIONS[start_index:end_index]
 
                 for q in current_questions:
-                    # El widget radio devuelve el 'value' (1 a 5)
+                    try:
+                        current_index = likert_options_tuple.index((LIKERT_OPTIONS[st.session_state.answers.get(q['id'])], st.session_state.answers.get(q['id'])))
+                    except (ValueError, KeyError):
+                        current_index = None
+
                     response = st.radio(
-                        label=f"{q['id']}. {q['text']}",
+                        label=f"**{q['id']}.** {q['text']}",
                         options=likert_options_tuple,
                         key=q['id'],
-                        index=None if q['id'] not in st.session_state.answers else likert_options_tuple.index((LIKERT_OPTIONS[st.session_state.answers[q['id']]], st.session_state.answers[q['id']])),
-                        format_func=lambda x: x[0] # Muestra solo la etiqueta (Totalmente de acuerdo)
+                        index=current_index,
+                        format_func=lambda x: x[0]
                     )
                     
-                    # Almacenar la respuesta (solo el valor numérico) en el estado de la sesión
                     if response is not None:
-                        st.session_state.answers[q['id']] = response[1] # response[1] es el valor numérico (1-5)
+                        st.session_state.answers[q['id']] = response[1]
 
         st.markdown("---")
         submit_button = st.form_submit_button(label='Finalizar Test y Ver Mi Perfil')
 
-    # --- Lógica de procesamiento al presionar el botón ---
+    # --- Lógica de procesamiento de resultados ---
     if submit_button or st.session_state.test_completed:
-        # Verificar que todas las preguntas estén respondidas
         if len(st.session_state.answers) < len(QUESTIONS):
             st.warning("¡Alto ahí! Por favor, responde las 30 preguntas antes de finalizar el test.")
             st.session_state.test_completed = False
-            return # Detener la ejecución para forzar la respuesta
+            return
         
         st.session_state.test_completed = True
         
         # 5. Calcular la puntuación
         scores = calculate_score(st.session_state.answers)
-        
+        all_results_data = {} # Almacenar todos los datos para el email
+
         # 6. Mostrar el Perfil
         st.markdown(
             f"""
             <div class="profile-container">
-                <h2>✅ Perfil de Personalidad Completado</h2>
-                <p>Tu análisis está basado en el **Modelo de los Cinco Grandes (OCEAN)**.
-                A continuación, se detalla tu puntuación en cada rasgo y su interpretación.</p>
+                <h2>✅ Perfil de Personalidad Completado: Análisis Detallado</h2>
+                <p>Tu análisis está basado en el **Modelo OCEAN**. La puntuación alta
+                en un rasgo indica una mayor intensidad de esa característica.</p>
             </div>
             """, 
             unsafe_allow_html=True
         )
-
+        
+        # 7. Iterar y Mostrar Resultados
         for trait_code, score in scores.items():
-            profile_text, level = interpret_score(score, trait_code)
+            profile_text, level, color_hex, color_label = interpret_score(score, trait_code)
             trait_label = TRAIT_LABELS[trait_code]
             
+            # Almacenar datos para el email
+            all_results_data[trait_code] = {
+                "label": trait_label,
+                "score": score,
+                "level": level,
+                "profile": profile_text
+            }
+            
             # Normalizar score para la barra de progreso (0 a 1.0)
-            # Rango es de 6 a 30. Convertir a 0 a 100%.
             normalized_score = (score - 6) / 24
             
-            # Usar HTML para mostrar la puntuación y la barra de forma elegante
-            st.markdown(f"<h3>{trait_label} ({level})</h3>", unsafe_allow_html=True)
+            # Encabezado del Trait y Score
+            st.markdown(f"""
+            <div class="trait-header">
+                {trait_label} &mdash; Nivel {level}
+            </div>
+            """, unsafe_allow_html=True)
             
-            col1, col2 = st.columns([0.2, 0.8])
-            with col1:
-                # Mostrar el score numérico
-                st.metric(label="Puntuación", value=f"{score}/30", delta=level, delta_color="off")
-            
-            with col2:
-                # Mostrar la barra de progreso
+            # Usar columnas para la visualización del resultado
+            col_bar, col_score = st.columns([0.7, 0.3])
+
+            with col_bar:
+                # Inyectar el color dinámico en el CSS del progress bar
+                st.markdown(f"""
+                <style>
+                    /* Target the specific progress bar */
+                    .stProgress[data-testid="stProgress"] > div > div > div > div {{
+                        background-color: {color_hex} !important;
+                    }}
+                </style>
+                """, unsafe_allow_html=True)
                 st.progress(normalized_score)
-                # Mostrar la descripción del perfil
-                st.markdown(
-                    f"""
-                    <div class="trait-result">
-                        {profile_text}
-                    </div>
-                    """, 
-                    unsafe_allow_html=True
-                )
+
+            with col_score:
+                st.metric(label="Puntuación", value=f"{score}/30", delta=color_label, delta_color="off")
+            
+            # Mostrar la descripción
+            st.info(profile_text, icon="💡")
+            st.markdown("---")
         
-        # 7. Conclusión y recomendación
-        st.markdown("---")
-        st.success("""
-            **¡Felicidades!** Has completado tu Test de Perfil. 
-            Esta información puede ser valiosa para el autoconocimiento y el desarrollo profesional. 
-            Recuerda que la personalidad es dinámica y estos resultados son una fotografía de tu estado actual.
-        """)
+        st.success("El análisis de tu perfil de personalidad ha concluido con éxito.")
+
+        # 8. Botones de acción final
+        col_email, col_restart, col_space = st.columns([0.4, 0.4, 0.2])
         
+        # Botón para enviar por email (usa un enlace mailto)
+        email_link = generate_email_link(all_results_data)
+        with col_email:
+            st.markdown(f"""
+            <a href="{email_link}" target="_blank">
+                <button style="background-color: #16A085 !important; width: 100%;">
+                    ✉️ Enviar Resultados por Email
+                </button>
+            </a>
+            """, unsafe_allow_html=True)
+
+        # Botón para reiniciar
+        with col_restart:
+            st.button("🔄 Volver a Realizar el Test", on_click=restart_test, type="secondary", use_container_width=True)
+
 # Ejecutar la aplicación
 if __name__ == '__main__':
     run_test()
