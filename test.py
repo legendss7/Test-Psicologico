@@ -159,6 +159,8 @@ preguntas_test = {
     ]
 }
 TOTAL_PREGUNTAS = sum(len(v) for v in preguntas_test.values())
+# FIX NameError: Se define total_puntaje_maximo aquí para que esté disponible en el footer
+total_puntaje_maximo = TOTAL_PREGUNTAS * 4
 
 # --- ESTILOS CSS (SOLO PARA ESTÉTICA GENERAL Y FOOTER FIJO) ---
 def cargar_css():
@@ -211,6 +213,18 @@ def cargar_css():
             color: #6B7280;
             border-top: 1px solid #E5E7EB;
             z-index: 100;
+        }
+
+        /* Estilo para el encabezado de bienvenida */
+        .welcome-header {
+            text-align: center; 
+            color: #1E3A8A; 
+            font-size: 2.5em; 
+            margin-bottom: 0.5em;
+        }
+        .welcome-intro {
+            font-size: 1.1em;
+            line-height: 1.6;
         }
     </style>
     """, unsafe_allow_html=True)
@@ -311,7 +325,6 @@ def to_excel_with_summary(df_raw, df_summary):
     return processed_data
 
 # Función para generar el análisis (SÓLO Streamlit)
-# La variable 'nivel' aquí ya es el descriptor (ej: **Alto**)
 def generar_analisis_componente(categoria, porcentaje, puntaje_obtenido, puntaje_maximo, nivel_descriptor, fortalezas_text, debilidades_text, oportunidades_text):
     
     # Contenedor principal de la tarjeta (Streamlit Nativo)
@@ -328,8 +341,7 @@ def generar_analisis_componente(categoria, porcentaje, puntaje_obtenido, puntaje
         with col_pb:
             st.markdown(f"**Puntaje Bruto:** {puntaje_obtenido} de {puntaje_maximo} posibles.")
         with col_ng:
-            # FIX CRÍTICO: Usamos 'nivel_descriptor' directamente, ya que contiene solo la palabra (ej: **Alto**).
-            # Eliminar el .split(' ')[1] resuelve el IndexError.
+            # FIX CRÍTICO: Usamos 'nivel_descriptor' directamente (ej: **Alto**)
             st.markdown(f"**Nivel General:** Puntaje {nivel_descriptor}")
         
         st.divider()
@@ -443,7 +455,7 @@ inicializar_estado()
 # 2. ANCLA OCULTA
 st.markdown('<div id="top-anchor" style="position: absolute; top: 0px; height: 1px; width: 1px;"></div>', unsafe_allow_html=True)
 
-# Aplanar la lista de preguntas para el test (necesario fuera de la función de azar para saber el total)
+# Aplanar la lista de preguntas para el test 
 todas_las_preguntas = []
 for categoria, lista_preguntas in preguntas_test.items():
     for pregunta in lista_preguntas:
@@ -461,26 +473,49 @@ if st.session_state.should_scroll:
     forzar_scroll_al_top(idx)
     st.session_state.should_scroll = False
 
-# --- PANTALLA DE INICIO ---
+# --- PANTALLA DE INICIO (REDESIGNADA) ---
 if not st.session_state.test_started:
-    st.title("🧠 Test Psicológico de Personalidad")
-    st.markdown("""
-    Bienvenido/a a este test de personalidad. Exploraremos las **cinco grandes dimensiones** de tu carácter (**132 preguntas**).
-    """)
+    
+    st.markdown('<p class="welcome-header">🧠 Descubre tu Perfil: Test de los Cinco Grandes Factores</p>', unsafe_allow_html=True)
     
     st.markdown("---")
     
-    col_start1, col_start2 = st.columns([1, 1])
+    with st.container(border=True):
+        st.markdown("""
+        <p class="welcome-intro">
+        Bienvenido/a a esta herramienta de auto-descubrimiento. Este cuestionario está diseñado para medir tu personalidad a lo largo de las **Cinco Grandes Dimensiones (Big Five)**, el modelo más aceptado en psicología de la personalidad.
+        </p>
+        
+        <p class="welcome-intro">
+        A continuación, responderás **132 preguntas** que explorarán estas cinco áreas fundamentales de tu carácter:
+        </p>
+        
+        <ul style="list-style-type: none; padding-left: 20px;">
+            <li><span style="font-weight: bold; color: #3B82F6;">🧘 Estabilidad Emocional (vs. Neuroticismo):</span> Capacidad para manejar el estrés y la ansiedad.</li>
+            <li><span style="font-weight: bold; color: #3B82F6;">🗣️ Extroversión:</span> Nivel de sociabilidad y búsqueda de estímulo.</li>
+            <li><span style="font-weight: bold; color: #3B82F6;">🤝 Amabilidad:</span> Tendencia a ser cooperativo, compasivo y cortés.</li>
+            <li><span style="font-weight: bold; color: #3B82F6;">✅ Responsabilidad:</span> Organización, planificación y orientación a metas.</li>
+            <li><span style="font-weight: bold; color: #3B82F6;">✨ Apertura a la Experiencia:</span> Curiosidad intelectual y apreciación por el arte y la novedad.</li>
+        </ul>
+        
+        <p class="welcome-intro">
+        Tómate tu tiempo (aproximadamente **10-15 minutos**) y sé lo más honesto/a posible para obtener un perfil preciso y valioso.
+        </p>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    col_start1, col_start2, col_start3 = st.columns([1.5, 0.5, 1.5])
     
     with col_start1:
-        if st.button("🚀 Comenzar el Test", key="start_button"):
+        if st.button("🚀 Comenzar el Test", key="start_button", use_container_width=True):
             st.session_state.test_started = True
             st.session_state.start_time = time.time()
             st.rerun()
 
-    with col_start2:
+    with col_start3:
         st.markdown('<div class="random-complete">', unsafe_allow_html=True) 
-        if st.button("🎲 Completar al Azar (Demo)", key="random_button"):
+        if st.button("🎲 Completar al Azar (Ver Demo)", key="random_button", use_container_width=True):
             completar_al_azar()
         st.markdown('</div>', unsafe_allow_html=True) 
 
@@ -581,7 +616,6 @@ else:
         puntajes_por_categoria[data['categoria']].append(data['puntaje'])
 
     total_puntaje_bruto = sum(item['puntaje'] for item in st.session_state.answers.values())
-    total_puntaje_maximo = TOTAL_PREGUNTAS * 4
     
     # Calcular el Nivel General (a modo de ejemplo, basado en el promedio)
     porcentaje_global = round((total_puntaje_bruto / total_puntaje_maximo) * 100)
@@ -637,7 +671,7 @@ else:
     st.header("💡 Análisis Detallado de tu Perfil por Factor (Grilla)")
     st.markdown("Aquí se desglosa tu perfil, utilizando componentes nativos de Streamlit para una presentación estable y organizada.")
 
-    # --- LÓGICA DE ANÁLISIS DETALLADO EN GRILLA (NUEVO MÉTODO NATIVO) ---
+    # --- LÓGICA DE ANÁLISIS DETALLADO EN GRILLA ---
     
     # Creamos dos columnas persistentes para la grilla
     cols_analysis = st.columns(2)
@@ -648,7 +682,6 @@ else:
         puntaje_obtenido = data['obtenido']
         puntaje_maximo = data['maximo']
         
-        # 'nivel_descriptor' ya contiene el valor en negritas (ej: **Alto**)
         nivel_descriptor, fortalezas_text, debilidades_text, oportunidades_text = interpretar_puntaje(categoria, porcentaje)
         
         # Rotamos entre las dos columnas
@@ -700,10 +733,9 @@ else:
 
 
 # 4. FOOTER (Se muestra en todas las páginas)
-# Llama al footer fijo con los datos globales
+# total_puntaje_maximo ya está disponible globalmente, resolviendo el NameError.
 if st.session_state.test_completed:
-    # Pasamos el nivel general (ej: **Moderado**) para que se muestre correctamente en el footer
     display_footer("José Ignacio Taj-Taj", total_puntaje_bruto, total_puntaje_maximo, nivel_general)
 else:
-    # Footer simple si el test no ha finalizado
+    # Ahora total_puntaje_maximo es accesible incluso antes de iniciar el test.
     display_footer("José Ignacio Taj-Taj", 0, total_puntaje_maximo, "No disponible")
