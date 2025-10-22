@@ -217,7 +217,7 @@ def cargar_css():
         /* Barra de progreso */
         .stProgress > div > div > div > div { background-color: #3B82F6; }
 
-        /* Estilo para las tarjetas de puntaje */
+        /* Estilo para las tarjetas de puntaje (Puntuación general) */
         .score-card {
             background-color: white;
             border-radius: 10px;
@@ -229,21 +229,34 @@ def cargar_css():
         .score-card h3 { margin-bottom: 5px; color: #3B82F6; font-size: 1.1em; }
         .score-card p { font-size: 2.5em; font-weight: bold; color: #1E3A8A; margin: 0; }
 
-        /* Estilo para tarjetas de resultados detallados */
-        .result-detail-card {
+        /* --- NUEVOS ESTILOS PARA EL ANÁLISIS DETALLADO --- */
+        .category-analysis-card {
             background-color: white;
             border-radius: 15px;
             padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
             margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
+        .analysis-point {
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            font-size: 0.95em;
+            line-height: 1.4;
+        }
+        /* Estilos de puntos específicos */
+        .point-fortaleza { border-left: 4px solid #10B981; background-color: #ECFDF5; } /* Verde claro */
+        .point-debilidad { border-left: 4px solid #EF4444; background-color: #FEF2F2; } /* Rojo claro */
+        .point-oportunidad { border-left: 4px solid #3B82F6; background-color: #EFF6FF; } /* Azul claro */
         
-        /* Color para Fortalezas, Debilidades, Oportunidades */
-        .fortalezas { border-left: 5px solid #10B981; }
-        .debilidades { border-left: 5px solid #EF4444; }
-        .oportunidades { border-left: 5px solid #3B82F6; }
-        .result-detail-card h3 { margin-top: 0; font-size: 1.5em; }
-        .result-detail-card p { font-size: 0.9em; line-height: 1.5; }
+        .analysis-point strong { color: #1E3A8A; font-weight: 600; }
+        .score-percentage {
+            font-size: 2.2em;
+            font-weight: 800;
+            color: #4C1D95; /* Morado Oscuro */
+            margin-top: 5px;
+            margin-bottom: 15px;
+        }
 
     </style>
     """, unsafe_allow_html=True)
@@ -331,7 +344,7 @@ def to_excel_with_summary(df_raw, df_summary):
     processed_data = output.getvalue()
     return processed_data
 
-# --- INTERPRETACIÓN DE RESULTADOS DETALLADA ---
+# --- INTERPRETACIÓN DE RESULTADOS DETALLADA (MODIFICADA PARA RETORNAR TEXTOS LIMPIOS) ---
 def interpretar_puntaje(categoria, puntaje):
     # Interpretación basada en el puntaje porcentual (Normalizado 0-100)
     
@@ -413,12 +426,8 @@ def interpretar_puntaje(categoria, puntaje):
             debilidades_text = "Tu apertura se limita a áreas específicas. Puedes ser reacio/a a probar cosas fuera de tu esfera de confort intelectual o práctico."
             oportunidades_text = "Evalúa dónde te estás limitando innecesariamente. Usa tu curiosidad moderada para explorar áreas de cambio que te brinden un claro beneficio o crecimiento personal."
             
-    # Formatear la salida
-    fortaleza = f"**{categoria} ({nivel}):** {fortalezas_text}"
-    debilidad = f"**{categoria} ({nivel}):** {debilidades_text}"
-    oportunidad = f"**{categoria} ({nivel}):** {oportunidades_text}"
-
-    return fortaleza, debilidad, oportunidad
+    # Devolvemos solo el texto y el nivel
+    return nivel, fortalezas_text, debilidades_text, oportunidades_text
 
 
 # --- LÓGICA PRINCIPAL ---
@@ -600,58 +609,56 @@ else:
             """, unsafe_allow_html=True)
 
     st.markdown("---")
-    st.header("💡 Análisis Detallado de tu Perfil")
+    st.header("💡 Análisis Detallado de tu Perfil por Factor")
+    st.markdown("Aquí se desglosa tu perfil, mostrando fortalezas, debilidades y oportunidades de crecimiento para cada una de las cinco dimensiones.")
 
-    fortalezas_list, debilidades_list, oportunidades_list = [], [], []
+    # --- NUEVA LÓGICA DE ANÁLISIS DETALLADO (Organizado y con Diseño) ---
     
-    for cat, score in resultados_finales.items():
-        f, d, o = interpretar_puntaje(cat, score)
-        if f: fortalezas_list.append(f)
-        if d: debilidades_list.append(d)
-        if o: oportunidades_list.append(o)
+    # Usamos un grid de 2 columnas para el análisis detallado
+    cols_analysis = st.columns(2)
+    col_idx = 0
+    
+    for categoria, porcentaje in resultados_finales.items():
+        nivel, fortalezas_text, debilidades_text, oportunidades_text = interpretar_puntaje(categoria, porcentaje)
         
-    col_int1, col_int2, col_int3 = st.columns(3)
-
-    with col_int1:
-        st.markdown('<div class="result-detail-card fortalezas"><h3>🌟 Fortalezas Clave</h3></div>', unsafe_allow_html=True)
-        if fortalezas_list:
-            for item in fortalezas_list:
-                titulo, texto = item.split(':', 1)
-                st.markdown(f"**{titulo.strip()}**")
-                st.markdown(f"<p style='margin-left: 10px; border-left: 2px solid #D1D5DB; padding-left: 8px;'>{texto.strip()}</p>", unsafe_allow_html=True)
-        else:
-            st.info("No se identificaron fortalezas claras en este perfil.")
-
-    with col_int2:
-        st.markdown('<div class="result-detail-card debilidades"><h3>⚠️ Puntos de Mejora (Debilidades)</h3></div>', unsafe_allow_html=True)
-        if debilidades_list:
-            for item in debilidades_list:
-                titulo, texto = item.split(':', 1)
-                st.markdown(f"**{titulo.strip()}**")
-                st.markdown(f"<p style='margin-left: 10px; border-left: 2px solid #D1D5DB; padding-left: 8px;'>{texto.strip()}</p>", unsafe_allow_html=True)
-        else:
-            st.info("¡Excelente! No hay áreas de debilidad significativas identificadas.")
-
-    with col_int3:
-        st.markdown('<div class="result-detail-card oportunidades"><h3>🌱 Estrategias de Crecimiento</h3></div>', unsafe_allow_html=True)
-        if oportunidades_list:
-            for item in oportunidades_list:
-                titulo, texto = item.split(':', 1)
-                st.markdown(f"**{titulo.strip()}**")
-                st.markdown(f"<p style='margin-left: 10px; border-left: 2px solid #D1D5DB; padding-left: 8px;'>{texto.strip()}</p>", unsafe_allow_html=True)
-        else:
-            st.info("Tu perfil está bien definido; el crecimiento se centra en profundizar tus fortalezas principales.")
+        # Rotamos entre las dos columnas
+        with cols_analysis[col_idx % 2]:
             
-    st.markdown("---")
-    
+            st.markdown(f"""
+            <div class="category-analysis-card">
+                <h3 style="color: #4C1D95; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px; margin-bottom: 15px;">
+                    {icon_map.get(categoria, '❓')} {categoria}
+                </h3>
+                <div class="score-percentage">{porcentaje}%</div>
+                <p style="font-weight: 500;">Nivel General: {nivel}</p>
+                
+                <hr style="margin: 15px 0;">
+
+                <div class="analysis-point point-fortaleza">
+                    <strong>💪 Fortaleza:</strong> {fortalezas_text}
+                </div>
+                
+                <div class="analysis-point point-debilidad">
+                    <strong>🚩 Punto de Mejora:</strong> {debilidades_text}
+                </div>
+                
+                <div class="analysis-point point-oportunidad">
+                    <strong>🌱 Oportunidad:</strong> {oportunidades_text}
+                </div>
+                
+            </div>
+            """, unsafe_allow_html=True)
+            
+        col_idx += 1
+        
     # --- DESCARGA DE RESULTADOS (CORREGIDA Y ORDENADA) ---
-    with st.expander("📥 Descargar tus respuestas y resultados detallados"):
+    st.markdown("---")
+    with st.expander("📥 Descargar tus resultados detallados (Excel)"):
         # Preparar DataFrame de respuestas
         df_export = pd.DataFrame(list(st.session_state.answers.values()))
         st.dataframe(df_export.head()) 
         
         # Preparar DataFrame de Resumen
-        # Aseguramos el orden de las categorías para el Excel final
         orden_categorias = list(preguntas_test.keys())
         resumen_data = {
             'Dimensión': orden_categorias,
@@ -659,16 +666,9 @@ else:
         }
         df_resumen_final = pd.DataFrame(resumen_data)
         
-        col_dl1, col_dl2 = st.columns(2)
+        # SOLO EL BOTÓN DE EXCEL
+        col_dl1, _ = st.columns([1, 2])
         with col_dl1:
-            csv = df_export.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="Descargar Respuestas (CSV)",
-                data=csv,
-                file_name='mis_respuestas_detalladas.csv',
-                mime='text/csv',
-            )
-        with col_dl2:
             excel_data = to_excel_with_summary(df_export, df_resumen_final)
             st.download_button(
                 label="Descargar Resultados Completos (Excel)",
