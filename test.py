@@ -255,28 +255,30 @@ def cargar_css():
 
 # --- FUNCIONES AUXILIARES ---
 
-# Función CORREGIDA y MAXIMAMENTE FORZADA para el scroll al top
-def forzar_scroll_al_top():
-    # Se añade un RETARDO (50ms) al JavaScript para garantizar que el DOM esté listo
-    # y el scroll se aplique al contenedor correcto de la página principal.
-    js_code = """
+# Función MAXIMAMENTE FORZADA para el scroll al top
+def forzar_scroll_al_top(idx):
+    # Se inyecta el índice (idx) en el script para forzar a Streamlit a considerarlo
+    # un componente único y re-renderizarlo, ejecutando el JavaScript de nuevo.
+    js_code = f"""
         <script>
-            setTimeout(function() {
-                // 1. Scroll en el body de la ventana principal
-                window.parent.document.body.scrollTo(0, 0); 
+            // Pregunta única para forzar render: {idx}
+            setTimeout(function() {{
+                // 1. Scroll en la ventana principal (más genérico)
+                window.parent.scrollTo({{ top: 0, behavior: 'auto' }});
                 
-                // 2. Scroll en la ventana principal (más genérico)
-                window.parent.scrollTo(0, 0);
-
-                // 3. Scroll en el contenedor principal de Streamlit (usando data-testid o selector de clase)
-                var mainContent = window.parent.document.querySelector('[data-testid="stAppViewContainer"], section.main');
-                if (mainContent) {
-                    mainContent.scrollTo(0, 0);
-                }
-            }, 50); // Retardo de 50 milisegundos para asegurar el renderizado
+                // 2. Scroll en el body de la ventana principal
+                window.parent.document.body.scrollTo({{ top: 0, behavior: 'auto' }});
+                
+                // 3. Intenta encontrar y scroll en el contenedor principal de Streamlit
+                var mainContent = window.parent.document.querySelector('[data-testid="stAppViewContainer"]');
+                if (mainContent) {{
+                    mainContent.scrollTo({{ top: 0, behavior: 'auto' }});
+                }}
+            }}, 50); // Retardo de 50 milisegundos para asegurar el renderizado completo
         </script>
         """
-    st.components.v1.html(js_code, height=0)
+    # El key es opcional aquí, pero el contenido único de js_code es lo que realmente lo fuerza
+    st.components.v1.html(js_code, height=0, scrolling=False)
 
 
 # Función para inicializar el estado de la sesión
@@ -321,10 +323,12 @@ def to_excel(df):
 cargar_css()
 inicializar_estado()
 
+idx = st.session_state.current_question
+
 # EJECUCIÓN CONDICIONAL DEL SCROLL (AL INICIO DEL RENDERIZADO)
-# ESTO ES CRUCIAL: Se ejecuta al inicio de la carga de la página (después de que se estableció should_scroll = True)
+# Se pasa el índice para forzar el re-renderizado del script de scroll.
 if st.session_state.should_scroll:
-    forzar_scroll_al_top()
+    forzar_scroll_al_top(idx)
     st.session_state.should_scroll = False
 
 
@@ -351,7 +355,6 @@ if not st.session_state.test_started:
 # --- PANTALLA DEL TEST ---
 elif not st.session_state.test_completed:
     
-    idx = st.session_state.current_question
     pregunta_actual = todas_las_preguntas[idx]
     
     # Barra de progreso
@@ -425,7 +428,7 @@ else:
 
     # --- CÁLCULO DE RESULTADOS ---
     puntajes_por_categoria = {cat: [] for cat in preguntas_test.keys()}
-    for idx, data in st.session_state.answers.items():
+    for idx_res, data in st.session_state.answers.items():
         puntajes_por_categoria[data['categoria']].append(data['puntaje'])
 
     resultados_finales = {}
