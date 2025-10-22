@@ -236,6 +236,9 @@ def cargar_css():
             padding: 20px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
             margin-bottom: 20px;
+            height: 100%; /* Asegura que la tarjeta se extienda */
+            display: flex;
+            flex-direction: column;
         }
         .analysis-point {
             padding: 10px;
@@ -612,7 +615,7 @@ else:
     st.header("💡 Análisis Detallado de tu Perfil por Factor")
     st.markdown("Aquí se desglosa tu perfil, mostrando fortalezas, debilidades y oportunidades de crecimiento para cada una de las cinco dimensiones.")
 
-    # --- NUEVA LÓGICA DE ANÁLISIS DETALLADO (Organizado y con Diseño) ---
+    # --- LÓGICA DE ANÁLISIS DETALLADO (Organizado y con Diseño) ---
     
     # Usamos un grid de 2 columnas para el análisis detallado
     cols_analysis = st.columns(2)
@@ -621,10 +624,9 @@ else:
     for categoria, porcentaje in resultados_finales.items():
         nivel, fortalezas_text, debilidades_text, oportunidades_text = interpretar_puntaje(categoria, porcentaje)
         
-        # Rotamos entre las dos columnas
-        with cols_analysis[col_idx % 2]:
-            
-            st.markdown(f"""
+        # Generamos el bloque HTML para la tarjeta.
+        # Se ha simplificado la HR tag para mayor compatibilidad con Streamlit.
+        card_html = f"""
             <div class="category-analysis-card">
                 <h3 style="color: #4C1D95; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px; margin-bottom: 15px;">
                     {icon_map.get(categoria, '❓')} {categoria}
@@ -632,7 +634,7 @@ else:
                 <div class="score-percentage">{porcentaje}%</div>
                 <p style="font-weight: 500;">Nivel General: {nivel}</p>
                 
-                <hr style="margin: 15px 0;">
+                <div style="height:1px; background-color: #E5E7EB; margin: 15px 0;"></div>
 
                 <div class="analysis-point point-fortaleza">
                     <strong>💪 Fortaleza:</strong> {fortalezas_text}
@@ -647,7 +649,11 @@ else:
                 </div>
                 
             </div>
-            """, unsafe_allow_html=True)
+            """
+        
+        # Rotamos entre las dos columnas e inyectamos el HTML
+        with cols_analysis[col_idx % 2]:
+            st.markdown(card_html, unsafe_allow_html=True)
             
         col_idx += 1
         
