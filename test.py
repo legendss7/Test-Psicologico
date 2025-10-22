@@ -255,29 +255,32 @@ def cargar_css():
 
 # --- FUNCIONES AUXILIARES ---
 
-# Función MAXIMAMENTE FORZADA para el scroll al top
+# Función MAXIMAMENTE FORZADA para el scroll al top (usando un ancla y más delay)
 def forzar_scroll_al_top(idx):
-    # NOTA DE CAMBIO: Se ha aumentado el 'setTimeout' a 150ms para asegurar que el contenido
-    # de la nueva pregunta se renderice completamente antes de ejecutar el scroll.
+    # NOTA DE CAMBIO: Se ha aumentado el 'setTimeout' a 250ms y se utiliza
+    # scrollIntoView() en un elemento ancla fijo para máxima fiabilidad.
     js_code = f"""
         <script>
-            // Pregunta única para forzar render: {idx}
+            // Forzar el scroll tras un retardo largo (250ms) para que el contenido se renderice
             setTimeout(function() {{
-                // 1. Scroll en la ventana principal (más genérico)
-                window.parent.scrollTo({{ top: 0, behavior: 'auto' }});
+                var topAnchor = window.parent.document.getElementById('top-anchor');
                 
-                // 2. Scroll en el body de la ventana principal
-                window.parent.document.body.scrollTo({{ top: 0, behavior: 'auto' }});
-                
-                // 3. Intenta encontrar y scroll en el contenedor principal de Streamlit (más fiable)
-                var mainContent = window.parent.document.querySelector('[data-testid="stAppViewContainer"]');
-                if (mainContent) {{
-                    mainContent.scrollTo({{ top: 0, behavior: 'auto' }});
+                if (topAnchor) {{
+                    // Opción 1: Usar scrollIntoView en el ancla oculta (la más fiable)
+                    topAnchor.scrollIntoView({{ behavior: 'auto', block: 'start' }});
+                }} else {{
+                    // Opciones de fallback (por si el ancla falla)
+                    window.parent.scrollTo({{ top: 0, behavior: 'auto' }});
+                    
+                    var mainContent = window.parent.document.querySelector('[data-testid="stAppViewContainer"]');
+                    if (mainContent) {{
+                        mainContent.scrollTo({{ top: 0, behavior: 'auto' }});
+                    }}
                 }}
-            }}, 150); // Retardo AUMENTADO a 150ms para asegurar la estabilidad del renderizado.
+            }}, 250); 
         </script>
         """
-    # El key es opcional aquí, pero el contenido único de js_code es lo que realmente lo fuerza
+    # El key asegura que el componente HTML se re-renderice en cada pregunta
     st.components.v1.html(js_code, height=0, scrolling=False)
 
 
@@ -319,14 +322,16 @@ def to_excel(df):
 
 # --- LÓGICA DE LA APLICACIÓN ---
 
-# Cargar estilos y estado
+# 1. Cargar estilos y estado
 cargar_css()
 inicializar_estado()
 
+# 2. ANCLA OCULTA (Para que el scrollIntoView() funcione de forma fiable)
+st.markdown('<div id="top-anchor" style="position: absolute; top: 0px; height: 1px; width: 1px;"></div>', unsafe_allow_html=True)
+
 idx = st.session_state.current_question
 
-# EJECUCIÓN CONDICIONAL DEL SCROLL (AL INICIO DEL RENDERIZADO)
-# Se pasa el índice para forzar el re-renderizado del script de scroll.
+# 3. EJECUCIÓN CONDICIONAL DEL SCROLL
 if st.session_state.should_scroll:
     forzar_scroll_al_top(idx)
     st.session_state.should_scroll = False
