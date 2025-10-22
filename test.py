@@ -158,29 +158,13 @@ preguntas_test = {
         "Me gusta pensar en conceptos teóricos y filosóficos."
     ]
 }
+TOTAL_PREGUNTAS = sum(len(v) for v in preguntas_test.values())
 
-# Aplanar la lista de preguntas para el test
-todas_las_preguntas = []
-for categoria, lista_preguntas in preguntas_test.items():
-    for pregunta in lista_preguntas:
-        todas_las_preguntas.append({
-            "pregunta": pregunta,
-            "categoria": categoria,
-            "opciones": ["Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo"],
-            "puntajes": [1, 2, 3, 4]
-        })
-TOTAL_PREGUNTAS = len(todas_las_preguntas)
-
-# --- ESTILOS CSS ---
+# --- ESTILOS CSS (SOLO PARA ESTÉTICA GENERAL Y FOOTER FIJO) ---
 def cargar_css():
     st.markdown("""
     <style>
-        /* Estilo general */
-        html, body { 
-            font-family: 'Inter', sans-serif; 
-            margin: 0;
-            padding: 0;
-        }
+        /* Estilo general de Streamlit */
         .stApp { background-color: #f0f2f6; }
         h1, h2, h3 { font-weight: 700; color: #1E3A8A; } /* Azul oscuro */
         
@@ -204,71 +188,14 @@ def cargar_css():
         }
         .stButton.random-complete>button:hover { background-color: #F59E0B; color: white; }
 
-        /* Botones de opción seleccionados (Radio buttons) */
-        div[data-testid="stRadio"] label {
-            display: block;
-            margin-bottom: 10px;
-            padding: 12px;
-            background-color: #FFFFFF;
-            border-radius: 12px;
-            border: 1px solid #D1D5DB;
-            cursor: pointer;
-            transition: all 0.2s ease-in-out;
-        }
-        div[data-testid="stRadio"] label:hover { background-color: #EFF6FF; border-color: #3B82F6; }
-        div[data-testid="stRadio"] input { display: none; }
-        
-        /* Barra de progreso */
-        .stProgress > div > div > div > div { background-color: #3B82F6; }
-
         /* Estilo para las tarjetas de puntaje (Puntuación general) */
-        .score-card {
+        .score-card-native {
             background-color: white;
             border-radius: 10px;
             padding: 20px;
             text-align: center;
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
             min-height: 150px;
-        }
-        .score-card h3 { margin-bottom: 5px; color: #3B82F6; font-size: 1.1em; }
-        .score-card p { font-size: 2.5em; font-weight: bold; color: #1E3A8A; margin: 0; }
-
-        /* --- ESTILOS PARA EL ANÁLISIS DETALLADO --- */
-        .category-analysis-card {
-            background-color: white;
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            margin-bottom: 20px;
-            height: 100%; 
-            display: flex;
-            flex-direction: column;
-        }
-        .analysis-point {
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 12px;
-            font-size: 0.95em;
-            line-height: 1.4;
-        }
-        /* Estilos de puntos específicos */
-        .point-fortaleza { border-left: 4px solid #10B981; background-color: #ECFDF5; } /* Verde claro */
-        .point-debilidad { border-left: 4px solid #EF4444; background-color: #FEF2F2; } /* Rojo claro */
-        .point-oportunidad { border-left: 4px solid #3B82F6; background-color: #EFF6FF; } /* Azul claro */
-        
-        .analysis-point strong { color: #1E3A8A; font-weight: 600; }
-        .score-percentage {
-            font-size: 2.2em;
-            font-weight: 800;
-            color: #4C1D95; /* Morado Oscuro */
-            margin-top: 5px;
-            margin-bottom: 10px; 
-        }
-        .score-detail {
-            font-size: 0.85em;
-            color: #6B7280; /* Gris */
-            margin-top: -5px;
-            margin-bottom: 15px;
         }
 
         /* --- ESTILO DEL FOOTER FIJO (NUEVO) --- */
@@ -290,11 +217,11 @@ def cargar_css():
 
 # --- FUNCIONES AUXILIARES ---
 
-# Función para añadir el footer al final de la página
-def display_footer(nombre):
+# Función para añadir el footer al final de la página (Usa HTML, ya que Streamlit no tiene componente fijo)
+def display_footer(nombre, puntaje_bruto, puntaje_maximo, nivel_general):
     st.markdown(f"""
     <div class="app-footer">
-        Test creado por **{nombre}**
+        Test creado por **{nombre}**: Puntaje Bruto: **{puntaje_bruto}** de **{puntaje_maximo}** posibles. | Nivel General: Puntaje **{nivel_general}**
     </div>
     """, unsafe_allow_html=True)
 
@@ -303,10 +230,8 @@ def display_footer(nombre):
 def forzar_scroll_al_top(idx):
     js_code = f"""
         <script>
-            // Forzar el scroll tras un retardo
             setTimeout(function() {{
                 var topAnchor = window.parent.document.getElementById('top-anchor');
-                
                 if (topAnchor) {{
                     topAnchor.scrollIntoView({{ behavior: 'auto', block: 'start' }});
                 }} else {{
@@ -343,10 +268,21 @@ def volver_a_inicio():
     st.session_state.show_restart_warning = False
     st.rerun()
 
-# Función para completar el test al azar
+# Función para completar el test al azar (Simulación)
 def completar_al_azar():
     st.session_state.answers = {} 
     st.session_state.start_time = time.time()
+    
+    # Aplanar la lista de preguntas para el test
+    todas_las_preguntas = []
+    for categoria, lista_preguntas in preguntas_test.items():
+        for pregunta in lista_preguntas:
+            todas_las_preguntas.append({
+                "pregunta": pregunta,
+                "categoria": categoria,
+                "opciones": ["Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo"],
+                "puntajes": [1, 2, 3, 4]
+            })
 
     for idx, pregunta_data in enumerate(todas_las_preguntas):
         opciones = pregunta_data['opciones']
@@ -369,18 +305,49 @@ def completar_al_azar():
 def to_excel_with_summary(df_raw, df_summary):
     output = BytesIO()
     with pd.ExcelWriter(output) as writer:
-        # Hoja 1: Respuestas Detalladas
         df_raw.to_excel(writer, sheet_name='Respuestas_Detalladas', index=False)
-        
-        # Hoja 2: Resumen de Puntajes
         df_summary.to_excel(writer, sheet_name='Resumen_Puntajes', index=False)
-
     processed_data = output.getvalue()
     return processed_data
 
+# Función para generar el análisis (SÓLO Streamlit)
+def generar_analisis_componente(categoria, porcentaje, puntaje_obtenido, puntaje_maximo, nivel, fortalezas_text, debilidades_text, oportunidades_text):
+    
+    # Contenedor principal de la tarjeta (Streamlit Nativo)
+    with st.container(border=True): 
+        st.markdown(f"### {icon_map.get(categoria, '❓')} {categoria}")
+        
+        # Puntaje Porcentual
+        st.markdown(f"""
+        <p style="font-size: 3em; font-weight: 800; color: #4C1D95; margin: 0;">{porcentaje}%</p>
+        """, unsafe_allow_html=True) # Pequeña excepción para estilo grande
+
+        # Datos Brutos y Nivel General (Usando Markdown y Columns para evitar la falla)
+        col_pb, col_ng = st.columns([1, 1])
+        with col_pb:
+            st.markdown(f"**Puntaje Bruto:** {puntaje_obtenido} de {puntaje_maximo} posibles.")
+        with col_ng:
+            st.markdown(f"**Nivel General:** Puntaje **{nivel.split(' ')[1]}**")
+        
+        st.divider()
+
+        # Fortaleza (Usando st.success para un buen estilo)
+        st.success(f"""
+        **💪 Fortaleza:** {fortalezas_text}
+        """)
+
+        # Punto de Mejora (Usando st.warning para un buen estilo)
+        st.warning(f"""
+        **🚩 Punto de Mejora:** {debilidades_text}
+        """)
+        
+        # Oportunidad (Usando st.info para un buen estilo)
+        st.info(f"""
+        **🌱 Oportunidad:** {oportunidades_text}
+        """)
+
 # --- INTERPRETACIÓN DE RESULTADOS DETALLADA ---
 def interpretar_puntaje(categoria, puntaje):
-    # Interpretación basada en el puntaje porcentual (Normalizado 0-100)
     
     nivel = ""
     if puntaje >= 75: nivel = "Puntaje **Alto**"
@@ -460,7 +427,6 @@ def interpretar_puntaje(categoria, puntaje):
             debilidades_text = "Tu apertura se limita a áreas específicas. Puedes ser reacio/a a probar cosas fuera de tu esfera de confort intelectual o práctico, lo que limita el crecimiento en áreas no familiares."
             oportunidades_text = "Evalúa dónde te estás limitando innecesariamente. Usa tu curiosidad moderada para explorar áreas de cambio que te brinden un claro beneficio o crecimiento personal. Busca activamente la perspectiva de otros."
             
-    # Devolvemos solo el texto y el nivel
     return nivel, fortalezas_text, debilidades_text, oportunidades_text
 
 
@@ -470,8 +436,19 @@ def interpretar_puntaje(categoria, puntaje):
 cargar_css()
 inicializar_estado()
 
-# 2. ANCLA OCULTA (Para que el scrollIntoView() funcione de forma fiable)
+# 2. ANCLA OCULTA
 st.markdown('<div id="top-anchor" style="position: absolute; top: 0px; height: 1px; width: 1px;"></div>', unsafe_allow_html=True)
+
+# Aplanar la lista de preguntas para el test (necesario fuera de la función de azar para saber el total)
+todas_las_preguntas = []
+for categoria, lista_preguntas in preguntas_test.items():
+    for pregunta in lista_preguntas:
+        todas_las_preguntas.append({
+            "pregunta": pregunta,
+            "categoria": categoria,
+            "opciones": ["Totalmente en desacuerdo", "En desacuerdo", "De acuerdo", "Totalmente de acuerdo"],
+            "puntajes": [1, 2, 3, 4]
+        })
 
 idx = st.session_state.current_question
 
@@ -480,16 +457,11 @@ if st.session_state.should_scroll:
     forzar_scroll_al_top(idx)
     st.session_state.should_scroll = False
 
-
 # --- PANTALLA DE INICIO ---
 if not st.session_state.test_started:
     st.title("🧠 Test Psicológico de Personalidad")
     st.markdown("""
     Bienvenido/a a este test de personalidad. Exploraremos las **cinco grandes dimensiones** de tu carácter (**132 preguntas**).
-    
-    - **No hay respuestas correctas o incorrectas.**
-    - **Responde con sinceridad** para obtener el perfil más preciso.
-    - El test tomará aproximadamente **15-20 minutos**.
     """)
     
     st.markdown("---")
@@ -519,7 +491,6 @@ elif not st.session_state.test_completed:
 
     st.markdown(f"### {pregunta_actual['pregunta']}")
 
-    # Obtener respuesta guardada (si existe)
     current_answer_index = None
     if idx in st.session_state.answers:
         try:
@@ -535,7 +506,6 @@ elif not st.session_state.test_completed:
         key=f"q_{idx}"
     )
 
-    # Almacenar la respuesta
     if respuesta:
         st.session_state.answers[idx] = {
             "pregunta": pregunta_actual['pregunta'],
@@ -546,11 +516,9 @@ elif not st.session_state.test_completed:
     
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Navegación y Botón de Inicio (Corregido)
     col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
 
     with col1:
-        # Lógica para el botón de Inicio (Usa la nueva bandera show_restart_warning)
         if st.button("🏠 Inicio", key="home_button_test"):
             if len(st.session_state.answers) > 0:
                 st.session_state.show_restart_warning = True
@@ -578,7 +546,6 @@ elif not st.session_state.test_completed:
         else:
             st.warning("Por favor, selecciona una respuesta para continuar.")
             
-    # --- CONFIRMACIÓN DE REINICIO (Fuera de las columnas para mejor manejo) ---
     if st.session_state.get('show_restart_warning', False):
         st.error("⚠️ Advertencia: Perderás **TODO** tu progreso actual. ¿Estás seguro/a que deseas volver al inicio?")
         
@@ -597,6 +564,7 @@ else:
     st.title("✅ ¡Test Completado! Aquí está tu Perfil de Personalidad")
     
     end_time = time.time()
+    total_time = 0
     if abs(end_time - st.session_state.start_time) < 1:
         st.info("Resultado generado por la opción **Completar al Azar (Demo)**.")
     else:
@@ -608,6 +576,16 @@ else:
     for data in st.session_state.answers.values():
         puntajes_por_categoria[data['categoria']].append(data['puntaje'])
 
+    total_puntaje_bruto = sum(item['puntaje'] for item in st.session_state.answers.values())
+    total_puntaje_maximo = TOTAL_PREGUNTAS * 4
+    
+    # Calcular el Nivel General (a modo de ejemplo, basado en el promedio)
+    porcentaje_global = round((total_puntaje_bruto / total_puntaje_maximo) * 100)
+    if porcentaje_global >= 75: nivel_general = "Alto"
+    elif porcentaje_global <= 40: nivel_general = "Bajo"
+    else: nivel_general = "Moderado"
+
+
     resultados_finales = {}
     for categoria, puntajes in puntajes_por_categoria.items():
         total_preguntas_cat = len(preguntas_test[categoria])
@@ -615,7 +593,6 @@ else:
         puntaje_obtenido = sum(puntajes)
         porcentaje = round((puntaje_obtenido / puntaje_max_cat) * 100)
         
-        # Almacenamos más detalle en el diccionario de resultados
         resultados_finales[categoria] = {
             'porcentaje': porcentaje,
             'obtenido': puntaje_obtenido,
@@ -641,10 +618,11 @@ else:
 
     for i, (cat, data) in enumerate(resultados_finales.items()):
         with col_scores[i]:
+            # Usamos una estructura HTML simple para la tarjeta del puntaje principal
             st.markdown(f"""
-            <div class="score-card">
-                <h3>{icon_map.get(cat, '❓')} {cat}</h3>
-                <p>{data['porcentaje']}%</p>
+            <div class="score-card-native">
+                <h3 style="margin-bottom: 5px; color: #3B82F6; font-size: 1.1em;">{icon_map.get(cat, '❓')} {cat}</h3>
+                <p style="font-size: 2.5em; font-weight: bold; color: #1E3A8A; margin: 0;">{data['porcentaje']}%</p>
                 <p style="font-size: 0.8em; color: #6B7280; font-weight: normal; margin-top: 10px;">
                     ({data['obtenido']} de {data['maximo']} puntos)
                 </p>
@@ -652,12 +630,12 @@ else:
             """, unsafe_allow_html=True)
 
     st.markdown("---")
-    st.header("💡 Análisis Detallado de tu Perfil por Factor")
-    st.markdown("Aquí se desglosa tu perfil, mostrando fortalezas, debilidades y oportunidades de crecimiento para cada una de las cinco dimensiones.")
+    st.header("💡 Análisis Detallado de tu Perfil por Factor (Grilla)")
+    st.markdown("Aquí se desglosa tu perfil, utilizando componentes nativos de Streamlit para una presentación estable y organizada.")
 
-    # --- LÓGICA DE ANÁLISIS DETALLADO (SOLUCIÓN AL FRAGMENTO HTML) ---
+    # --- LÓGICA DE ANÁLISIS DETALLADO EN GRILLA (NUEVO MÉTODO NATIVO) ---
     
-    # Usamos un grid de 2 columnas para el análisis detallado
+    # Creamos dos columnas persistentes para la grilla
     cols_analysis = st.columns(2)
     col_idx = 0
     
@@ -666,42 +644,22 @@ else:
         puntaje_obtenido = data['obtenido']
         puntaje_maximo = data['maximo']
         
-        nivel, fortalezas_text, debilidades_text, oportunidades_text = interpretar_puntaje(categoria, porcentaje)
+        nivel_texto, fortalezas_text, debilidades_text, oportunidades_text = interpretar_puntaje(categoria, porcentaje)
+        nivel_general_cat = nivel_texto.split(' ')[1] # Alto, Bajo, Moderado
         
         # Rotamos entre las dos columnas
         with cols_analysis[col_idx % 2]:
-            
-            # TODO EL CONTENIDO DINÁMICO Y ESTÁTICO SE CONSOLIDA EN UN SOLO BLOQUE st.markdown
-            # Se han reforzado las etiquetas div y style para encapsular las líneas que generaban error.
-            st.markdown(f"""
-            <div class="category-analysis-card">
-                <h3 style="color: #4C1D95; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px; margin-bottom: 15px;">
-                    {icon_map.get(categoria, '❓')} {categoria}
-                </h3>
-                <div class="score-percentage">{porcentaje}%</div>
-                
-                <!-- REFUERZO DE ENCAPSULACIÓN PARA EVITAR EL ERROR DE TEXTO PLANO -->
-                <div style="margin-bottom: 15px;">
-                    <span class="score-detail">Puntaje Bruto: **{puntaje_obtenido}** de **{puntaje_maximo}** posibles.</span><br>
-                    <span style="font-weight: 500; font-size: 0.9em;">Nivel General: {nivel}</span>
-                </div>
-                <!-- FIN REFUERZO -->
-                
-                <div style="height:1px; background-color: #E5E7EB; margin: 15px 0;"></div>
-                
-                <div class="analysis-point point-fortaleza">
-                    <strong>💪 Fortaleza:</strong> {fortalezas_text}
-                </div>
-            
-                <div class="analysis-point point-debilidad">
-                    <strong>🚩 Punto de Mejora:</strong> {debilidades_text}
-                </div>
-            
-                <div class="analysis-point point-oportunidad">
-                    <strong>🌱 Oportunidad:</strong> {oportunidades_text}
-                </div>
-            </div> 
-            """, unsafe_allow_html=True)
+            # Llamamos a la función que usa componentes nativos de Streamlit
+            generar_analisis_componente(
+                categoria, 
+                porcentaje, 
+                puntaje_obtenido, 
+                puntaje_maximo, 
+                nivel_general_cat, 
+                fortalezas_text, 
+                debilidades_text, 
+                oportunidades_text
+            )
             
         col_idx += 1
         
@@ -710,7 +668,6 @@ else:
     with st.expander("📥 Descargar tus resultados detallados (Excel)"):
         # Preparar DataFrame de respuestas
         df_export = pd.DataFrame(list(st.session_state.answers.values()))
-        st.dataframe(df_export.head()) 
         
         # Preparar DataFrame de Resumen
         orden_categorias = list(preguntas_test.keys())
@@ -722,7 +679,6 @@ else:
         }
         df_resumen_final = pd.DataFrame(resumen_data)
         
-        # SOLO EL BOTÓN DE EXCEL
         col_dl1, _ = st.columns([1, 2])
         with col_dl1:
             excel_data = to_excel_with_summary(df_export, df_resumen_final)
@@ -740,4 +696,9 @@ else:
 
 
 # 4. FOOTER (Se muestra en todas las páginas)
-display_footer("José Ignacio Taj-Taj")
+# Llama al footer fijo con los datos globales
+if st.session_state.test_completed:
+    display_footer("José Ignacio Taj-Taj", total_puntaje_bruto, total_puntaje_maximo, nivel_general)
+else:
+    # Footer simple si el test no ha finalizado
+    display_footer("José Ignacio Taj-Taj", 0, total_puntaje_maximo, "No disponible")
