@@ -221,7 +221,7 @@ def cargar_css():
         
         /* Título Principal Animado */
         .animated-title {
-            font-size: 3.5em; /* Aumentado */
+            font-size: 3.5em; /* Tamaño grande para desktop/tablet */
             font-weight: 900;
             color: #4C1D95; /* Morado Oscuro */
             text-align: center;
@@ -248,7 +248,7 @@ def cargar_css():
         
         /* Texto de introducción AUMENTADO para accesibilidad */
         .welcome-intro {
-            font-size: 1.5em; 
+            font-size: 1.5em; /* Tamaño grande para desktop/tablet */
             line-height: 1.8;
             color: #1F2937; /* Color oscuro para alto contraste */
         }
@@ -256,7 +256,7 @@ def cargar_css():
         /* Estilo para la lista de factores AUMENTADO para accesibilidad */
         .factor-list li {
             margin-bottom: 15px;
-            font-size: 1.3em;
+            font-size: 1.3em; /* Tamaño grande para desktop/tablet */
             font-weight: 600;
         }
         
@@ -264,6 +264,24 @@ def cargar_css():
             font-size: 1.8em; /* Aumentado */
             font-weight: 700;
             color: #1E3A8A;
+        }
+        
+        /* --- MEDIA QUERY PARA MÓVILES (Mejora de Responsividad) --- */
+        /* Ajustamos el tamaño de la fuente para evitar el desbordamiento horizontal en celulares */
+        @media (max-width: 768px) {
+            .animated-title {
+                font-size: 2.2em; /* Título reducido para móvil */
+            }
+            .welcome-intro {
+                font-size: 1.1em; /* Texto intro reducido para móvil */
+            }
+            .factor-list li {
+                font-size: 1.0em; /* Lista reducida para móvil */
+            }
+            /* Asegurar que las columnas en móvil se apilen (comportamiento por defecto en Streamlit, pero es bueno asegurarlo) */
+            .stColumns > div {
+                min-width: 100% !important; 
+            }
         }
     </style>
     """, unsafe_allow_html=True)
