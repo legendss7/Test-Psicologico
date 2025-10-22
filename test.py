@@ -255,25 +255,28 @@ def cargar_css():
 
 # --- FUNCIONES AUXILIARES ---
 
-# Función CORREGIDA para forzar el scroll al top
+# Función CORREGIDA y MAXIMAMENTE FORZADA para el scroll al top
 def forzar_scroll_al_top():
-    # Intenta forzar el scroll al inicio de la página en la ventana principal del iframe.
-    # Se usan múltiples selectores y el scroll de la ventana para asegurar el movimiento.
-    st.components.v1.html("""
+    # Se añade un RETARDO (50ms) al JavaScript para garantizar que el DOM esté listo
+    # y el scroll se aplique al contenedor correcto de la página principal.
+    js_code = """
         <script>
-            // 1. Scroll en el body de la ventana principal
-            window.parent.document.body.scrollTo(0, 0); 
-            
-            // 2. Scroll en la ventana principal (más genérico)
-            window.parent.scrollTo(0, 0);
+            setTimeout(function() {
+                // 1. Scroll en el body de la ventana principal
+                window.parent.document.body.scrollTo(0, 0); 
+                
+                // 2. Scroll en la ventana principal (más genérico)
+                window.parent.scrollTo(0, 0);
 
-            // 3. Scroll en el contenedor principal de Streamlit (que maneja el scroll en muchos casos)
-            var mainContent = window.parent.document.querySelector('.stApp, section.main');
-            if (mainContent) {
-                mainContent.scrollTo(0, 0);
-            }
+                // 3. Scroll en el contenedor principal de Streamlit (usando data-testid o selector de clase)
+                var mainContent = window.parent.document.querySelector('[data-testid="stAppViewContainer"], section.main');
+                if (mainContent) {
+                    mainContent.scrollTo(0, 0);
+                }
+            }, 50); // Retardo de 50 milisegundos para asegurar el renderizado
         </script>
-        """, height=0)
+        """
+    st.components.v1.html(js_code, height=0)
 
 
 # Función para inicializar el estado de la sesión
@@ -319,7 +322,7 @@ cargar_css()
 inicializar_estado()
 
 # EJECUCIÓN CONDICIONAL DEL SCROLL (AL INICIO DEL RENDERIZADO)
-# Este bloque garantiza que el scroll se ejecute al principio de la nueva carga de página
+# ESTO ES CRUCIAL: Se ejecuta al inicio de la carga de la página (después de que se estableció should_scroll = True)
 if st.session_state.should_scroll:
     forzar_scroll_al_top()
     st.session_state.should_scroll = False
