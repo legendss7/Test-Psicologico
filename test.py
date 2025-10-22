@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import time
 from io import BytesIO
+import random # Necesario para la función de completar al azar
 
 # --- CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(
@@ -210,6 +211,16 @@ def cargar_css():
             box-shadow: 0 0 0 3px #93C5FD;
             outline: none;
         }
+        /* Estilo para el botón de completar al azar (destacado) */
+        .stButton.random-complete>button {
+            background-color: #FBBF24; /* Amarillo */
+            color: #1E3A8A;
+            border-color: #D97706;
+        }
+        .stButton.random-complete>button:hover {
+            background-color: #F59E0B;
+            color: white;
+        }
 
         /* Botones de opción seleccionados */
         div[data-testid="stRadio"] label {
@@ -255,10 +266,8 @@ def cargar_css():
 
 # --- FUNCIONES AUXILIARES ---
 
-# Función MAXIMAMENTE FORZADA para el scroll al top (usando un ancla y más delay)
+# Función MAXIMAMENTE FORZADA para el scroll al top
 def forzar_scroll_al_top(idx):
-    # NOTA DE CAMBIO: Se ha aumentado el 'setTimeout' a 250ms y se utiliza
-    # scrollIntoView() en un elemento ancla fijo para máxima fiabilidad.
     js_code = f"""
         <script>
             // Forzar el scroll tras un retardo largo (250ms) para que el contenido se renderice
@@ -266,10 +275,10 @@ def forzar_scroll_al_top(idx):
                 var topAnchor = window.parent.document.getElementById('top-anchor');
                 
                 if (topAnchor) {{
-                    // Opción 1: Usar scrollIntoView en el ancla oculta (la más fiable)
+                    // Usar scrollIntoView en el ancla oculta (la más fiable)
                     topAnchor.scrollIntoView({{ behavior: 'auto', block: 'start' }});
                 }} else {{
-                    // Opciones de fallback (por si el ancla falla)
+                    // Opciones de fallback 
                     window.parent.scrollTo({{ top: 0, behavior: 'auto' }});
                     
                     var mainContent = window.parent.document.querySelector('[data-testid="stAppViewContainer"]');
@@ -280,7 +289,6 @@ def forzar_scroll_al_top(idx):
             }}, 250); 
         </script>
         """
-    # El key asegura que el componente HTML se re-renderice en cada pregunta
     st.components.v1.html(js_code, height=0, scrolling=False)
 
 
@@ -300,16 +308,46 @@ def inicializar_estado():
     if 'should_scroll' not in st.session_state:
         st.session_state.should_scroll = False
 
-# Función para reiniciar el test
-def reiniciar_test():
+# Función para reiniciar el test y volver a la pantalla de inicio
+def volver_a_inicio():
     st.session_state.current_question = 0
     st.session_state.answers = {}
     st.session_state.test_started = False
     st.session_state.test_completed = False
     st.session_state.start_time = 0
-    # Restablecer la bandera de scroll
     st.session_state.should_scroll = False
     st.rerun()
+
+# Función para completar el test al azar (NUEVA FUNCIÓN)
+def completar_al_azar():
+    # Reiniciar el estado por si acaso ya había respuestas a medias
+    st.session_state.answers = {} 
+    st.session_state.start_time = time.time() # Usar el tiempo actual
+
+    for idx, pregunta_data in enumerate(todas_las_preguntas):
+        # Seleccionar una opción al azar
+        opciones = pregunta_data['opciones']
+        puntajes = pregunta_data['puntajes']
+        
+        # Elegir un índice aleatorio (0, 1, 2, o 3)
+        random_index = random.randint(0, len(opciones) - 1)
+        
+        respuesta_elegida = opciones[random_index]
+        puntaje_elegido = puntajes[random_index]
+
+        # Almacenar la respuesta
+        st.session_state.answers[idx] = {
+            "pregunta": pregunta_data['pregunta'],
+            "categoria": pregunta_data['categoria'],
+            "respuesta": respuesta_elegida,
+            "puntaje": puntaje_elegido
+        }
+        
+    # Cambiar al estado de completado
+    st.session_state.test_started = True
+    st.session_state.test_completed = True
+    st.rerun()
+
 
 # Función para convertir DataFrame a Excel
 @st.cache_data
@@ -352,10 +390,20 @@ if not st.session_state.test_started:
     
     st.markdown("---")
     
-    if st.button("🚀 Comenzar el Test", key="start_button"):
-        st.session_state.test_started = True
-        st.session_state.start_time = time.time()
-        st.rerun()
+    col_start1, col_start2 = st.columns([1, 1])
+    
+    with col_start1:
+        if st.button("🚀 Comenzar el Test", key="start_button"):
+            st.session_state.test_started = True
+            st.session_state.start_time = time.time()
+            st.rerun()
+
+    # NUEVO BOTÓN: COMPLETAR AL AZAR
+    with col_start2:
+        st.markdown('<div class="random-complete">', unsafe_allow_html=True) # Usar la clase CSS para el estilo
+        if st.button("🎲 Completar al Azar (Demo)", key="random_button"):
+            completar_al_azar()
+        st.markdown('</div>', unsafe_allow_html=True) # Cerrar el div
 
 # --- PANTALLA DEL TEST ---
 elif not st.session_state.test_completed:
@@ -374,6 +422,7 @@ elif not st.session_state.test_completed:
     if idx in st.session_state.answers:
         try:
             current_answer_text = st.session_state.answers[idx]['respuesta']
+            # Obtener el índice de la opción guardada
             current_answer_index = pregunta_actual['opciones'].index(current_answer_text)
         except ValueError:
             current_answer_index = None # Si la respuesta guardada no está en opciones, no seleccionar nada
@@ -397,16 +446,28 @@ elif not st.session_state.test_completed:
     st.markdown("<br>", unsafe_allow_html=True)
 
     # Navegación
-    col1, col2, col3 = st.columns([1, 2, 1])
+    col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
 
     with col1:
+        # NUEVO BOTÓN: VOLVER A INICIO
+        if st.button("🏠 Inicio"):
+            # Mostrar una advertencia antes de reiniciar
+            if len(st.session_state.answers) > 0:
+                # No podemos usar alert/confirm, así que forzamos la acción o mostramos un mensaje
+                st.warning("Advertencia: Si vuelves al inicio, perderás tu progreso actual.")
+                if st.button("Confirmar Vuelta a Inicio", key="confirm_home"):
+                    volver_a_inicio()
+            else:
+                volver_a_inicio()
+
+    with col2:
         if idx > 0:
             if st.button("⬅️ Anterior"):
                 st.session_state.current_question -= 1
                 st.session_state.should_scroll = True # Establece la bandera de scroll
                 st.rerun()
 
-    with col3:
+    with col4:
         # Validar que se haya respondido
         if idx in st.session_state.answers:
             if idx < TOTAL_PREGUNTAS - 1:
@@ -428,8 +489,12 @@ else:
     st.title("✅ ¡Test Completado! Aquí está tu Perfil de Personalidad")
     
     end_time = time.time()
-    total_time = round((end_time - st.session_state.start_time) / 60, 2)
-    st.info(f"Tiempo total para completar el test: **{total_time} minutos**.")
+    # Si el test se completó al azar, el tiempo inicial será casi igual al final
+    if abs(end_time - st.session_state.start_time) < 1:
+        st.info("Resultado generado por la opción **Completar al Azar (Demo)**.")
+    else:
+        total_time = round((end_time - st.session_state.start_time) / 60, 2)
+        st.info(f"Tiempo total para completar el test: **{total_time} minutos**.")
 
     # --- CÁLCULO DE RESULTADOS ---
     puntajes_por_categoria = {cat: [] for cat in preguntas_test.keys()}
@@ -544,7 +609,8 @@ else:
                 mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             )
 
-    # --- REINICIAR TEST ---
+    # --- REINICIAR TEST Y VOLVER A INICIO ---
     st.markdown("---")
-    if st.button("🔄 Realizar el test de nuevo"):
-        reiniciar_test()
+    if st.button("🔄 Volver a la pantalla de bienvenida"):
+        volver_a_inicio()
+
