@@ -258,6 +258,12 @@ def cargar_css():
             font-weight: 800;
             color: #4C1D95; /* Morado Oscuro */
             margin-top: 5px;
+            margin-bottom: 10px; /* Reducido para meter el detalle */
+        }
+        .score-detail {
+            font-size: 0.85em;
+            color: #6B7280; /* Gris */
+            margin-top: -5px;
             margin-bottom: 15px;
         }
 
@@ -297,7 +303,6 @@ def inicializar_estado():
     if 'test_completed' not in st.session_state: st.session_state.test_completed = False
     if 'start_time' not in st.session_state: st.session_state.start_time = 0
     if 'should_scroll' not in st.session_state: st.session_state.should_scroll = False
-    # Nueva bandera para la advertencia de reinicio (soluciona el bug del botón)
     if 'show_restart_warning' not in st.session_state: st.session_state.show_restart_warning = False
 
 # Función para reiniciar el test y volver a la pantalla de inicio
@@ -346,7 +351,7 @@ def to_excel_with_summary(df_raw, df_summary):
     processed_data = output.getvalue()
     return processed_data
 
-# --- INTERPRETACIÓN DE RESULTADOS DETALLADA (MODIFICADA PARA RETORNAR TEXTOS LIMPIOS) ---
+# --- INTERPRETACIÓN DE RESULTADOS DETALLADA ---
 def interpretar_puntaje(categoria, puntaje):
     # Interpretación basada en el puntaje porcentual (Normalizado 0-100)
     
@@ -360,73 +365,73 @@ def interpretar_puntaje(categoria, puntaje):
     # Textos detallados por categoría
     if categoria == "Estabilidad Emocional":
         if puntaje >= 75: 
-            fortalezas_text = "Muestras una notable calma y resiliencia. Eres capaz de manejar el estrés sin que te abrume, mantienes un estado de ánimo equilibrado y te recuperas rápidamente de los contratiempos. Tu serenidad es una fuente de fortaleza en entornos volátiles."
-            debilidades_text = "En ocasiones, tu alta estabilidad puede llevarte a subestimar la seriedad de algunas situaciones estresantes o a parecer menos empático/a con la preocupación ajena."
-            oportunidades_text = "Continúa practicando técnicas de manejo del estrés preventivo y asegúrate de que tu confianza no te haga descuidar la planificación de riesgos emocionales."
+            fortalezas_text = "Muestras una notable calma y resiliencia. Eres capaz de manejar el estrés sin que te abrume, mantienes un estado de ánimo equilibrado y te recuperas rápidamente de los contratiempos. Tu serenidad es una fuente de fortaleza en entornos volátiles. **Tu alta puntuación refleja una baja reactividad emocional**."
+            debilidades_text = "En ocasiones, tu alta estabilidad puede llevarte a subestimar la seriedad de algunas situaciones estresantes o a parecer menos empático/a con la preocupación ajena. Procura no reprimir emociones importantes."
+            oportunidades_text = "Continúa practicando técnicas de manejo del estrés preventivo y asegúrate de que tu confianza no te haga descuidar la planificación de riesgos emocionales. Trabaja en la validación emocional de los demás."
         elif puntaje <= 40:
-            fortalezas_text = "Tienes una gran capacidad para sentir y procesar emociones profundas, lo que te hace sensible y perceptivo/a a las sutilezas de tu entorno."
-            debilidades_text = "Tiendes a experimentar altos niveles de ansiedad, preocupación o inestabilidad emocional. El estrés te afecta profundamente, dificultando la toma de decisiones clara bajo presión."
-            oportunidades_text = "El foco principal es desarrollar estrategias de regulación emocional, como la meditación o la reestructuración cognitiva. Busca apoyo en momentos de alta tensión para evitar el agotamiento."
+            fortalezas_text = "Tienes una gran capacidad para sentir y procesar emociones profundas, lo que te hace sensible y perceptivo/a a las sutilezas de tu entorno. **Tu profundidad emocional puede ser una ventaja para la creatividad y la empatía**."
+            debilidades_text = "Tiendes a experimentar altos niveles de ansiedad, preocupación o inestabilidad emocional. El estrés te afecta profundamente, dificultando la toma de decisiones clara bajo presión. La preocupación es una respuesta frecuente."
+            oportunidades_text = "El foco principal es desarrollar estrategias de regulación emocional, como la meditación o la reestructuración cognitiva. Busca apoyo en momentos de alta tensión para evitar el agotamiento y establece rutinas para la calma."
         else: 
-            fortalezas_text = "Generalmente mantienes la compostura, pero eres consciente de tus límites emocionales. Tienes momentos de calma y momentos de sensibilidad, lo que te permite ser flexible."
-            debilidades_text = "Puedes ser susceptible al estrés en momentos clave. La presión prolongada puede erosionar tu equilibrio, y a veces tardas en 'volver a la normalidad' después de un evento negativo."
-            oportunidades_text = "Identifica las fuentes específicas de tu estrés y trabaja en límites personales más firmes. Busca un equilibrio entre el control emocional y la expresión sana de tus sentimientos."
+            fortalezas_text = "Generalmente mantienes la compostura, pero eres consciente de tus límites emocionales. Tienes momentos de calma y momentos de sensibilidad, lo que te permite ser flexible. **Tu respuesta emocional es adecuada a la mayoría de las situaciones**."
+            debilidades_text = "Puedes ser susceptible al estrés en momentos clave. La presión prolongada puede erosionar tu equilibrio, y a veces tardas en 'volver a la normalidad' después de un evento negativo. Tiendes a internalizar las tensiones."
+            oportunidades_text = "Identifica las fuentes específicas de tu estrés y trabaja en límites personales más firmes. Busca un equilibrio entre el control emocional y la expresión sana de tus sentimientos, mejorando la gestión de la recuperación post-estrés."
     
     elif categoria == "Extroversión":
         if puntaje >= 75: 
-            fortalezas_text = "Eres el alma de la fiesta; enérgico/a, sociable y entusiasta. Disfrutas de la interacción, te expresas abiertamente y buscas activamente la compañía. Esto te hace un líder nato y un excelente networker."
-            debilidades_text = "El exceso de tiempo a solas te drena. Puedes parecer dominante en conversaciones o tomar decisiones impulsivas en busca de estimulación social constante."
-            oportunidades_text = "Practica la escucha activa y dedica tiempo a la reflexión personal o a actividades solitarias para recargar tu energía interna y no depender solo del estímulo externo."
+            fortalezas_text = "Eres el alma de la fiesta; enérgico/a, sociable y entusiasta. Disfrutas de la interacción, te expresas abiertamente y buscas activamente la compañía. **Esto te hace un líder nato, un excelente networker y promotor de actividades grupales**."
+            debilidades_text = "El exceso de tiempo a solas te drena. Puedes parecer dominante en conversaciones o tomar decisiones impulsivas en busca de estimulación social constante. Podrías sobrecargar tu agenda social."
+            oportunidades_text = "Practica la escucha activa y dedica tiempo a la reflexión personal o a actividades solitarias para recargar tu energía interna y no depender solo del estímulo externo. Fomenta la profundidad en tus interacciones."
         elif puntaje <= 40:
-            fortalezas_text = "Prefieres la tranquilidad, la concentración y la reflexión profunda. Trabajas mejor solo/a o en pequeños grupos. Tu capacidad de observación es alta y eres excelente en tareas que requieren autonomía."
-            debilidades_text = "Puedes ser percibido/a como reservado/a o distante. Las situaciones sociales grandes te agotan rápidamente, y te cuesta iniciar conversaciones o expresarte abiertamente en público."
-            oportunidades_text = "Busca activamente el contacto social cuando sea necesario, especialmente para el desarrollo profesional. No temas compartir tus ideas; tu profundidad de pensamiento es valiosa."
+            fortalezas_text = "Prefieres la tranquilidad, la concentración y la reflexión profunda. Trabajas mejor solo/a o en pequeños grupos. **Tu capacidad de observación es alta y eres excelente en tareas que requieren autonomía y pensamiento concentrado**."
+            debilidades_text = "Puedes ser percibido/a como reservado/a o distante. Las situaciones sociales grandes te agotan rápidamente, y te cuesta iniciar conversaciones o expresarte abiertamente en público, limitando tu visibilidad."
+            oportunidades_text = "Busca activamente el contacto social cuando sea necesario, especialmente para el desarrollo profesional. No temas compartir tus ideas; tu profundidad de pensamiento es valiosa. Practica la comunicación asertiva en entornos pequeños."
         else: 
-            fortalezas_text = "Disfrutas de un equilibrio sano. Puedes ser sociable cuando es necesario y también valoras tu tiempo a solas. Eres flexible en diferentes entornos."
-            debilidades_text = "A veces, la necesidad de equilibrio puede hacer que dudes entre la acción y la reflexión, o que te sientas indeciso/a sobre aceptar invitaciones sociales."
-            oportunidades_text = "Sé consciente de tus niveles de energía en cada momento y aprende a comunicar tus necesidades de socialización o de aislamiento sin sentir culpa."
+            fortalezas_text = "Disfrutas de un equilibrio sano. Puedes ser sociable cuando es necesario y también valoras tu tiempo a solas. **Eres flexible en diferentes entornos y puedes adaptarte a la demanda social sin agotarte totalmente**."
+            debilidades_text = "A veces, la necesidad de equilibrio puede hacer que dudes entre la acción y la reflexión, o que te sientas indeciso/a sobre aceptar invitaciones sociales. Tu nivel de energía social es variable."
+            oportunidades_text = "Sé consciente de tus niveles de energía en cada momento y aprende a comunicar tus necesidades de socialización o de aislamiento sin sentir culpa. Planifica estratégicamente tus interacciones más importantes."
 
     elif categoria == "Amabilidad":
         if puntaje >= 75: 
-            fortalezas_text = "Eres una persona empática, bondadosa, cooperativa y de buen corazón. Tu deseo de ayudar y mantener la armonía es muy alto, y eres muy valorado/a por tu paciencia y compasión."
-            debilidades_text = "Tu deseo de evitar conflictos puede llevarte a ser demasiado complaciente o a descuidar tus propias necesidades por las de los demás. Eres susceptible de que se aprovechen de tu generosidad."
-            oportunidades_text = "Aprende a establecer límites firmes y a decir 'no' de manera asertiva. Recuerda que cuidar de ti mismo/a es esencial para poder seguir ayudando a los demás."
+            fortalezas_text = "Eres una persona empática, bondadosa, cooperativa y de buen corazón. Tu deseo de ayudar y mantener la armonía es muy alto, y eres muy valorado/a por tu paciencia y compasión. **Actúas como mediador natural y fomentas la cohesión social**."
+            debilidades_text = "Tu deseo de evitar conflictos puede llevarte a ser demasiado complaciente o a descuidar tus propias necesidades por las de los demás. Eres susceptible de que se aprovechen de tu generosidad y te cuesta establecer límites."
+            oportunidades_text = "Aprende a establecer límites firmes y a decir 'no' de manera asertiva. Recuerda que cuidar de ti mismo/a es esencial para poder seguir ayudando a los demás. El desarrollo de la asertividad es clave."
         elif puntaje <= 40:
-            fortalezas_text = "Tienes un alto sentido de la justicia y no temes defender tus intereses. Eres directo/a y escéptico/a, lo que te protege de la manipulación."
-            debilidades_text = "Puedes ser visto/a como crítico/a, cínico/a o combativo/a. Tiendes a priorizar tus objetivos sobre la cooperación y te cuesta empatizar con aquellos cuyas opiniones difieren."
-            oportunidades_text = "Practica la escucha activa antes de reaccionar. Intenta buscar el beneficio mutuo en lugar de la victoria personal en las interacciones y trabaja en la expresión de la paciencia."
+            fortalezas_text = "Tienes un alto sentido de la justicia y no temes defender tus intereses. Eres directo/a y escéptico/a, lo que te protege de la manipulación. **Eres firme en tus convicciones y ofreces opiniones honestas y críticas**."
+            debilidades_text = "Puedes ser visto/a como crítico/a, cínico/a o combativo/a. Tiendes a priorizar tus objetivos sobre la cooperación y te cuesta empatizar con aquellos cuyas opiniones difieren, lo que puede generar fricción."
+            oportunidades_text = "Practica la escucha activa antes de reaccionar. Intenta buscar el beneficio mutuo en lugar de la victoria personal en las interacciones y trabaja en la expresión de la paciencia y la diplomacia."
         else: 
-            fortalezas_text = "Eres capaz de ser cooperativo/a y cortés, pero sabes cuándo es necesario defender tus derechos. Tienes un equilibrio entre la empatía y la asertividad."
-            debilidades_text = "Puedes fluctuar entre ser demasiado complaciente en algunas situaciones y demasiado crítico/a en otras. Tu nivel de amabilidad depende mucho de la persona y el contexto."
-            oportunidades_text = "Busca la coherencia en tus relaciones. Esfuérzate por mantener un nivel constante de respeto y cooperación, independientemente de tu opinión sobre la otra persona."
+            fortalezas_text = "Eres capaz de ser cooperativo/a y cortés, pero sabes cuándo es necesario defender tus derechos. **Tienes un equilibrio entre la empatía y la asertividad que te permite negociar eficazmente**."
+            debilidades_text = "Puedes fluctuar entre ser demasiado complaciente en algunas situaciones y demasiado crítico/a en otras. Tu nivel de amabilidad depende mucho de la persona y el contexto, resultando en inconsistencia."
+            oportunidades_text = "Busca la coherencia en tus relaciones. Esfuérzate por mantener un nivel constante de respeto y cooperación, independientemente de tu opinión sobre la otra persona, aplicando la asertividad de forma equilibrada."
 
     elif categoria == "Responsabilidad":
         if puntaje >= 75: 
-            fortalezas_text = "Eres altamente organizado/a, fiable y orientado/a a objetivos. Tu diligencia, disciplina y ética de trabajo te convierten en una persona de total confianza y en un motor de productividad."
-            debilidades_text = "Tu rigor puede llevarte al perfeccionismo excesivo, lo que genera estrés innecesario y dificultad para delegar. Puedes ser percibido/a como rígido/a o inflexible ante cambios de última hora."
-            oportunidades_text = "Aprende a aceptar la 'suficiencia' en lugar de la 'perfección'. Practica la delegación, confía en la capacidad de otros y desarrolla flexibilidad para manejar la incertidumbre sin ansiedad."
+            fortalezas_text = "Eres altamente organizado/a, fiable y orientado/a a objetivos. Tu diligencia, disciplina y ética de trabajo te convierten en una persona de total confianza y en un motor de productividad. **Tu planificación a largo plazo es excelente**."
+            debilidades_text = "Tu rigor puede llevarte al perfeccionismo excesivo, lo que genera estrés innecesario y dificultad para delegar. Puedes ser percibido/a como rígido/a o inflexible ante cambios de última hora, luchando contra la entropía."
+            oportunidades_text = "Aprende a aceptar la 'suficiencia' en lugar de la 'perfección'. Practica la delegación, confía en la capacidad de otros y desarrolla flexibilidad para manejar la incertidumbre sin ansiedad. Integra el descanso planificado."
         elif puntaje <= 40:
-            fortalezas_text = "Eres espontáneo/a, flexible y te adaptas rápidamente a los cambios. No te estresas por los detalles y disfrutas de la libertad de la improvisación."
-            debilidades_text = "La organización, la puntualidad y el seguimiento de tareas son un desafío. Eres propenso/a a la procrastinación, lo que puede afectar tu fiabilidad y la consecución de metas a largo plazo."
-            oportunidades_text = "Crea sistemas de recordatorio y estructuras mínimas (listas de tareas, planificación diaria simple) que te ayuden a cumplir compromisos sin sacrificar tu espontaneidad. Enfócate en la finalización de proyectos."
+            fortalezas_text = "Eres espontáneo/a, flexible y te adaptas rápidamente a los cambios. No te estresas por los detalles y disfrutas de la libertad de la improvisación. **Tu adaptabilidad te hace resiliente ante los imprevistos**."
+            debilidades_text = "La organización, la puntualidad y el seguimiento de tareas son un desafío. Eres propenso/a a la procrastinación, lo que puede afectar tu fiabilidad y la consecución de metas a largo plazo. Tiendes a enfocarte en el presente inmediato."
+            oportunidades_text = "Crea sistemas de recordatorio y estructuras mínimas (listas de tareas, planificación diaria simple) que te ayuden a cumplir compromisos sin sacrificar tu espontaneidad. Enfócate en la finalización de proyectos antes de empezar nuevos."
         else: 
-            fortalezas_text = "Tienes un buen equilibrio entre planificación y flexibilidad. Eres capaz de ser responsable en áreas importantes mientras te permites cierta espontaneidad."
-            debilidades_text = "Tu nivel de organización puede variar significativamente, siendo muy riguroso/a en unas áreas y despreocupado/a en otras. Esto puede generar inconsistencia."
-            oportunidades_text = "Identifica las áreas de tu vida donde la responsabilidad tiene mayor impacto (trabajo, finanzas) y aplica conscientemente tus habilidades organizativas a ellas, manteniendo la flexibilidad en áreas de ocio."
+            fortalezas_text = "Tienes un buen equilibrio entre planificación y flexibilidad. Eres capaz de ser responsable en áreas importantes mientras te permites cierta espontaneidad. **Puedes ser un planificador eficiente sin ser esclavo de la rutina**."
+            debilidades_text = "Tu nivel de organización puede variar significativamente, siendo muy riguroso/a en unas áreas y despreocupado/a en otras. Esto puede generar inconsistencia y que se te escapen detalles importantes."
+            oportunidades_text = "Identifica las áreas de tu vida donde la responsabilidad tiene mayor impacto (trabajo, finanzas) y aplica conscientemente tus habilidades organizativas a ellas, manteniendo la flexibilidad en áreas de ocio. Busca un nivel de rigor constante."
 
     elif categoria == "Apertura a la Experiencia":
         if puntaje >= 75: 
-            fortalezas_text = "Eres altamente creativo/a, intelectualmente curioso/a y posees una imaginación vívida. Disfrutas explorando nuevas ideas, artes y culturas, y te adaptas con facilidad a los cambios."
-            debilidades_text = "Tu constante búsqueda de novedad puede llevar a la inconstancia en tus proyectos. Puedes aburrirte fácilmente con la rutina y la gente práctica puede encontrarte soñador/a o poco realista."
-            oportunidades_text = "Aprende a canalizar tu curiosidad en proyectos a largo plazo que te permitan la profundidad sin caer en la rutina. Combina tus ideas abstractas con pasos prácticos y concretos."
+            fortalezas_text = "Eres altamente creativo/a, intelectualmente curioso/a y posees una imaginación vívida. Disfrutas explorando nuevas ideas, artes y culturas, y te adaptas con facilidad a los cambios. **Tu mente es un motor constante de innovación**."
+            debilidades_text = "Tu constante búsqueda de novedad puede llevar a la inconstancia en tus proyectos. Puedes aburrirte fácilmente con la rutina y la gente práctica puede encontrarte soñador/a o poco realista, perdiendo el foco."
+            oportunidades_text = "Aprende a canalizar tu curiosidad en proyectos a largo plazo que te permitan la profundidad sin caer en la rutina. Combina tus ideas abstractas con pasos prácticos y concretos. Define objetivos a medio plazo."
         elif puntaje <= 40:
-            fortalezas_text = "Eres práctico/a, realista y tienes los pies bien puestos en la tierra. Prefieres lo conocido y probado, lo que te brinda estabilidad y predictibilidad en tu vida."
-            debilidades_text = "Tiendes a ser resistente al cambio y puedes tener dificultades para adaptarte a ideas muy abstractas o poco convencionales. Tu creatividad puede estar limitada por el deseo de mantener la rutina."
-            oportunidades_text = "Busca pequeñas y seguras oportunidades para salir de tu zona de confort, como probar un nuevo hobby o leer sobre un tema totalmente ajeno a tus intereses habituales. La variedad puede enriquecer tu vida sin desestabilizarla."
+            fortalezas_text = "Eres práctico/a, realista y tienes los pies bien puestos en la tierra. Prefieres lo conocido y probado, lo que te brinda estabilidad y predictibilidad en tu vida. **Eres fiable en tu juicio y valoras la experiencia demostrada**."
+            debilidades_text = "Tiendes a ser resistente al cambio y puedes tener dificultades para adaptarte a ideas muy abstractas o poco convencionales. Tu creatividad puede estar limitada por el deseo de mantener la rutina y la tradición."
+            oportunidades_text = "Busca pequeñas y seguras oportunidades para salir de tu zona de confort, como probar un nuevo hobby o leer sobre un tema totalmente ajeno a tus intereses habituales. La variedad puede enriquecer tu vida sin desestabilizarla. Expande tus horizontes intelectuales de forma gradual."
         else: 
-            fortalezas_text = "Aceptas la novedad cuando es necesario, pero también valoras la tradición y la estabilidad. Eres selectivo/a en las experiencias que eliges explorar."
-            debilidades_text = "Tu apertura se limita a áreas específicas. Puedes ser reacio/a a probar cosas fuera de tu esfera de confort intelectual o práctico."
-            oportunidades_text = "Evalúa dónde te estás limitando innecesariamente. Usa tu curiosidad moderada para explorar áreas de cambio que te brinden un claro beneficio o crecimiento personal."
+            fortalezas_text = "Aceptas la novedad cuando es necesario, pero también valoras la tradición y la estabilidad. **Eres selectivo/a en las experiencias que eliges explorar y tienes un enfoque pragmático de la creatividad**."
+            debilidades_text = "Tu apertura se limita a áreas específicas. Puedes ser reacio/a a probar cosas fuera de tu esfera de confort intelectual o práctico, lo que limita el crecimiento en áreas no familiares."
+            oportunidades_text = "Evalúa dónde te estás limitando innecesariamente. Usa tu curiosidad moderada para explorar áreas de cambio que te brinden un claro beneficio o crecimiento personal. Busca activamente la perspectiva de otros."
             
     # Devolvemos solo el texto y el nivel
     return nivel, fortalezas_text, debilidades_text, oportunidades_text
@@ -572,7 +577,7 @@ else:
         total_time = round((end_time - st.session_state.start_time) / 60, 2)
         st.info(f"Tiempo total para completar el test: **{total_time} minutos**.")
 
-    # --- CÁLCULO DE RESULTADOS ---
+    # --- CÁLCULO DE RESULTADOS AMPLIADO ---
     puntajes_por_categoria = {cat: [] for cat in preguntas_test.keys()}
     for data in st.session_state.answers.values():
         puntajes_por_categoria[data['categoria']].append(data['puntaje'])
@@ -583,7 +588,14 @@ else:
         puntaje_max_cat = total_preguntas_cat * 4
         puntaje_obtenido = sum(puntajes)
         porcentaje = round((puntaje_obtenido / puntaje_max_cat) * 100)
-        resultados_finales[categoria] = porcentaje
+        
+        # Almacenamos más detalle en el diccionario de resultados
+        resultados_finales[categoria] = {
+            'porcentaje': porcentaje,
+            'obtenido': puntaje_obtenido,
+            'maximo': puntaje_max_cat,
+            'preguntas': total_preguntas_cat
+        }
 
     # --- PUNTUACIONES FINALES ---
     st.markdown("---")
@@ -601,12 +613,15 @@ else:
         "Apertura a la Experiencia": "✨"
     }
 
-    for i, (cat, score) in enumerate(resultados_finales.items()):
+    for i, (cat, data) in enumerate(resultados_finales.items()):
         with col_scores[i]:
             st.markdown(f"""
             <div class="score-card">
                 <h3>{icon_map.get(cat, '❓')} {cat}</h3>
-                <p>{score}%</p>
+                <p>{data['porcentaje']}%</p>
+                <p style="font-size: 0.8em; color: #6B7280; font-weight: normal; margin-top: 10px;">
+                    ({data['obtenido']} de {data['maximo']} puntos)
+                </p>
             </div>
             """, unsafe_allow_html=True)
 
@@ -614,45 +629,51 @@ else:
     st.header("💡 Análisis Detallado de tu Perfil por Factor")
     st.markdown("Aquí se desglosa tu perfil, mostrando fortalezas, debilidades y oportunidades de crecimiento para cada una de las cinco dimensiones.")
 
-    # --- LÓGICA DE ANÁLISIS DETALLADO (Organizado con inyección HTML segura) ---
+    # --- LÓGICA DE ANÁLISIS DETALLADO (Organizado con inyección HTML segura y detalle) ---
     
     # Usamos un grid de 2 columnas para el análisis detallado
     cols_analysis = st.columns(2)
     col_idx = 0
     
-    for categoria, porcentaje in resultados_finales.items():
+    for categoria, data in resultados_finales.items():
+        porcentaje = data['porcentaje']
+        puntaje_obtenido = data['obtenido']
+        puntaje_maximo = data['maximo']
+        
         nivel, fortalezas_text, debilidades_text, oportunidades_text = interpretar_puntaje(categoria, porcentaje)
         
         # Rotamos entre las dos columnas
         with cols_analysis[col_idx % 2]:
             
-            # 1. Start the main card container (Header and Score)
+            # 1. Start the main card container, Header, Score, and Detail (TODO EN UN BLOQUE SEGURO)
             st.markdown(f"""
             <div class="category-analysis-card">
                 <h3 style="color: #4C1D95; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px; margin-bottom: 15px;">
                     {icon_map.get(categoria, '❓')} {categoria}
                 </h3>
                 <div class="score-percentage">{porcentaje}%</div>
+                <div class="score-detail">
+                    Puntaje Bruto: **{puntaje_obtenido}** de **{puntaje_maximo}** posibles.
+                </div>
                 <p style="font-weight: 500;">Nivel General: {nivel}</p>
                 
                 <div style="height:1px; background-color: #E5E7EB; margin: 15px 0;"></div>
-            """, unsafe_allow_html=True)
-
-            # 2. Inject FORTALEZA (Separado)
-            st.markdown(f"""
+                
                 <div class="analysis-point point-fortaleza">
                     <strong>💪 Fortaleza:</strong> {fortalezas_text}
                 </div>
             """, unsafe_allow_html=True)
-            
-            # 3. Inject DEBILIDAD (Separado)
+            # El fix aquí fue incluir el separador y la primera sección de análisis en el primer st.markdown
+            # para reducir la fragmentación y obligar a Streamlit a interpretar la línea.
+
+            # 2. Inject DEBILIDAD (Separado)
             st.markdown(f"""
                 <div class="analysis-point point-debilidad">
                     <strong>🚩 Punto de Mejora:</strong> {debilidades_text}
                 </div>
             """, unsafe_allow_html=True)
             
-            # 4. Inject OPORTUNIDAD (Separado, y cierra el contenedor principal)
+            # 3. Inject OPORTUNIDAD (Separado, y cierra el contenedor principal)
             st.markdown(f"""
                 <div class="analysis-point point-oportunidad">
                     <strong>🌱 Oportunidad:</strong> {oportunidades_text}
@@ -673,7 +694,9 @@ else:
         orden_categorias = list(preguntas_test.keys())
         resumen_data = {
             'Dimensión': orden_categorias,
-            'Puntaje_Porcentaje': [resultados_finales[cat] for cat in orden_categorias]
+            'Puntaje_Porcentaje': [resultados_finales[cat]['porcentaje'] for cat in orden_categorias],
+            'Puntaje_Obtenido': [resultados_finales[cat]['obtenido'] for cat in orden_categorias],
+            'Puntaje_Maximo': [resultados_finales[cat]['maximo'] for cat in orden_categorias]
         }
         df_resumen_final = pd.DataFrame(resumen_data)
         
