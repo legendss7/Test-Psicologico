@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
 import time
-from io import BytesIO
 import random 
+from io import BytesIO
 
 # --- CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(
@@ -311,7 +311,8 @@ def to_excel_with_summary(df_raw, df_summary):
     return processed_data
 
 # Función para generar el análisis (SÓLO Streamlit)
-def generar_analisis_componente(categoria, porcentaje, puntaje_obtenido, puntaje_maximo, nivel, fortalezas_text, debilidades_text, oportunidades_text):
+# La variable 'nivel' aquí ya es el descriptor (ej: **Alto**)
+def generar_analisis_componente(categoria, porcentaje, puntaje_obtenido, puntaje_maximo, nivel_descriptor, fortalezas_text, debilidades_text, oportunidades_text):
     
     # Contenedor principal de la tarjeta (Streamlit Nativo)
     with st.container(border=True): 
@@ -327,7 +328,9 @@ def generar_analisis_componente(categoria, porcentaje, puntaje_obtenido, puntaje
         with col_pb:
             st.markdown(f"**Puntaje Bruto:** {puntaje_obtenido} de {puntaje_maximo} posibles.")
         with col_ng:
-            st.markdown(f"**Nivel General:** Puntaje **{nivel.split(' ')[1]}**")
+            # FIX CRÍTICO: Usamos 'nivel_descriptor' directamente, ya que contiene solo la palabra (ej: **Alto**).
+            # Eliminar el .split(' ')[1] resuelve el IndexError.
+            st.markdown(f"**Nivel General:** Puntaje {nivel_descriptor}")
         
         st.divider()
 
@@ -350,19 +353,19 @@ def generar_analisis_componente(categoria, porcentaje, puntaje_obtenido, puntaje
 def interpretar_puntaje(categoria, puntaje):
     
     nivel = ""
-    if puntaje >= 75: nivel = "Puntaje **Alto**"
-    elif puntaje <= 40: nivel = "Puntaje **Bajo**"
-    else: nivel = "Puntaje **Moderado**"
+    if puntaje >= 75: nivel = "**Alto**"
+    elif puntaje <= 40: nivel = "**Bajo**"
+    else: nivel = "**Moderado**"
 
     fortalezas_text, debilidades_text, oportunidades_text = "", "", ""
     
     # Textos detallados por categoría
     if categoria == "Estabilidad Emocional":
-        if puntaje >= 75: 
+        if nivel == "**Alto**": 
             fortalezas_text = "Muestras una notable calma y resiliencia. Eres capaz de manejar el estrés sin que te abrume, mantienes un estado de ánimo equilibrado y te recuperas rápidamente de los contratiempos. Tu serenidad es una fuente de fortaleza en entornos volátiles. **Tu alta puntuación refleja una baja reactividad emocional**."
             debilidades_text = "En ocasiones, tu alta estabilidad puede llevarte a subestimar la seriedad de algunas situaciones estresantes o a parecer menos empático/a con la preocupación ajena. Procura no reprimir emociones importantes."
             oportunidades_text = "Continúa practicando técnicas de manejo del estrés preventivo y asegúrate de que tu confianza no te haga descuidar la planificación de riesgos emocionales. Trabaja en la validación emocional de los demás."
-        elif puntaje <= 40:
+        elif nivel == "**Bajo**":
             fortalezas_text = "Tienes una gran capacidad para sentir y procesar emociones profundas, lo que te hace sensible y perceptivo/a a las sutilezas de tu entorno. **Tu profundidad emocional puede ser una ventaja para la creatividad y la empatía**."
             debilidades_text = "Tiendes a experimentar altos niveles de ansiedad, preocupación o inestabilidad emocional. El estrés te afecta profundamente, dificultando la toma de decisiones clara bajo presión. La preocupación es una respuesta frecuente."
             oportunidades_text = "El foco principal es desarrollar estrategias de regulación emocional, como la meditación o la reestructuración cognitiva. Busca apoyo en momentos de alta tensión para evitar el agotamiento y establece rutinas para la calma."
@@ -372,11 +375,11 @@ def interpretar_puntaje(categoria, puntaje):
             oportunidades_text = "Identifica las fuentes específicas de tu estrés y trabaja en límites personales más firmes. Busca un equilibrio entre el control emocional y la expresión sana de tus sentimientos, mejorando la gestión de la recuperación post-estrés."
     
     elif categoria == "Extroversión":
-        if puntaje >= 75: 
+        if nivel == "**Alto**": 
             fortalezas_text = "Eres el alma de la fiesta; enérgico/a, sociable y entusiasta. Disfrutas de la interacción, te expresas abiertamente y buscas activamente la compañía. **Esto te hace un líder nato, un excelente networker y promotor de actividades grupales**."
             debilidades_text = "El exceso de tiempo a solas te drena. Puedes parecer dominante en conversaciones o tomar decisiones impulsivas en busca de estimulación social constante. Podrías sobrecargar tu agenda social."
             oportunidades_text = "Practica la escucha activa y dedica tiempo a la reflexión personal o a actividades solitarias para recargar tu energía interna y no depender solo del estímulo externo. Fomenta la profundidad en tus interacciones."
-        elif puntaje <= 40:
+        elif nivel == "**Bajo**":
             fortalezas_text = "Prefieres la tranquilidad, la concentración y la reflexión profunda. Trabajas mejor solo/a o en pequeños grupos. **Tu capacidad de observación es alta y eres excelente en tareas que requieren autonomía y pensamiento concentrado**."
             debilidades_text = "Puedes ser percibido/a como reservado/a o distante. Las situaciones sociales grandes te agotan rápidamente, y te cuesta iniciar conversaciones o expresarte abiertamente en público, limitando tu visibilidad."
             oportunidades_text = "Busca activamente el contacto social cuando sea necesario, especialmente para el desarrollo profesional. No temas compartir tus ideas; tu profundidad de pensamiento es valiosa. Practica la comunicación asertiva en entornos pequeños."
@@ -386,11 +389,11 @@ def interpretar_puntaje(categoria, puntaje):
             oportunidades_text = "Sé consciente de tus niveles de energía en cada momento y aprende a comunicar tus necesidades de socialización o de aislamiento sin sentir culpa. Planifica estratégicamente tus interacciones más importantes."
 
     elif categoria == "Amabilidad":
-        if puntaje >= 75: 
+        if nivel == "**Alto**": 
             fortalezas_text = "Eres una persona empática, bondadosa, cooperativa y de buen corazón. Tu deseo de ayudar y mantener la armonía es muy alto, y eres muy valorado/a por tu paciencia y compasión. **Actúas como mediador natural y fomentas la cohesión social**."
             debilidades_text = "Tu deseo de evitar conflictos puede llevarte a ser demasiado complaciente o a descuidar tus propias necesidades por las de los demás. Eres susceptible de que se aprovechen de tu generosidad y te cuesta establecer límites."
             oportunidades_text = "Aprende a establecer límites firmes y a decir 'no' de manera asertiva. Recuerda que cuidar de ti mismo/a es esencial para poder seguir ayudando a los demás. El desarrollo de la asertividad es clave."
-        elif puntaje <= 40:
+        elif nivel == "**Bajo**":
             fortalezas_text = "Tienes un alto sentido de la justicia y no temes defender tus intereses. Eres directo/a y escéptico/a, lo que te protege de la manipulación. **Eres firme en tus convicciones y ofreces opiniones honestas y críticas**."
             debilidades_text = "Puedes ser visto/a como crítico/a, cínico/a o combativo/a. Tiendes a priorizar tus objetivos sobre la cooperación y te cuesta empatizar con aquellos cuyas opiniones difieren, lo que puede generar fricción."
             oportunidades_text = "Practica la escucha activa antes de reaccionar. Intenta buscar el beneficio mutuo en lugar de la victoria personal en las interacciones y trabaja en la expresión de la paciencia y la diplomacia."
@@ -400,11 +403,11 @@ def interpretar_puntaje(categoria, puntaje):
             oportunidades_text = "Busca la coherencia en tus relaciones. Esfuérzate por mantener un nivel constante de respeto y cooperación, independientemente de tu opinión sobre la otra persona, aplicando la asertividad de forma equilibrada."
 
     elif categoria == "Responsabilidad":
-        if puntaje >= 75: 
+        if nivel == "**Alto**": 
             fortalezas_text = "Eres altamente organizado/a, fiable y orientado/a a objetivos. Tu diligencia, disciplina y ética de trabajo te convierten en una persona de total confianza y en un motor de productividad. **Tu planificación a largo plazo es excelente**."
             debilidades_text = "Tu rigor puede llevarte al perfeccionismo excesivo, lo que genera estrés innecesario y dificultad para delegar. Puedes ser percibido/a como rígido/a o inflexible ante cambios de última hora, luchando contra la entropía."
             oportunidades_text = "Aprende a aceptar la 'suficiencia' en lugar de la 'perfección'. Practica la delegación, confía en la capacidad de otros y desarrolla flexibilidad para manejar la incertidumbre sin ansiedad. Integra el descanso planificado."
-        elif puntaje <= 40:
+        elif nivel == "**Bajo**":
             fortalezas_text = "Eres espontáneo/a, flexible y te adaptas rápidamente a los cambios. No te estresas por los detalles y disfrutas de la libertad de la improvisación. **Tu adaptabilidad te hace resiliente ante los imprevistos**."
             debilidades_text = "La organización, la puntualidad y el seguimiento de tareas son un desafío. Eres propenso/a a la procrastinación, lo que puede afectar tu fiabilidad y la consecución de metas a largo plazo. Tiendes a enfocarte en el presente inmediato."
             oportunidades_text = "Crea sistemas de recordatorio y estructuras mínimas (listas de tareas, planificación diaria simple) que te ayuden a cumplir compromisos sin sacrificar tu espontaneidad. Enfócate en la finalización de proyectos antes de empezar nuevos."
@@ -414,11 +417,11 @@ def interpretar_puntaje(categoria, puntaje):
             oportunidades_text = "Identifica las áreas de tu vida donde la responsabilidad tiene mayor impacto (trabajo, finanzas) y aplica conscientemente tus habilidades organizativas a ellas, manteniendo la flexibilidad en áreas de ocio. Busca un nivel de rigor constante."
 
     elif categoria == "Apertura a la Experiencia":
-        if puntaje >= 75: 
+        if nivel == "**Alto**": 
             fortalezas_text = "Eres altamente creativo/a, intelectualmente curioso/a y posees una imaginación vívida. Disfrutas explorando nuevas ideas, artes y culturas, y te adaptas con facilidad a los cambios. **Tu mente es un motor constante de innovación**."
             debilidades_text = "Tu constante búsqueda de novedad puede llevar a la inconstancia en tus proyectos. Puedes aburrirte fácilmente con la rutina y la gente práctica puede encontrarte soñador/a o poco realista, perdiendo el foco."
             oportunidades_text = "Aprende a canalizar tu curiosidad en proyectos a largo plazo que te permitan la profundidad sin caer en la rutina. Combina tus ideas abstractas con pasos prácticos y concretos. Define objetivos a medio plazo."
-        elif puntaje <= 40:
+        elif nivel == "**Bajo**":
             fortalezas_text = "Eres práctico/a, realista y tienes los pies bien puestos en la tierra. Prefieres lo conocido y probado, lo que te brinda estabilidad y predictibilidad en tu vida. **Eres fiable en tu juicio y valoras la experiencia demostrada**."
             debilidades_text = "Tiendes a ser resistente al cambio y puedes tener dificultades para adaptarte a ideas muy abstractas o poco convencionales. Tu creatividad puede estar limitada por el deseo de mantener la rutina y la tradición."
             oportunidades_text = "Busca pequeñas y seguras oportunidades para salir de tu zona de confort, como probar un nuevo hobby o leer sobre un tema totalmente ajeno a tus intereses habituales. La variedad puede enriquecer tu vida sin desestabilizarla. Expande tus horizontes intelectuales de forma gradual."
@@ -427,6 +430,7 @@ def interpretar_puntaje(categoria, puntaje):
             debilidades_text = "Tu apertura se limita a áreas específicas. Puedes ser reacio/a a probar cosas fuera de tu esfera de confort intelectual o práctico, lo que limita el crecimiento en áreas no familiares."
             oportunidades_text = "Evalúa dónde te estás limitando innecesariamente. Usa tu curiosidad moderada para explorar áreas de cambio que te brinden un claro beneficio o crecimiento personal. Busca activamente la perspectiva de otros."
             
+    # Devolvemos solo el descriptor del nivel (ej: "**Alto**") y los textos de análisis
     return nivel, fortalezas_text, debilidades_text, oportunidades_text
 
 
@@ -581,9 +585,9 @@ else:
     
     # Calcular el Nivel General (a modo de ejemplo, basado en el promedio)
     porcentaje_global = round((total_puntaje_bruto / total_puntaje_maximo) * 100)
-    if porcentaje_global >= 75: nivel_general = "Alto"
-    elif porcentaje_global <= 40: nivel_general = "Bajo"
-    else: nivel_general = "Moderado"
+    if porcentaje_global >= 75: nivel_general = "**Alto**"
+    elif porcentaje_global <= 40: nivel_general = "**Bajo**"
+    else: nivel_general = "**Moderado**"
 
 
     resultados_finales = {}
@@ -644,18 +648,18 @@ else:
         puntaje_obtenido = data['obtenido']
         puntaje_maximo = data['maximo']
         
-        nivel_texto, fortalezas_text, debilidades_text, oportunidades_text = interpretar_puntaje(categoria, porcentaje)
-        nivel_general_cat = nivel_texto.split(' ')[1] # Alto, Bajo, Moderado
+        # 'nivel_descriptor' ya contiene el valor en negritas (ej: **Alto**)
+        nivel_descriptor, fortalezas_text, debilidades_text, oportunidades_text = interpretar_puntaje(categoria, porcentaje)
         
         # Rotamos entre las dos columnas
         with cols_analysis[col_idx % 2]:
-            # Llamamos a la función que usa componentes nativos de Streamlit
+            # Llamamos a la función con el descriptor corregido
             generar_analisis_componente(
                 categoria, 
                 porcentaje, 
                 puntaje_obtenido, 
                 puntaje_maximo, 
-                nivel_general_cat, 
+                nivel_descriptor, 
                 fortalezas_text, 
                 debilidades_text, 
                 oportunidades_text
@@ -698,6 +702,7 @@ else:
 # 4. FOOTER (Se muestra en todas las páginas)
 # Llama al footer fijo con los datos globales
 if st.session_state.test_completed:
+    # Pasamos el nivel general (ej: **Moderado**) para que se muestre correctamente en el footer
     display_footer("José Ignacio Taj-Taj", total_puntaje_bruto, total_puntaje_maximo, nivel_general)
 else:
     # Footer simple si el test no ha finalizado
