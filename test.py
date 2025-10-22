@@ -162,7 +162,7 @@ TOTAL_PREGUNTAS = sum(len(v) for v in preguntas_test.values())
 # FIX NameError: Se define total_puntaje_maximo aquí para que esté disponible en el footer
 total_puntaje_maximo = TOTAL_PREGUNTAS * 4
 
-# --- ESTILOS CSS (SOLO PARA ESTÉTICA GENERAL Y FOOTER FIJO) ---
+# --- ESTILOS CSS ---
 def cargar_css():
     st.markdown("""
     <style>
@@ -202,7 +202,7 @@ def cargar_css():
             min-height: 150px;
         }
 
-        /* --- ESTILO DEL FOOTER FIJO (NUEVO) --- */
+        /* --- ESTILO DEL FOOTER FIJO --- */
         .app-footer {
             position: fixed;
             bottom: 0;
@@ -217,11 +217,11 @@ def cargar_css():
             z-index: 100;
         }
         
-        /* --- ESTILO PARA LA PANTALLA DE INICIO (NUEVO) --- */
+        /* --- ESTILO PARA LA PANTALLA DE INICIO (ACCESIBILIDAD) --- */
         
         /* Título Principal Animado */
         .animated-title {
-            font-size: 3.2em;
+            font-size: 3.5em; /* Aumentado */
             font-weight: 900;
             color: #4C1D95; /* Morado Oscuro */
             text-align: center;
@@ -246,16 +246,24 @@ def cargar_css():
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
         }
         
+        /* Texto de introducción AUMENTADO para accesibilidad */
         .welcome-intro {
-            font-size: 1.1em;
-            line-height: 1.7;
-            color: #374151;
+            font-size: 1.5em; 
+            line-height: 1.8;
+            color: #1F2937; /* Color oscuro para alto contraste */
         }
         
-        /* Estilo para la lista de factores */
+        /* Estilo para la lista de factores AUMENTADO para accesibilidad */
         .factor-list li {
-            margin-bottom: 8px;
-            font-size: 1.05em;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            font-weight: 600;
+        }
+        
+        .stSubheader {
+            font-size: 1.8em; /* Aumentado */
+            font-weight: 700;
+            color: #1E3A8A;
         }
     </style>
     """, unsafe_allow_html=True)
@@ -504,7 +512,7 @@ if st.session_state.should_scroll:
     forzar_scroll_al_top(idx)
     st.session_state.should_scroll = False
 
-# --- PANTALLA DE INICIO (REDESIGNADA con animación) ---
+# --- PANTALLA DE INICIO (ACCESIBLE Y CON TÍTULO ANIMADO) ---
 if not st.session_state.test_started:
     
     # Título Animado y Llamativo
@@ -512,41 +520,40 @@ if not st.session_state.test_started:
     
     st.markdown("---")
     
-    col_intro, col_image = st.columns([3, 2])
+    # Usamos un solo contenedor ya que la imagen fue eliminada
+    st.container()
     
-    with col_intro:
-        st.markdown('<div class="welcome-card">', unsafe_allow_html=True)
-        st.subheader("¡Bienvenido/a al Viaje del Auto-Descubrimiento!")
-        
-        st.markdown("""
-        <p class="welcome-intro">
-        Este cuestionario es tu herramienta para explorar tu personalidad según el **Modelo de los Cinco Grandes Factores (Big Five)**, la referencia más sólida y aceptada en la psicología moderna. Conocer estos factores te ofrece una base científica para entender tu comportamiento, tus motivaciones y tu interacción con el mundo.
-        </p>
-        
-        <p class="welcome-intro" style="font-weight: bold;">
-        Dedica unos 10-15 minutos a responder **132 preguntas** con total honestidad.
-        </p>
-        
-        <h4 style="color: #1E3A8A; margin-top: 20px;">Las 5 Dimensiones que Explorarás:</h4>
-        <ul class="factor-list">
-            <li><span style="font-weight: bold; color: #3B82F6;">🧘 Estabilidad Emocional (Neuroticismo):</span> ¿Manejas bien el estrés o eres propenso/a a la ansiedad?</li>
-            <li><span style="font-weight: bold; color: #3B82F6;">🗣️ Extroversión:</span> ¿Buscas la compañía social o prefieres la tranquilidad a solas?</li>
-            <li><span style="font-weight: bold; color: #3B82F6;">🤝 Amabilidad:</span> ¿Eres cooperativo, empático y buscas la armonía?</li>
-            <li><span style="font-weight: bold; color: #3B82F6;">✅ Responsabilidad:</span> ¿Eres organizado, metódico y orientado a cumplir metas?</li>
-            <li><span style="font-weight: bold; color: #3B82F6;">✨ Apertura a la Experiencia:</span> ¿Eres creativo, curioso y abierto a nuevas ideas y culturas?</li>
-        </ul>
-        """, unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-    with col_image:
-        # Imagen representativa para un diseño profesional
-        st.image("https://placehold.co/400x400/1E3A8A/FFFFFF?text=Mapa+Mental", caption="Explora el mapa de tu personalidad [Image of brain map]", use_column_width=True)
-
+    # Contenedor de Bienvenida con estilos de accesibilidad (clases CSS aumentadas)
+    st.markdown('<div class="welcome-card">', unsafe_allow_html=True)
+    st.markdown('<h2 class="stSubheader">¡Bienvenido/a al Viaje del Auto-Descubrimiento!</h2>', unsafe_allow_html=True)
+    
+    st.markdown("""
+    <p class="welcome-intro">
+    Este cuestionario es tu herramienta para explorar tu personalidad según el **Modelo de los Cinco Grandes Factores (Big Five)**, la referencia más sólida y aceptada en la psicología moderna. Conocer estos factores te ofrece una base científica para entender tu comportamiento, tus motivaciones y tu interacción con el mundo.
+    </p>
+    
+    <p class="welcome-intro" style="font-weight: bold;">
+    Dedica unos 10-15 minutos a responder **132 preguntas** con total honestidad.
+    </p>
+    
+    <h4 style="color: #1E3A8A; margin-top: 25px; font-size: 1.5em; font-weight: 700;">Las 5 Dimensiones que Explorarás:</h4>
+    <ul class="factor-list">
+        <li><span style="font-weight: bold; color: #3B82F6;">🧘 Estabilidad Emocional (Neuroticismo):</span> ¿Manejas bien el estrés o eres propenso/a a la ansiedad?</li>
+        <li><span style="font-weight: bold; color: #3B82F6;">🗣️ Extroversión:</span> ¿Buscas la compañía social o prefieres la tranquilidad a solas?</li>
+        <li><span style="font-weight: bold; color: #3B82F6;">🤝 Amabilidad:</span> ¿Eres cooperativo, empático y buscas la armonía?</li>
+        <li><span style="font-weight: bold; color: #3B82F6;">✅ Responsabilidad:</span> ¿Eres organizado, metódico y orientado a cumplir metas?</li>
+        <li><span style="font-weight: bold; color: #3B82F6;">✨ Apertura a la Experiencia:</span> ¿Eres creativo, curioso y abierto a nuevas ideas y culturas?</li>
+    </ul>
+    """, unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+    
     st.markdown("<br>", unsafe_allow_html=True)
     
+    # Botones centrados con mejor distribución
     col_start1, col_start2, col_start3 = st.columns([1.5, 0.5, 1.5])
     
     with col_start1:
+        # Botón principal, grande y visible
         if st.button("🚀 Comenzar el Test Ahora", key="start_button", use_container_width=True):
             st.session_state.test_started = True
             st.session_state.start_time = time.time()
@@ -554,6 +561,7 @@ if not st.session_state.test_started:
 
     with col_start3:
         st.markdown('<div class="random-complete">', unsafe_allow_html=True) 
+        # Botón demo
         if st.button("🎲 Completar al Azar (Ver Demo Rápida)", key="random_button", use_container_width=True):
             completar_al_azar()
         st.markdown('</div>', unsafe_allow_html=True) 
@@ -776,3 +784,4 @@ if st.session_state.test_completed:
     display_footer("José Ignacio Taj-Taj", total_puntaje_bruto, total_puntaje_maximo, nivel_general)
 else:
     display_footer("José Ignacio Taj-Taj", 0, total_puntaje_maximo, "No disponible")
+
