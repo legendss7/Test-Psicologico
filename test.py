@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import time
 from io import BytesIO
-import random # Necesario para la función de completar al azar
+import random 
 
 # --- CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(
@@ -13,8 +13,7 @@ st.set_page_config(
 )
 
 # --- DATOS DEL TEST ---
-# Se incluyen las 132 preguntas divididas en 5 categorías para un perfil más completo.
-# Cada pregunta tiene un puntaje directo (1-4).
+# Se incluyen las 132 preguntas divididas en 5 categorías.
 preguntas_test = {
     "Estabilidad Emocional": [
         "Me mantengo tranquilo/a en situaciones de alta presión.",
@@ -177,22 +176,11 @@ def cargar_css():
     st.markdown("""
     <style>
         /* Estilo general */
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-
-        /* Contenedor principal del test */
-        .stApp {
-            background-color: #f0f2f6;
-        }
+        body { font-family: 'Inter', sans-serif; }
+        .stApp { background-color: #f0f2f6; }
+        h1, h2, h3 { font-weight: 700; color: #1E3A8A; } /* Azul oscuro */
         
-        /* Títulos y textos */
-        h1, h2, h3 {
-            font-weight: 700;
-            color: #1E3A8A; /* Azul oscuro */
-        }
-        
-        /* Botones */
+        /* Botones generales */
         .stButton>button {
             border-radius: 20px;
             border: 2px solid #1E3A8A;
@@ -202,27 +190,17 @@ def cargar_css():
             font-weight: bold;
             transition: all 0.3s ease;
         }
-        .stButton>button:hover {
-            background-color: #1E3A8A;
-            color: white;
-            border-color: #1E3A8A;
-        }
-        .stButton>button:focus {
-            box-shadow: 0 0 0 3px #93C5FD;
-            outline: none;
-        }
+        .stButton>button:hover { background-color: #1E3A8A; color: white; border-color: #1E3A8A; }
+
         /* Estilo para el botón de completar al azar (destacado) */
         .stButton.random-complete>button {
             background-color: #FBBF24; /* Amarillo */
             color: #1E3A8A;
             border-color: #D97706;
         }
-        .stButton.random-complete>button:hover {
-            background-color: #F59E0B;
-            color: white;
-        }
+        .stButton.random-complete>button:hover { background-color: #F59E0B; color: white; }
 
-        /* Botones de opción seleccionados */
+        /* Botones de opción seleccionados (Radio buttons) */
         div[data-testid="stRadio"] label {
             display: block;
             margin-bottom: 10px;
@@ -233,19 +211,11 @@ def cargar_css():
             cursor: pointer;
             transition: all 0.2s ease-in-out;
         }
-        div[data-testid="stRadio"] label:hover {
-            background-color: #EFF6FF;
-            border-color: #3B82F6;
-        }
-        /* Ocultar el radio button nativo */
-        div[data-testid="stRadio"] input {
-            display: none;
-        }
+        div[data-testid="stRadio"] label:hover { background-color: #EFF6FF; border-color: #3B82F6; }
+        div[data-testid="stRadio"] input { display: none; }
         
         /* Barra de progreso */
-        .stProgress > div > div > div > div {
-            background-color: #3B82F6; /* Azul brillante */
-        }
+        .stProgress > div > div > div > div { background-color: #3B82F6; }
 
         /* Estilo para las tarjetas de puntaje */
         .score-card {
@@ -256,17 +226,8 @@ def cargar_css():
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
             min-height: 150px;
         }
-        .score-card h3 {
-            margin-bottom: 5px;
-            color: #3B82F6;
-            font-size: 1.1em;
-        }
-        .score-card p {
-            font-size: 2.5em;
-            font-weight: bold;
-            color: #1E3A8A;
-            margin: 0;
-        }
+        .score-card h3 { margin-bottom: 5px; color: #3B82F6; font-size: 1.1em; }
+        .score-card p { font-size: 2.5em; font-weight: bold; color: #1E3A8A; margin: 0; }
 
         /* Estilo para tarjetas de resultados detallados */
         .result-detail-card {
@@ -277,23 +238,12 @@ def cargar_css():
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         
-        /* Color para Fortalezas */
+        /* Color para Fortalezas, Debilidades, Oportunidades */
         .fortalezas { border-left: 5px solid #10B981; }
-        /* Color para Debilidades */
         .debilidades { border-left: 5px solid #EF4444; }
-        /* Color para Oportunidades */
         .oportunidades { border-left: 5px solid #3B82F6; }
-
-        .result-detail-card h3 {
-            margin-top: 0;
-            font-size: 1.5em;
-        }
-        .result-detail-card h4 {
-            margin-top: 10px;
-            margin-bottom: 5px;
-            font-size: 1.1em;
-            color: #1E3A8A;
-        }
+        .result-detail-card h3 { margin-top: 0; font-size: 1.5em; }
+        .result-detail-card p { font-size: 0.9em; line-height: 1.5; }
 
     </style>
     """, unsafe_allow_html=True)
@@ -302,20 +252,16 @@ def cargar_css():
 
 # Función MAXIMAMENTE FORZADA para el scroll al top
 def forzar_scroll_al_top(idx):
-    # Código JavaScript para forzar el scroll al inicio de la página
     js_code = f"""
         <script>
-            // Forzar el scroll tras un retardo largo (250ms) para que el contenido se renderice
+            // Forzar el scroll tras un retardo
             setTimeout(function() {{
                 var topAnchor = window.parent.document.getElementById('top-anchor');
                 
                 if (topAnchor) {{
-                    // Usar scrollIntoView en el ancla oculta (la más fiable)
                     topAnchor.scrollIntoView({{ behavior: 'auto', block: 'start' }});
                 }} else {{
-                    // Opciones de fallback 
                     window.parent.scrollTo({{ top: 0, behavior: 'auto' }});
-                    
                     var mainContent = window.parent.document.querySelector('[data-testid="stAppViewContainer"]');
                     if (mainContent) {{
                         mainContent.scrollTo({{ top: 0, behavior: 'auto' }});
@@ -329,19 +275,14 @@ def forzar_scroll_al_top(idx):
 
 # Función para inicializar el estado de la sesión
 def inicializar_estado():
-    if 'current_question' not in st.session_state:
-        st.session_state.current_question = 0
-    if 'answers' not in st.session_state:
-        st.session_state.answers = {}
-    if 'test_started' not in st.session_state:
-        st.session_state.test_started = False
-    if 'test_completed' not in st.session_state:
-        st.session_state.test_completed = False
-    if 'start_time' not in st.session_state:
-        st.session_state.start_time = 0
-    # Bandera para controlar el desplazamiento
-    if 'should_scroll' not in st.session_state:
-        st.session_state.should_scroll = False
+    if 'current_question' not in st.session_state: st.session_state.current_question = 0
+    if 'answers' not in st.session_state: st.session_state.answers = {}
+    if 'test_started' not in st.session_state: st.session_state.test_started = False
+    if 'test_completed' not in st.session_state: st.session_state.test_completed = False
+    if 'start_time' not in st.session_state: st.session_state.start_time = 0
+    if 'should_scroll' not in st.session_state: st.session_state.should_scroll = False
+    # Nueva bandera para la advertencia de reinicio (soluciona el bug del botón)
+    if 'show_restart_warning' not in st.session_state: st.session_state.show_restart_warning = False
 
 # Función para reiniciar el test y volver a la pantalla de inicio
 def volver_a_inicio():
@@ -351,44 +292,36 @@ def volver_a_inicio():
     st.session_state.test_completed = False
     st.session_state.start_time = 0
     st.session_state.should_scroll = False
+    st.session_state.show_restart_warning = False # Limpiar la bandera
     st.rerun()
 
-# Función para completar el test al azar (NUEVA FUNCIÓN)
+# Función para completar el test al azar
 def completar_al_azar():
-    # Reiniciar el estado por si acaso ya había respuestas a medias
     st.session_state.answers = {} 
-    st.session_state.start_time = time.time() # Usar el tiempo actual
+    st.session_state.start_time = time.time()
 
     for idx, pregunta_data in enumerate(todas_las_preguntas):
-        # Seleccionar una opción al azar
         opciones = pregunta_data['opciones']
         puntajes = pregunta_data['puntajes']
-        
-        # Elegir un índice aleatorio (0, 1, 2, o 3)
         random_index = random.randint(0, len(opciones) - 1)
         
-        respuesta_elegida = opciones[random_index]
-        puntaje_elegido = puntajes[random_index]
-
-        # Almacenar la respuesta
         st.session_state.answers[idx] = {
             "pregunta": pregunta_data['pregunta'],
             "categoria": pregunta_data['categoria'],
-            "respuesta": respuesta_elegida,
-            "puntaje": puntaje_elegido
+            "respuesta": opciones[random_index],
+            "puntaje": puntajes[random_index]
         }
         
-    # Cambiar al estado de completado
     st.session_state.test_started = True
     st.session_state.test_completed = True
     st.rerun()
 
-# Función para convertir DataFrame a Excel con resumen (ACTUALIZADA)
+# Función para convertir DataFrame a Excel con resumen (CORREGIDA)
 @st.cache_data
 def to_excel_with_summary(df_raw, df_summary):
     output = BytesIO()
-    # Usamos el motor xlsxwriter para crear múltiples hojas ordenadas
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+    # Se eliminó 'engine="xlsxwriter"' para evitar el error de librería faltante.
+    with pd.ExcelWriter(output) as writer:
         # Hoja 1: Respuestas Detalladas
         df_raw.to_excel(writer, sheet_name='Respuestas_Detalladas', index=False)
         
@@ -398,40 +331,32 @@ def to_excel_with_summary(df_raw, df_summary):
     processed_data = output.getvalue()
     return processed_data
 
-# --- INTERPRETACIÓN DE RESULTADOS DETALLADA (MODIFICADA) ---
+# --- INTERPRETACIÓN DE RESULTADOS DETALLADA ---
 def interpretar_puntaje(categoria, puntaje):
     # Interpretación basada en el puntaje porcentual (Normalizado 0-100)
     
-    # 1. Títulos de nivel de puntaje
     nivel = ""
-    if puntaje >= 75:
-        nivel = "Puntaje **Alto**"
-    elif puntaje <= 40:
-        nivel = "Puntaje **Bajo**"
-    else:
-        nivel = "Puntaje **Moderado**"
+    if puntaje >= 75: nivel = "Puntaje **Alto**"
+    elif puntaje <= 40: nivel = "Puntaje **Bajo**"
+    else: nivel = "Puntaje **Moderado**"
 
-    # 2. Generación de textos detallados
-    fortalezas_text = ""
-    debilidades_text = ""
-    oportunidades_text = ""
+    fortalezas_text, debilidades_text, oportunidades_text = "", "", ""
     
-    # ESTABILIDAD EMOCIONAL (NEUROTICISMO INVERSO)
+    # Textos detallados por categoría
     if categoria == "Estabilidad Emocional":
         if puntaje >= 75: 
             fortalezas_text = "Muestras una notable calma y resiliencia. Eres capaz de manejar el estrés sin que te abrume, mantienes un estado de ánimo equilibrado y te recuperas rápidamente de los contratiempos. Tu serenidad es una fuente de fortaleza en entornos volátiles."
             debilidades_text = "En ocasiones, tu alta estabilidad puede llevarte a subestimar la seriedad de algunas situaciones estresantes o a parecer menos empático/a con la preocupación ajena."
-            oportunidades_text = "Continúa practicando técnicas de manejo del estrés preventivo, como la atención plena, y asegúrate de que tu confianza no te haga descuidar la planificación de riesgos emocionales."
+            oportunidades_text = "Continúa practicando técnicas de manejo del estrés preventivo y asegúrate de que tu confianza no te haga descuidar la planificación de riesgos emocionales."
         elif puntaje <= 40:
             fortalezas_text = "Tienes una gran capacidad para sentir y procesar emociones profundas, lo que te hace sensible y perceptivo/a a las sutilezas de tu entorno."
-            debilidades_text = "Tiendes a experimentar altos niveles de ansiedad, preocupación o inestabilidad emocional. El estrés te afecta profundamente, dificultando la toma de decisiones clara bajo presión. Eres propenso/a a cambios de humor y te cuesta recuperarte de las decepciones."
+            debilidades_text = "Tiendes a experimentar altos niveles de ansiedad, preocupación o inestabilidad emocional. El estrés te afecta profundamente, dificultando la toma de decisiones clara bajo presión."
             oportunidades_text = "El foco principal es desarrollar estrategias de regulación emocional, como la meditación o la reestructuración cognitiva. Busca apoyo en momentos de alta tensión para evitar el agotamiento."
         else: 
             fortalezas_text = "Generalmente mantienes la compostura, pero eres consciente de tus límites emocionales. Tienes momentos de calma y momentos de sensibilidad, lo que te permite ser flexible."
             debilidades_text = "Puedes ser susceptible al estrés en momentos clave. La presión prolongada puede erosionar tu equilibrio, y a veces tardas en 'volver a la normalidad' después de un evento negativo."
             oportunidades_text = "Identifica las fuentes específicas de tu estrés y trabaja en límites personales más firmes. Busca un equilibrio entre el control emocional y la expresión sana de tus sentimientos."
     
-    # EXTROVERSIÓN
     elif categoria == "Extroversión":
         if puntaje >= 75: 
             fortalezas_text = "Eres el alma de la fiesta; enérgico/a, sociable y entusiasta. Disfrutas de la interacción, te expresas abiertamente y buscas activamente la compañía. Esto te hace un líder nato y un excelente networker."
@@ -446,7 +371,6 @@ def interpretar_puntaje(categoria, puntaje):
             debilidades_text = "A veces, la necesidad de equilibrio puede hacer que dudes entre la acción y la reflexión, o que te sientas indeciso/a sobre aceptar invitaciones sociales."
             oportunidades_text = "Sé consciente de tus niveles de energía en cada momento y aprende a comunicar tus necesidades de socialización o de aislamiento sin sentir culpa."
 
-    # AMABILIDAD
     elif categoria == "Amabilidad":
         if puntaje >= 75: 
             fortalezas_text = "Eres una persona empática, bondadosa, cooperativa y de buen corazón. Tu deseo de ayudar y mantener la armonía es muy alto, y eres muy valorado/a por tu paciencia y compasión."
@@ -461,7 +385,6 @@ def interpretar_puntaje(categoria, puntaje):
             debilidades_text = "Puedes fluctuar entre ser demasiado complaciente en algunas situaciones y demasiado crítico/a en otras. Tu nivel de amabilidad depende mucho de la persona y el contexto."
             oportunidades_text = "Busca la coherencia en tus relaciones. Esfuérzate por mantener un nivel constante de respeto y cooperación, independientemente de tu opinión sobre la otra persona."
 
-    # RESPONSABILIDAD
     elif categoria == "Responsabilidad":
         if puntaje >= 75: 
             fortalezas_text = "Eres altamente organizado/a, fiable y orientado/a a objetivos. Tu diligencia, disciplina y ética de trabajo te convierten en una persona de total confianza y en un motor de productividad."
@@ -476,7 +399,6 @@ def interpretar_puntaje(categoria, puntaje):
             debilidades_text = "Tu nivel de organización puede variar significativamente, siendo muy riguroso/a en unas áreas y despreocupado/a en otras. Esto puede generar inconsistencia."
             oportunidades_text = "Identifica las áreas de tu vida donde la responsabilidad tiene mayor impacto (trabajo, finanzas) y aplica conscientemente tus habilidades organizativas a ellas, manteniendo la flexibilidad en áreas de ocio."
 
-    # APERTURA A LA EXPERIENCIA
     elif categoria == "Apertura a la Experiencia":
         if puntaje >= 75: 
             fortalezas_text = "Eres altamente creativo/a, intelectualmente curioso/a y posees una imaginación vívida. Disfrutas explorando nuevas ideas, artes y culturas, y te adaptas con facilidad a los cambios."
@@ -491,9 +413,7 @@ def interpretar_puntaje(categoria, puntaje):
             debilidades_text = "Tu apertura se limita a áreas específicas. Puedes ser reacio/a a probar cosas fuera de tu esfera de confort intelectual o práctico."
             oportunidades_text = "Evalúa dónde te estás limitando innecesariamente. Usa tu curiosidad moderada para explorar áreas de cambio que te brinden un claro beneficio o crecimiento personal."
             
-    # 3. Formatear la salida
-    
-    # Unir el nivel de puntaje con los textos
+    # Formatear la salida
     fortaleza = f"**{categoria} ({nivel}):** {fortalezas_text}"
     debilidad = f"**{categoria} ({nivel}):** {debilidades_text}"
     oportunidad = f"**{categoria} ({nivel}):** {oportunidades_text}"
@@ -501,7 +421,7 @@ def interpretar_puntaje(categoria, puntaje):
     return fortaleza, debilidad, oportunidad
 
 
-# --- LÓGICA DE LA APLICACIÓN ---
+# --- LÓGICA PRINCIPAL ---
 
 # 1. Cargar estilos y estado
 cargar_css()
@@ -522,13 +442,11 @@ if st.session_state.should_scroll:
 if not st.session_state.test_started:
     st.title("🧠 Test Psicológico de Personalidad")
     st.markdown("""
-    Bienvenido/a a este test de personalidad. A través de **132 preguntas**, exploraremos cinco grandes dimensiones de tu carácter.
+    Bienvenido/a a este test de personalidad. Exploraremos las **cinco grandes dimensiones** de tu carácter (**132 preguntas**).
     
     - **No hay respuestas correctas o incorrectas.**
     - **Responde con sinceridad** para obtener el perfil más preciso.
     - El test tomará aproximadamente **15-20 minutos**.
-    
-    Al finalizar, recibirás un resumen detallado de tu perfil, incluyendo fortalezas, áreas a mejorar y oportunidades de crecimiento.
     """)
     
     st.markdown("---")
@@ -541,12 +459,11 @@ if not st.session_state.test_started:
             st.session_state.start_time = time.time()
             st.rerun()
 
-    # NUEVO BOTÓN: COMPLETAR AL AZAR
     with col_start2:
-        st.markdown('<div class="random-complete">', unsafe_allow_html=True) # Usar la clase CSS para el estilo
+        st.markdown('<div class="random-complete">', unsafe_allow_html=True) 
         if st.button("🎲 Completar al Azar (Demo)", key="random_button"):
             completar_al_azar()
-        st.markdown('</div>', unsafe_allow_html=True) # Cerrar el div
+        st.markdown('</div>', unsafe_allow_html=True) 
 
 # --- PANTALLA DEL TEST ---
 elif not st.session_state.test_completed:
@@ -559,21 +476,19 @@ elif not st.session_state.test_completed:
 
     st.markdown(f"### {pregunta_actual['pregunta']}")
 
-    # Opciones de respuesta
-    # Intentar cargar la respuesta previamente guardada
+    # Obtener respuesta guardada (si existe)
     current_answer_index = None
     if idx in st.session_state.answers:
         try:
             current_answer_text = st.session_state.answers[idx]['respuesta']
-            # Obtener el índice de la opción guardada
             current_answer_index = pregunta_actual['opciones'].index(current_answer_text)
         except ValueError:
-            current_answer_index = None # Si la respuesta guardada no está en opciones, no seleccionar nada
+            current_answer_index = None
 
     respuesta = st.radio(
         "Selecciona tu respuesta:",
         options=pregunta_actual['opciones'],
-        index=current_answer_index, # Usar la respuesta guardada
+        index=current_answer_index,
         key=f"q_{idx}"
     )
 
@@ -588,35 +503,30 @@ elif not st.session_state.test_completed:
     
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Navegación
+    # Navegación y Botón de Inicio (Corregido)
     col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
 
     with col1:
-        # BOTÓN: VOLVER A INICIO (con advertencia si hay respuestas)
-        if st.button("🏠 Inicio"):
-            # Usamos un truco con un botón extra para la confirmación
-            if len(st.session_state.answers) > 0 and not st.session_state.get('confirm_restart', False):
-                 # Mensaje de advertencia
-                st.warning("⚠️ Perderás tu progreso. Confirma si deseas volver a la pantalla de inicio.")
-                if st.button("Sí, Volver a Inicio", key="confirm_home_action"):
-                    volver_a_inicio()
+        # Lógica para el botón de Inicio (Usa la nueva bandera show_restart_warning)
+        if st.button("🏠 Inicio", key="home_button_test"):
+            if len(st.session_state.answers) > 0:
+                st.session_state.show_restart_warning = True
             else:
-                 volver_a_inicio() # Si no hay respuestas o ya confirmó, va directo
+                volver_a_inicio()
 
     with col2:
         if idx > 0:
             if st.button("⬅️ Anterior"):
                 st.session_state.current_question -= 1
-                st.session_state.should_scroll = True # Establece la bandera de scroll
+                st.session_state.should_scroll = True
                 st.rerun()
 
     with col4:
-        # Validar que se haya respondido
         if idx in st.session_state.answers:
             if idx < TOTAL_PREGUNTAS - 1:
                 if st.button("Siguiente ➡️"):
                     st.session_state.current_question += 1
-                    st.session_state.should_scroll = True # Establece la bandera de scroll
+                    st.session_state.should_scroll = True
                     st.rerun()
             else:
                 if st.button("🎉 Finalizar Test"):
@@ -624,6 +534,19 @@ elif not st.session_state.test_completed:
                     st.rerun()
         else:
             st.warning("Por favor, selecciona una respuesta para continuar.")
+            
+    # --- CONFIRMACIÓN DE REINICIO (Fuera de las columnas para mejor manejo) ---
+    if st.session_state.get('show_restart_warning', False):
+        st.error("⚠️ Advertencia: Perderás **TODO** tu progreso actual. ¿Estás seguro/a que deseas volver al inicio?")
+        
+        col_conf1, col_conf2, _ = st.columns([1, 1, 2])
+        with col_conf1:
+            if st.button("Sí, volver", key="confirm_restart_yes"):
+                volver_a_inicio()
+        with col_conf2:
+            if st.button("No, seguir en el test", key="confirm_restart_no"):
+                st.session_state.show_restart_warning = False
+                st.rerun() # Limpia la advertencia
 
 
 # --- PANTALLA DE RESULTADOS ---
@@ -632,7 +555,6 @@ else:
     st.title("✅ ¡Test Completado! Aquí está tu Perfil de Personalidad")
     
     end_time = time.time()
-    # Calcular tiempo
     if abs(end_time - st.session_state.start_time) < 1:
         st.info("Resultado generado por la opción **Completar al Azar (Demo)**.")
     else:
@@ -641,7 +563,7 @@ else:
 
     # --- CÁLCULO DE RESULTADOS ---
     puntajes_por_categoria = {cat: [] for cat in preguntas_test.keys()}
-    for idx_res, data in st.session_state.answers.items():
+    for data in st.session_state.answers.values():
         puntajes_por_categoria[data['categoria']].append(data['puntaje'])
 
     resultados_finales = {}
@@ -649,21 +571,17 @@ else:
         total_preguntas_cat = len(preguntas_test[categoria])
         puntaje_max_cat = total_preguntas_cat * 4
         puntaje_obtenido = sum(puntajes)
-        # Normalizar el puntaje a una escala de 100 para facilitar la interpretación
         porcentaje = round((puntaje_obtenido / puntaje_max_cat) * 100)
         resultados_finales[categoria] = porcentaje
 
-    # --- PUNTUACIONES FINALES (REEMPLAZANDO EL GRÁFICO) ---
+    # --- PUNTUACIONES FINALES ---
     st.markdown("---")
     st.header("🎯 Tus Puntajes Finales por Dimensión")
     st.markdown("""
     Tu perfil se basa en el modelo de los **Cinco Grandes Factores (Big Five)**, donde cada dimensión se puntúa de 0% (muy bajo) a 100% (muy alto).
     """)
 
-    # Display scores using columns/metrics
     col_scores = st.columns(5)
-    
-    # Mapping para íconos
     icon_map = {
         "Estabilidad Emocional": "🧘",
         "Extroversión": "🗣️",
@@ -673,7 +591,6 @@ else:
     }
 
     for i, (cat, score) in enumerate(resultados_finales.items()):
-        # Usar HTML con la clase score-card para un mejor estilo
         with col_scores[i]:
             st.markdown(f"""
             <div class="score-card">
@@ -685,25 +602,20 @@ else:
     st.markdown("---")
     st.header("💡 Análisis Detallado de tu Perfil")
 
-    fortalezas_list = []
-    debilidades_list = []
-    oportunidades_list = []
+    fortalezas_list, debilidades_list, oportunidades_list = [], [], []
     
-    # Generar todas las interpretaciones
     for cat, score in resultados_finales.items():
         f, d, o = interpretar_puntaje(cat, score)
         if f: fortalezas_list.append(f)
         if d: debilidades_list.append(d)
         if o: oportunidades_list.append(o)
         
-    # Mostrar la interpretación en 3 columnas
     col_int1, col_int2, col_int3 = st.columns(3)
 
     with col_int1:
         st.markdown('<div class="result-detail-card fortalezas"><h3>🌟 Fortalezas Clave</h3></div>', unsafe_allow_html=True)
         if fortalezas_list:
             for item in fortalezas_list:
-                # Separar el título del texto
                 titulo, texto = item.split(':', 1)
                 st.markdown(f"**{titulo.strip()}**")
                 st.markdown(f"<p style='margin-left: 10px; border-left: 2px solid #D1D5DB; padding-left: 8px;'>{texto.strip()}</p>", unsafe_allow_html=True)
@@ -732,14 +644,20 @@ else:
             
     st.markdown("---")
     
-    # --- DESCARGA DE RESULTADOS (MEJORADA) ---
+    # --- DESCARGA DE RESULTADOS (CORREGIDA Y ORDENADA) ---
     with st.expander("📥 Descargar tus respuestas y resultados detallados"):
         # Preparar DataFrame de respuestas
         df_export = pd.DataFrame(list(st.session_state.answers.values()))
-        st.dataframe(df_export.head()) # Mostrar solo una vista previa
+        st.dataframe(df_export.head()) 
         
-        # Preparar DataFrame de Resumen (para el Excel)
-        df_resumen_final = pd.DataFrame(list(resultados_finales.items()), columns=['Dimensión', 'Puntaje_Porcentaje'])
+        # Preparar DataFrame de Resumen
+        # Aseguramos el orden de las categorías para el Excel final
+        orden_categorias = list(preguntas_test.keys())
+        resumen_data = {
+            'Dimensión': orden_categorias,
+            'Puntaje_Porcentaje': [resultados_finales[cat] for cat in orden_categorias]
+        }
+        df_resumen_final = pd.DataFrame(resumen_data)
         
         col_dl1, col_dl2 = st.columns(2)
         with col_dl1:
@@ -751,7 +669,6 @@ else:
                 mime='text/csv',
             )
         with col_dl2:
-            # Llamar a la función actualizada con ambas tablas
             excel_data = to_excel_with_summary(df_export, df_resumen_final)
             st.download_button(
                 label="Descargar Resultados Completos (Excel)",
@@ -760,7 +677,7 @@ else:
                 mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             )
 
-    # --- REINICIAR TEST Y VOLVER A INICIO ---
+    # --- REINICIAR TEST Y VOLVER A INICIO (Funciona siempre) ---
     st.markdown("---")
     if st.button("🔄 Volver a la pantalla de bienvenida"):
         volver_a_inicio()
