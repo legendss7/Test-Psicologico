@@ -176,7 +176,11 @@ def cargar_css():
     st.markdown("""
     <style>
         /* Estilo general */
-        body { font-family: 'Inter', sans-serif; }
+        html, body { 
+            font-family: 'Inter', sans-serif; 
+            margin: 0;
+            padding: 0;
+        }
         .stApp { background-color: #f0f2f6; }
         h1, h2, h3 { font-weight: 700; color: #1E3A8A; } /* Azul oscuro */
         
@@ -229,14 +233,14 @@ def cargar_css():
         .score-card h3 { margin-bottom: 5px; color: #3B82F6; font-size: 1.1em; }
         .score-card p { font-size: 2.5em; font-weight: bold; color: #1E3A8A; margin: 0; }
 
-        /* --- NUEVOS ESTILOS PARA EL ANÁLISIS DETALLADO --- */
+        /* --- ESTILOS PARA EL ANÁLISIS DETALLADO --- */
         .category-analysis-card {
             background-color: white;
             border-radius: 15px;
             padding: 20px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
             margin-bottom: 20px;
-            height: 100%; /* Asegura que la tarjeta se extienda */
+            height: 100%; 
             display: flex;
             flex-direction: column;
         }
@@ -267,10 +271,33 @@ def cargar_css():
             margin-bottom: 15px;
         }
 
+        /* --- ESTILO DEL FOOTER FIJO (NUEVO) --- */
+        .app-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #f0f2f6; /* Coincide con el fondo de la app */
+            padding: 10px 0;
+            text-align: center;
+            font-size: 0.85em;
+            color: #6B7280;
+            border-top: 1px solid #E5E7EB;
+            z-index: 100;
+        }
     </style>
     """, unsafe_allow_html=True)
 
 # --- FUNCIONES AUXILIARES ---
+
+# Función para añadir el footer al final de la página
+def display_footer(nombre):
+    st.markdown(f"""
+    <div class="app-footer">
+        Test creado por **{nombre}**
+    </div>
+    """, unsafe_allow_html=True)
+
 
 # Función MAXIMAMENTE FORZADA para el scroll al top
 def forzar_scroll_al_top(idx):
@@ -313,7 +340,7 @@ def volver_a_inicio():
     st.session_state.test_completed = False
     st.session_state.start_time = 0
     st.session_state.should_scroll = False
-    st.session_state.show_restart_warning = False # Limpiar la bandera
+    st.session_state.show_restart_warning = False
     st.rerun()
 
 # Función para completar el test al azar
@@ -337,7 +364,7 @@ def completar_al_azar():
     st.session_state.test_completed = True
     st.rerun()
 
-# Función para convertir DataFrame a Excel con resumen (CORREGIDA)
+# Función para convertir DataFrame a Excel con resumen
 @st.cache_data
 def to_excel_with_summary(df_raw, df_summary):
     output = BytesIO()
@@ -562,8 +589,7 @@ elif not st.session_state.test_completed:
         with col_conf2:
             if st.button("No, seguir en el test", key="confirm_restart_no"):
                 st.session_state.show_restart_warning = False
-                st.rerun() # Limpia la advertencia
-
+                st.rerun() 
 
 # --- PANTALLA DE RESULTADOS ---
 else:
@@ -645,19 +671,22 @@ else:
         # Rotamos entre las dos columnas
         with cols_analysis[col_idx % 2]:
             
-            # TODO EL CONTENIDO DINÁMICO Y ESTÁTICO (INCLUIDOS DIVS Y LÍNEAS) SE CONSOLIDA EN UN SOLO BLOQUE st.markdown
+            # TODO EL CONTENIDO DINÁMICO Y ESTÁTICO SE CONSOLIDA EN UN SOLO BLOQUE st.markdown
+            # Se han reforzado las etiquetas div y style para encapsular las líneas que generaban error.
             st.markdown(f"""
             <div class="category-analysis-card">
                 <h3 style="color: #4C1D95; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px; margin-bottom: 15px;">
                     {icon_map.get(categoria, '❓')} {categoria}
                 </h3>
                 <div class="score-percentage">{porcentaje}%</div>
-                <div class="score-detail">
-                    Puntaje Bruto: **{puntaje_obtenido}** de **{puntaje_maximo}** posibles.
-                </div>
-                <p style="font-weight: 500;">Nivel General: {nivel}</p>
                 
-                <!-- ESTA ES LA LÍNEA QUE FALLABA. Ahora está dentro del bloque grande. -->
+                <!-- REFUERZO DE ENCAPSULACIÓN PARA EVITAR EL ERROR DE TEXTO PLANO -->
+                <div style="margin-bottom: 15px;">
+                    <span class="score-detail">Puntaje Bruto: **{puntaje_obtenido}** de **{puntaje_maximo}** posibles.</span><br>
+                    <span style="font-weight: 500; font-size: 0.9em;">Nivel General: {nivel}</span>
+                </div>
+                <!-- FIN REFUERZO -->
+                
                 <div style="height:1px; background-color: #E5E7EB; margin: 15px 0;"></div>
                 
                 <div class="analysis-point point-fortaleza">
@@ -671,12 +700,12 @@ else:
                 <div class="analysis-point point-oportunidad">
                     <strong>🌱 Oportunidad:</strong> {oportunidades_text}
                 </div>
-            </div> <!-- Cierre del category-analysis-card -->
+            </div> 
             """, unsafe_allow_html=True)
             
         col_idx += 1
         
-    # --- DESCARGA DE RESULTADOS (CORREGIDA Y ORDENADA) ---
+    # --- DESCARGA DE RESULTADOS ---
     st.markdown("---")
     with st.expander("📥 Descargar tus resultados detallados (Excel)"):
         # Preparar DataFrame de respuestas
@@ -704,7 +733,11 @@ else:
                 mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             )
 
-    # --- REINICIAR TEST Y VOLVER A INICIO (Funciona siempre) ---
+    # --- REINICIAR TEST Y VOLVER A INICIO ---
     st.markdown("---")
     if st.button("🔄 Volver a la pantalla de bienvenida"):
         volver_a_inicio()
+
+
+# 4. FOOTER (Se muestra en todas las páginas)
+display_footer("José Ignacio Taj-Taj")
