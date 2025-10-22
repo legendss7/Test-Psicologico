@@ -258,7 +258,7 @@ def cargar_css():
             font-weight: 800;
             color: #4C1D95; /* Morado Oscuro */
             margin-top: 5px;
-            margin-bottom: 10px; /* Reducido para meter el detalle */
+            margin-bottom: 10px; 
         }
         .score-detail {
             font-size: 0.85em;
@@ -629,7 +629,7 @@ else:
     st.header("💡 Análisis Detallado de tu Perfil por Factor")
     st.markdown("Aquí se desglosa tu perfil, mostrando fortalezas, debilidades y oportunidades de crecimiento para cada una de las cinco dimensiones.")
 
-    # --- LÓGICA DE ANÁLISIS DETALLADO (Organizado con inyección HTML segura y detalle) ---
+    # --- LÓGICA DE ANÁLISIS DETALLADO (SOLUCIÓN AL FRAGMENTO HTML) ---
     
     # Usamos un grid de 2 columnas para el análisis detallado
     cols_analysis = st.columns(2)
@@ -645,7 +645,7 @@ else:
         # Rotamos entre las dos columnas
         with cols_analysis[col_idx % 2]:
             
-            # 1. Start the main card container, Header, Score, and Detail (TODO EN UN BLOQUE SEGURO)
+            # TODO EL CONTENIDO DINÁMICO Y ESTÁTICO (INCLUIDOS DIVS Y LÍNEAS) SE CONSOLIDA EN UN SOLO BLOQUE st.markdown
             st.markdown(f"""
             <div class="category-analysis-card">
                 <h3 style="color: #4C1D95; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px; margin-bottom: 15px;">
@@ -657,28 +657,21 @@ else:
                 </div>
                 <p style="font-weight: 500;">Nivel General: {nivel}</p>
                 
+                <!-- ESTA ES LA LÍNEA QUE FALLABA. Ahora está dentro del bloque grande. -->
                 <div style="height:1px; background-color: #E5E7EB; margin: 15px 0;"></div>
                 
                 <div class="analysis-point point-fortaleza">
                     <strong>💪 Fortaleza:</strong> {fortalezas_text}
                 </div>
-            """, unsafe_allow_html=True)
-            # El fix aquí fue incluir el separador y la primera sección de análisis en el primer st.markdown
-            # para reducir la fragmentación y obligar a Streamlit a interpretar la línea.
-
-            # 2. Inject DEBILIDAD (Separado)
-            st.markdown(f"""
+            
                 <div class="analysis-point point-debilidad">
                     <strong>🚩 Punto de Mejora:</strong> {debilidades_text}
                 </div>
-            """, unsafe_allow_html=True)
             
-            # 3. Inject OPORTUNIDAD (Separado, y cierra el contenedor principal)
-            st.markdown(f"""
                 <div class="analysis-point point-oportunidad">
                     <strong>🌱 Oportunidad:</strong> {oportunidades_text}
                 </div>
-            </div> <!-- Close category-analysis-card -->
+            </div> <!-- Cierre del category-analysis-card -->
             """, unsafe_allow_html=True)
             
         col_idx += 1
