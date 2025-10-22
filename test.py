@@ -336,7 +336,6 @@ def completar_al_azar():
 @st.cache_data
 def to_excel_with_summary(df_raw, df_summary):
     output = BytesIO()
-    # Se eliminó 'engine="xlsxwriter"' para evitar el error de librería faltante.
     with pd.ExcelWriter(output) as writer:
         # Hoja 1: Respuestas Detalladas
         df_raw.to_excel(writer, sheet_name='Respuestas_Detalladas', index=False)
@@ -615,7 +614,7 @@ else:
     st.header("💡 Análisis Detallado de tu Perfil por Factor")
     st.markdown("Aquí se desglosa tu perfil, mostrando fortalezas, debilidades y oportunidades de crecimiento para cada una de las cinco dimensiones.")
 
-    # --- LÓGICA DE ANÁLISIS DETALLADO (Organizado y con Diseño) ---
+    # --- LÓGICA DE ANÁLISIS DETALLADO (Organizado con inyección HTML segura) ---
     
     # Usamos un grid de 2 columnas para el análisis detallado
     cols_analysis = st.columns(2)
@@ -624,9 +623,11 @@ else:
     for categoria, porcentaje in resultados_finales.items():
         nivel, fortalezas_text, debilidades_text, oportunidades_text = interpretar_puntaje(categoria, porcentaje)
         
-        # Generamos el bloque HTML para la tarjeta.
-        # Se ha simplificado la HR tag para mayor compatibilidad con Streamlit.
-        card_html = f"""
+        # Rotamos entre las dos columnas
+        with cols_analysis[col_idx % 2]:
+            
+            # 1. Start the main card container (Header and Score)
+            st.markdown(f"""
             <div class="category-analysis-card">
                 <h3 style="color: #4C1D95; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px; margin-bottom: 15px;">
                     {icon_map.get(categoria, '❓')} {categoria}
@@ -635,25 +636,29 @@ else:
                 <p style="font-weight: 500;">Nivel General: {nivel}</p>
                 
                 <div style="height:1px; background-color: #E5E7EB; margin: 15px 0;"></div>
+            """, unsafe_allow_html=True)
 
+            # 2. Inject FORTALEZA (Separado)
+            st.markdown(f"""
                 <div class="analysis-point point-fortaleza">
                     <strong>💪 Fortaleza:</strong> {fortalezas_text}
                 </div>
-                
+            """, unsafe_allow_html=True)
+            
+            # 3. Inject DEBILIDAD (Separado)
+            st.markdown(f"""
                 <div class="analysis-point point-debilidad">
                     <strong>🚩 Punto de Mejora:</strong> {debilidades_text}
                 </div>
-                
+            """, unsafe_allow_html=True)
+            
+            # 4. Inject OPORTUNIDAD (Separado, y cierra el contenedor principal)
+            st.markdown(f"""
                 <div class="analysis-point point-oportunidad">
                     <strong>🌱 Oportunidad:</strong> {oportunidades_text}
                 </div>
-                
-            </div>
-            """
-        
-        # Rotamos entre las dos columnas e inyectamos el HTML
-        with cols_analysis[col_idx % 2]:
-            st.markdown(card_html, unsafe_allow_html=True)
+            </div> <!-- Close category-analysis-card -->
+            """, unsafe_allow_html=True)
             
         col_idx += 1
         
