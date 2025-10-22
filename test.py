@@ -179,16 +179,18 @@ def cargar_css():
             padding: 10px 24px;
             font-weight: bold;
             transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        .stButton>button:hover { background-color: #1E3A8A; color: white; border-color: #1E3A8A; }
+        .stButton>button:hover { background-color: #1E3A8A; color: white; border-color: #1E3A8A; box-shadow: 0 6px 10px rgba(0,0,0,0.2); }
 
         /* Estilo para el botón de completar al azar (destacado) */
         .stButton.random-complete>button {
             background-color: #FBBF24; /* Amarillo */
             color: #1E3A8A;
             border-color: #D97706;
+            box-shadow: 0 4px 6px rgba(245, 158, 11, 0.4);
         }
-        .stButton.random-complete>button:hover { background-color: #F59E0B; color: white; }
+        .stButton.random-complete>button:hover { background-color: #F59E0B; color: white; border-color: #F59E0B; }
 
         /* Estilo para las tarjetas de puntaje (Puntuación general) */
         .score-card-native {
@@ -214,22 +216,51 @@ def cargar_css():
             border-top: 1px solid #E5E7EB;
             z-index: 100;
         }
-
-        /* Estilo para el encabezado de bienvenida */
-        .welcome-header {
-            text-align: center; 
-            color: #1E3A8A; 
-            font-size: 2.5em; 
-            margin-bottom: 0.5em;
+        
+        /* --- ESTILO PARA LA PANTALLA DE INICIO (NUEVO) --- */
+        
+        /* Título Principal Animado */
+        .animated-title {
+            font-size: 3.2em;
+            font-weight: 900;
+            color: #4C1D95; /* Morado Oscuro */
+            text-align: center;
+            margin-bottom: 20px;
+            animation: pulseShadow 2s infinite alternate ease-in-out;
         }
+
+        @keyframes pulseShadow {
+            from {
+                text-shadow: 0 0 10px rgba(76, 29, 149, 0.5), 0 0 20px rgba(76, 29, 149, 0.1);
+            }
+            to {
+                text-shadow: 0 0 20px rgba(76, 29, 149, 0.8), 0 0 30px rgba(76, 29, 149, 0.4);
+            }
+        }
+
+        /* Estilo para el contenedor de la introducción */
+        .welcome-card {
+            background-color: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+        
         .welcome-intro {
             font-size: 1.1em;
-            line-height: 1.6;
+            line-height: 1.7;
+            color: #374151;
+        }
+        
+        /* Estilo para la lista de factores */
+        .factor-list li {
+            margin-bottom: 8px;
+            font-size: 1.05em;
         }
     </style>
     """, unsafe_allow_html=True)
 
-# --- FUNCIONES AUXILIARES ---
+# --- FUNCIONES AUXILIARES (Sin cambios) ---
 
 # Función para añadir el footer al final de la página (Usa HTML, ya que Streamlit no tiene componente fijo)
 def display_footer(nombre, puntaje_bruto, puntaje_maximo, nivel_general):
@@ -361,7 +392,7 @@ def generar_analisis_componente(categoria, porcentaje, puntaje_obtenido, puntaje
         **🌱 Oportunidad:** {oportunidades_text}
         """)
 
-# --- INTERPRETACIÓN DE RESULTADOS DETALLADA ---
+# --- INTERPRETACIÓN DE RESULTADOS DETALLADA (Sin cambios) ---
 def interpretar_puntaje(categoria, puntaje):
     
     nivel = ""
@@ -473,53 +504,61 @@ if st.session_state.should_scroll:
     forzar_scroll_al_top(idx)
     st.session_state.should_scroll = False
 
-# --- PANTALLA DE INICIO (REDESIGNADA) ---
+# --- PANTALLA DE INICIO (REDESIGNADA con animación) ---
 if not st.session_state.test_started:
     
-    st.markdown('<p class="welcome-header">🧠 Descubre tu Perfil: Test de los Cinco Grandes Factores</p>', unsafe_allow_html=True)
+    # Título Animado y Llamativo
+    st.markdown('<p class="animated-title">🧠 Tu Perfil Personalizado: El Modelo Big Five</p>', unsafe_allow_html=True)
     
     st.markdown("---")
     
-    with st.container(border=True):
+    col_intro, col_image = st.columns([3, 2])
+    
+    with col_intro:
+        st.markdown('<div class="welcome-card">', unsafe_allow_html=True)
+        st.subheader("¡Bienvenido/a al Viaje del Auto-Descubrimiento!")
+        
         st.markdown("""
         <p class="welcome-intro">
-        Bienvenido/a a esta herramienta de auto-descubrimiento. Este cuestionario está diseñado para medir tu personalidad a lo largo de las **Cinco Grandes Dimensiones (Big Five)**, el modelo más aceptado en psicología de la personalidad.
+        Este cuestionario es tu herramienta para explorar tu personalidad según el **Modelo de los Cinco Grandes Factores (Big Five)**, la referencia más sólida y aceptada en la psicología moderna. Conocer estos factores te ofrece una base científica para entender tu comportamiento, tus motivaciones y tu interacción con el mundo.
         </p>
         
-        <p class="welcome-intro">
-        A continuación, responderás **132 preguntas** que explorarán estas cinco áreas fundamentales de tu carácter:
+        <p class="welcome-intro" style="font-weight: bold;">
+        Dedica unos 10-15 minutos a responder **132 preguntas** con total honestidad.
         </p>
         
-        <ul style="list-style-type: none; padding-left: 20px;">
-            <li><span style="font-weight: bold; color: #3B82F6;">🧘 Estabilidad Emocional (vs. Neuroticismo):</span> Capacidad para manejar el estrés y la ansiedad.</li>
-            <li><span style="font-weight: bold; color: #3B82F6;">🗣️ Extroversión:</span> Nivel de sociabilidad y búsqueda de estímulo.</li>
-            <li><span style="font-weight: bold; color: #3B82F6;">🤝 Amabilidad:</span> Tendencia a ser cooperativo, compasivo y cortés.</li>
-            <li><span style="font-weight: bold; color: #3B82F6;">✅ Responsabilidad:</span> Organización, planificación y orientación a metas.</li>
-            <li><span style="font-weight: bold; color: #3B82F6;">✨ Apertura a la Experiencia:</span> Curiosidad intelectual y apreciación por el arte y la novedad.</li>
+        <h4 style="color: #1E3A8A; margin-top: 20px;">Las 5 Dimensiones que Explorarás:</h4>
+        <ul class="factor-list">
+            <li><span style="font-weight: bold; color: #3B82F6;">🧘 Estabilidad Emocional (Neuroticismo):</span> ¿Manejas bien el estrés o eres propenso/a a la ansiedad?</li>
+            <li><span style="font-weight: bold; color: #3B82F6;">🗣️ Extroversión:</span> ¿Buscas la compañía social o prefieres la tranquilidad a solas?</li>
+            <li><span style="font-weight: bold; color: #3B82F6;">🤝 Amabilidad:</span> ¿Eres cooperativo, empático y buscas la armonía?</li>
+            <li><span style="font-weight: bold; color: #3B82F6;">✅ Responsabilidad:</span> ¿Eres organizado, metódico y orientado a cumplir metas?</li>
+            <li><span style="font-weight: bold; color: #3B82F6;">✨ Apertura a la Experiencia:</span> ¿Eres creativo, curioso y abierto a nuevas ideas y culturas?</li>
         </ul>
-        
-        <p class="welcome-intro">
-        Tómate tu tiempo (aproximadamente **10-15 minutos**) y sé lo más honesto/a posible para obtener un perfil preciso y valioso.
-        </p>
         """, unsafe_allow_html=True)
-    
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+    with col_image:
+        # Imagen representativa para un diseño profesional
+        st.image("https://placehold.co/400x400/1E3A8A/FFFFFF?text=Mapa+Mental", caption="Explora el mapa de tu personalidad [Image of brain map]", use_column_width=True)
+
     st.markdown("<br>", unsafe_allow_html=True)
     
     col_start1, col_start2, col_start3 = st.columns([1.5, 0.5, 1.5])
     
     with col_start1:
-        if st.button("🚀 Comenzar el Test", key="start_button", use_container_width=True):
+        if st.button("🚀 Comenzar el Test Ahora", key="start_button", use_container_width=True):
             st.session_state.test_started = True
             st.session_state.start_time = time.time()
             st.rerun()
 
     with col_start3:
         st.markdown('<div class="random-complete">', unsafe_allow_html=True) 
-        if st.button("🎲 Completar al Azar (Ver Demo)", key="random_button", use_container_width=True):
+        if st.button("🎲 Completar al Azar (Ver Demo Rápida)", key="random_button", use_container_width=True):
             completar_al_azar()
         st.markdown('</div>', unsafe_allow_html=True) 
 
-# --- PANTALLA DEL TEST ---
+# --- PANTALLA DEL TEST (Sin cambios) ---
 elif not st.session_state.test_completed:
     
     pregunta_actual = todas_las_preguntas[idx]
@@ -597,7 +636,7 @@ elif not st.session_state.test_completed:
                 st.session_state.show_restart_warning = False
                 st.rerun() 
 
-# --- PANTALLA DE RESULTADOS ---
+# --- PANTALLA DE RESULTADOS (Sin cambios) ---
 else:
     st.balloons()
     st.title("✅ ¡Test Completado! Aquí está tu Perfil de Personalidad")
@@ -733,9 +772,7 @@ else:
 
 
 # 4. FOOTER (Se muestra en todas las páginas)
-# total_puntaje_maximo ya está disponible globalmente, resolviendo el NameError.
 if st.session_state.test_completed:
     display_footer("José Ignacio Taj-Taj", total_puntaje_bruto, total_puntaje_maximo, nivel_general)
 else:
-    # Ahora total_puntaje_maximo es accesible incluso antes de iniciar el test.
     display_footer("José Ignacio Taj-Taj", 0, total_puntaje_maximo, "No disponible")
