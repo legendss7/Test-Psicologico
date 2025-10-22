@@ -247,17 +247,51 @@ def cargar_css():
             background-color: #3B82F6; /* Azul brillante */
         }
 
-        /* Tarjetas de resultados */
-        .result-card {
+        /* Estilo para las tarjetas de puntaje */
+        .score-card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            min-height: 150px;
+        }
+        .score-card h3 {
+            margin-bottom: 5px;
+            color: #3B82F6;
+            font-size: 1.1em;
+        }
+        .score-card p {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #1E3A8A;
+            margin: 0;
+        }
+
+        /* Estilo para tarjetas de resultados detallados */
+        .result-detail-card {
             background-color: white;
             border-radius: 15px;
-            padding: 25px;
+            padding: 20px;
             margin-bottom: 20px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            border-left: 5px solid #1E3A8A;
         }
-        .result-card h3 {
+        
+        /* Color para Fortalezas */
+        .fortalezas { border-left: 5px solid #10B981; }
+        /* Color para Debilidades */
+        .debilidades { border-left: 5px solid #EF4444; }
+        /* Color para Oportunidades */
+        .oportunidades { border-left: 5px solid #3B82F6; }
+
+        .result-detail-card h3 {
             margin-top: 0;
+            font-size: 1.5em;
+        }
+        .result-detail-card h4 {
+            margin-top: 10px;
+            margin-bottom: 5px;
+            font-size: 1.1em;
             color: #1E3A8A;
         }
 
@@ -268,6 +302,7 @@ def cargar_css():
 
 # Función MAXIMAMENTE FORZADA para el scroll al top
 def forzar_scroll_al_top(idx):
+    # Código JavaScript para forzar el scroll al inicio de la página
     js_code = f"""
         <script>
             // Forzar el scroll tras un retardo largo (250ms) para que el contenido se renderice
@@ -348,15 +383,123 @@ def completar_al_azar():
     st.session_state.test_completed = True
     st.rerun()
 
-
-# Función para convertir DataFrame a Excel
+# Función para convertir DataFrame a Excel con resumen (ACTUALIZADA)
 @st.cache_data
-def to_excel(df):
+def to_excel_with_summary(df_raw, df_summary):
     output = BytesIO()
+    # Usamos el motor xlsxwriter para crear múltiples hojas ordenadas
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name='Resultados')
+        # Hoja 1: Respuestas Detalladas
+        df_raw.to_excel(writer, sheet_name='Respuestas_Detalladas', index=False)
+        
+        # Hoja 2: Resumen de Puntajes
+        df_summary.to_excel(writer, sheet_name='Resumen_Puntajes', index=False)
+
     processed_data = output.getvalue()
     return processed_data
+
+# --- INTERPRETACIÓN DE RESULTADOS DETALLADA (MODIFICADA) ---
+def interpretar_puntaje(categoria, puntaje):
+    # Interpretación basada en el puntaje porcentual (Normalizado 0-100)
+    
+    # 1. Títulos de nivel de puntaje
+    nivel = ""
+    if puntaje >= 75:
+        nivel = "Puntaje **Alto**"
+    elif puntaje <= 40:
+        nivel = "Puntaje **Bajo**"
+    else:
+        nivel = "Puntaje **Moderado**"
+
+    # 2. Generación de textos detallados
+    fortalezas_text = ""
+    debilidades_text = ""
+    oportunidades_text = ""
+    
+    # ESTABILIDAD EMOCIONAL (NEUROTICISMO INVERSO)
+    if categoria == "Estabilidad Emocional":
+        if puntaje >= 75: 
+            fortalezas_text = "Muestras una notable calma y resiliencia. Eres capaz de manejar el estrés sin que te abrume, mantienes un estado de ánimo equilibrado y te recuperas rápidamente de los contratiempos. Tu serenidad es una fuente de fortaleza en entornos volátiles."
+            debilidades_text = "En ocasiones, tu alta estabilidad puede llevarte a subestimar la seriedad de algunas situaciones estresantes o a parecer menos empático/a con la preocupación ajena."
+            oportunidades_text = "Continúa practicando técnicas de manejo del estrés preventivo, como la atención plena, y asegúrate de que tu confianza no te haga descuidar la planificación de riesgos emocionales."
+        elif puntaje <= 40:
+            fortalezas_text = "Tienes una gran capacidad para sentir y procesar emociones profundas, lo que te hace sensible y perceptivo/a a las sutilezas de tu entorno."
+            debilidades_text = "Tiendes a experimentar altos niveles de ansiedad, preocupación o inestabilidad emocional. El estrés te afecta profundamente, dificultando la toma de decisiones clara bajo presión. Eres propenso/a a cambios de humor y te cuesta recuperarte de las decepciones."
+            oportunidades_text = "El foco principal es desarrollar estrategias de regulación emocional, como la meditación o la reestructuración cognitiva. Busca apoyo en momentos de alta tensión para evitar el agotamiento."
+        else: 
+            fortalezas_text = "Generalmente mantienes la compostura, pero eres consciente de tus límites emocionales. Tienes momentos de calma y momentos de sensibilidad, lo que te permite ser flexible."
+            debilidades_text = "Puedes ser susceptible al estrés en momentos clave. La presión prolongada puede erosionar tu equilibrio, y a veces tardas en 'volver a la normalidad' después de un evento negativo."
+            oportunidades_text = "Identifica las fuentes específicas de tu estrés y trabaja en límites personales más firmes. Busca un equilibrio entre el control emocional y la expresión sana de tus sentimientos."
+    
+    # EXTROVERSIÓN
+    elif categoria == "Extroversión":
+        if puntaje >= 75: 
+            fortalezas_text = "Eres el alma de la fiesta; enérgico/a, sociable y entusiasta. Disfrutas de la interacción, te expresas abiertamente y buscas activamente la compañía. Esto te hace un líder nato y un excelente networker."
+            debilidades_text = "El exceso de tiempo a solas te drena. Puedes parecer dominante en conversaciones o tomar decisiones impulsivas en busca de estimulación social constante."
+            oportunidades_text = "Practica la escucha activa y dedica tiempo a la reflexión personal o a actividades solitarias para recargar tu energía interna y no depender solo del estímulo externo."
+        elif puntaje <= 40:
+            fortalezas_text = "Prefieres la tranquilidad, la concentración y la reflexión profunda. Trabajas mejor solo/a o en pequeños grupos. Tu capacidad de observación es alta y eres excelente en tareas que requieren autonomía."
+            debilidades_text = "Puedes ser percibido/a como reservado/a o distante. Las situaciones sociales grandes te agotan rápidamente, y te cuesta iniciar conversaciones o expresarte abiertamente en público."
+            oportunidades_text = "Busca activamente el contacto social cuando sea necesario, especialmente para el desarrollo profesional. No temas compartir tus ideas; tu profundidad de pensamiento es valiosa."
+        else: 
+            fortalezas_text = "Disfrutas de un equilibrio sano. Puedes ser sociable cuando es necesario y también valoras tu tiempo a solas. Eres flexible en diferentes entornos."
+            debilidades_text = "A veces, la necesidad de equilibrio puede hacer que dudes entre la acción y la reflexión, o que te sientas indeciso/a sobre aceptar invitaciones sociales."
+            oportunidades_text = "Sé consciente de tus niveles de energía en cada momento y aprende a comunicar tus necesidades de socialización o de aislamiento sin sentir culpa."
+
+    # AMABILIDAD
+    elif categoria == "Amabilidad":
+        if puntaje >= 75: 
+            fortalezas_text = "Eres una persona empática, bondadosa, cooperativa y de buen corazón. Tu deseo de ayudar y mantener la armonía es muy alto, y eres muy valorado/a por tu paciencia y compasión."
+            debilidades_text = "Tu deseo de evitar conflictos puede llevarte a ser demasiado complaciente o a descuidar tus propias necesidades por las de los demás. Eres susceptible de que se aprovechen de tu generosidad."
+            oportunidades_text = "Aprende a establecer límites firmes y a decir 'no' de manera asertiva. Recuerda que cuidar de ti mismo/a es esencial para poder seguir ayudando a los demás."
+        elif puntaje <= 40:
+            fortalezas_text = "Tienes un alto sentido de la justicia y no temes defender tus intereses. Eres directo/a y escéptico/a, lo que te protege de la manipulación."
+            debilidades_text = "Puedes ser visto/a como crítico/a, cínico/a o combativo/a. Tiendes a priorizar tus objetivos sobre la cooperación y te cuesta empatizar con aquellos cuyas opiniones difieren."
+            oportunidades_text = "Practica la escucha activa antes de reaccionar. Intenta buscar el beneficio mutuo en lugar de la victoria personal en las interacciones y trabaja en la expresión de la paciencia."
+        else: 
+            fortalezas_text = "Eres capaz de ser cooperativo/a y cortés, pero sabes cuándo es necesario defender tus derechos. Tienes un equilibrio entre la empatía y la asertividad."
+            debilidades_text = "Puedes fluctuar entre ser demasiado complaciente en algunas situaciones y demasiado crítico/a en otras. Tu nivel de amabilidad depende mucho de la persona y el contexto."
+            oportunidades_text = "Busca la coherencia en tus relaciones. Esfuérzate por mantener un nivel constante de respeto y cooperación, independientemente de tu opinión sobre la otra persona."
+
+    # RESPONSABILIDAD
+    elif categoria == "Responsabilidad":
+        if puntaje >= 75: 
+            fortalezas_text = "Eres altamente organizado/a, fiable y orientado/a a objetivos. Tu diligencia, disciplina y ética de trabajo te convierten en una persona de total confianza y en un motor de productividad."
+            debilidades_text = "Tu rigor puede llevarte al perfeccionismo excesivo, lo que genera estrés innecesario y dificultad para delegar. Puedes ser percibido/a como rígido/a o inflexible ante cambios de última hora."
+            oportunidades_text = "Aprende a aceptar la 'suficiencia' en lugar de la 'perfección'. Practica la delegación, confía en la capacidad de otros y desarrolla flexibilidad para manejar la incertidumbre sin ansiedad."
+        elif puntaje <= 40:
+            fortalezas_text = "Eres espontáneo/a, flexible y te adaptas rápidamente a los cambios. No te estresas por los detalles y disfrutas de la libertad de la improvisación."
+            debilidades_text = "La organización, la puntualidad y el seguimiento de tareas son un desafío. Eres propenso/a a la procrastinación, lo que puede afectar tu fiabilidad y la consecución de metas a largo plazo."
+            oportunidades_text = "Crea sistemas de recordatorio y estructuras mínimas (listas de tareas, planificación diaria simple) que te ayuden a cumplir compromisos sin sacrificar tu espontaneidad. Enfócate en la finalización de proyectos."
+        else: 
+            fortalezas_text = "Tienes un buen equilibrio entre planificación y flexibilidad. Eres capaz de ser responsable en áreas importantes mientras te permites cierta espontaneidad."
+            debilidades_text = "Tu nivel de organización puede variar significativamente, siendo muy riguroso/a en unas áreas y despreocupado/a en otras. Esto puede generar inconsistencia."
+            oportunidades_text = "Identifica las áreas de tu vida donde la responsabilidad tiene mayor impacto (trabajo, finanzas) y aplica conscientemente tus habilidades organizativas a ellas, manteniendo la flexibilidad en áreas de ocio."
+
+    # APERTURA A LA EXPERIENCIA
+    elif categoria == "Apertura a la Experiencia":
+        if puntaje >= 75: 
+            fortalezas_text = "Eres altamente creativo/a, intelectualmente curioso/a y posees una imaginación vívida. Disfrutas explorando nuevas ideas, artes y culturas, y te adaptas con facilidad a los cambios."
+            debilidades_text = "Tu constante búsqueda de novedad puede llevar a la inconstancia en tus proyectos. Puedes aburrirte fácilmente con la rutina y la gente práctica puede encontrarte soñador/a o poco realista."
+            oportunidades_text = "Aprende a canalizar tu curiosidad en proyectos a largo plazo que te permitan la profundidad sin caer en la rutina. Combina tus ideas abstractas con pasos prácticos y concretos."
+        elif puntaje <= 40:
+            fortalezas_text = "Eres práctico/a, realista y tienes los pies bien puestos en la tierra. Prefieres lo conocido y probado, lo que te brinda estabilidad y predictibilidad en tu vida."
+            debilidades_text = "Tiendes a ser resistente al cambio y puedes tener dificultades para adaptarte a ideas muy abstractas o poco convencionales. Tu creatividad puede estar limitada por el deseo de mantener la rutina."
+            oportunidades_text = "Busca pequeñas y seguras oportunidades para salir de tu zona de confort, como probar un nuevo hobby o leer sobre un tema totalmente ajeno a tus intereses habituales. La variedad puede enriquecer tu vida sin desestabilizarla."
+        else: 
+            fortalezas_text = "Aceptas la novedad cuando es necesario, pero también valoras la tradición y la estabilidad. Eres selectivo/a en las experiencias que eliges explorar."
+            debilidades_text = "Tu apertura se limita a áreas específicas. Puedes ser reacio/a a probar cosas fuera de tu esfera de confort intelectual o práctico."
+            oportunidades_text = "Evalúa dónde te estás limitando innecesariamente. Usa tu curiosidad moderada para explorar áreas de cambio que te brinden un claro beneficio o crecimiento personal."
+            
+    # 3. Formatear la salida
+    
+    # Unir el nivel de puntaje con los textos
+    fortaleza = f"**{categoria} ({nivel}):** {fortalezas_text}"
+    debilidad = f"**{categoria} ({nivel}):** {debilidades_text}"
+    oportunidad = f"**{categoria} ({nivel}):** {oportunidades_text}"
+
+    return fortaleza, debilidad, oportunidad
+
 
 # --- LÓGICA DE LA APLICACIÓN ---
 
@@ -449,16 +592,16 @@ elif not st.session_state.test_completed:
     col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
 
     with col1:
-        # NUEVO BOTÓN: VOLVER A INICIO
+        # BOTÓN: VOLVER A INICIO (con advertencia si hay respuestas)
         if st.button("🏠 Inicio"):
-            # Mostrar una advertencia antes de reiniciar
-            if len(st.session_state.answers) > 0:
-                # No podemos usar alert/confirm, así que forzamos la acción o mostramos un mensaje
-                st.warning("Advertencia: Si vuelves al inicio, perderás tu progreso actual.")
-                if st.button("Confirmar Vuelta a Inicio", key="confirm_home"):
+            # Usamos un truco con un botón extra para la confirmación
+            if len(st.session_state.answers) > 0 and not st.session_state.get('confirm_restart', False):
+                 # Mensaje de advertencia
+                st.warning("⚠️ Perderás tu progreso. Confirma si deseas volver a la pantalla de inicio.")
+                if st.button("Sí, Volver a Inicio", key="confirm_home_action"):
                     volver_a_inicio()
             else:
-                volver_a_inicio()
+                 volver_a_inicio() # Si no hay respuestas o ya confirmó, va directo
 
     with col2:
         if idx > 0:
@@ -489,7 +632,7 @@ else:
     st.title("✅ ¡Test Completado! Aquí está tu Perfil de Personalidad")
     
     end_time = time.time()
-    # Si el test se completó al azar, el tiempo inicial será casi igual al final
+    # Calcular tiempo
     if abs(end_time - st.session_state.start_time) < 1:
         st.info("Resultado generado por la opción **Completar al Azar (Demo)**.")
     else:
@@ -510,102 +653,110 @@ else:
         porcentaje = round((puntaje_obtenido / puntaje_max_cat) * 100)
         resultados_finales[categoria] = porcentaje
 
-    # --- INTERPRETACIÓN DE RESULTADOS ---
-    def interpretar_puntaje(categoria, puntaje):
-        fortalezas, debilidades, oportunidades = "", "", ""
-
-        # Lógica de interpretación simple (se puede expandir)
-        if puntaje >= 75:
-            fortalezas = f"**{categoria}:** Tu alto puntaje ({puntaje}%) sugiere que esta es una de tus grandes fortalezas. Eres una persona que..."
-        elif puntaje <= 40:
-            debilidades = f"**{categoria}:** Tu puntaje ({puntaje}%) indica que esta puede ser un área desafiante para ti. Podrías encontrar dificultades en..."
-        else:
-            oportunidades = f"**{categoria}:** Tu puntaje ({puntaje}%) se encuentra en un rango intermedio. Tienes una base sólida, pero hay espacio para crecer en..."
-
-        # Textos específicos por categoría
-        if categoria == "Estabilidad Emocional":
-            if puntaje >= 75: fortalezas += " manejas el estrés con calma, eres resiliente y mantienes un equilibrio emocional admirable."
-            elif puntaje <= 40: debilidades += " manejar la ansiedad, el estrés o mantener la calma bajo presión."
-            else: oportunidades += " desarrollar aún más tu resiliencia y manejo del estrés para afrontar desafíos con mayor serenidad."
-        
-        elif categoria == "Extroversión":
-            if puntaje >= 75: fortalezas += " disfrutas de la interacción social, te sientes energizado/a por la compañía de otros y eres comunicativo/a."
-            elif puntaje <= 40: debilidades += " sentirte cómodo/a en grandes grupos sociales o al iniciar conversaciones."
-            else: oportunidades += " explorar nuevas situaciones sociales para aumentar tu confianza y ampliar tu círculo de confort."
-
-        elif categoria == "Amabilidad":
-            if puntaje >= 75: fortalezas += " eres empático/a, cooperativo/a y te preocupas genuinamente por el bienestar de los demás."
-            elif puntaje <= 40: debilidades += " priorizar las necesidades de los demás o confiar en las intenciones de la gente."
-            else: oportunidades += " practicar la empatía y la escucha activa para fortalecer tus relaciones interpersonales."
-
-        elif categoria == "Responsabilidad":
-            if puntaje >= 75: fortalezas += " eres una persona organizada, disciplinada y fiable. Cumples tus compromisos con diligencia."
-            elif puntaje <= 40: debilidades += " la organización, la planificación a largo plazo o la autodisciplina."
-            else: oportunidades += " establecer metas más claras y sistemas de organización para mejorar tu eficacia y fiabilidad."
-
-        elif categoria == "Apertura a la Experiencia":
-            if puntaje >= 75: fortalezas += " eres curioso/a, creativo/a y estás abierto/a a nuevas ideas y experiencias. Disfrutas de la novedad."
-            elif puntaje <= 40: debilidades += " salir de tu zona de confort, adaptarte a los cambios o disfrutar de lo abstracto."
-            else: oportunidades += " exponerte a nuevas actividades, culturas o ideas para expandir tus horizontes y fomentar tu creatividad."
-
-        return fortalezas, debilidades, oportunidades
-
+    # --- PUNTUACIONES FINALES (REEMPLAZANDO EL GRÁFICO) ---
     st.markdown("---")
-    st.header("📊 Resumen Gráfico de tu Personalidad")
+    st.header("🎯 Tus Puntajes Finales por Dimensión")
+    st.markdown("""
+    Tu perfil se basa en el modelo de los **Cinco Grandes Factores (Big Five)**, donde cada dimensión se puntúa de 0% (muy bajo) a 100% (muy alto).
+    """)
+
+    # Display scores using columns/metrics
+    col_scores = st.columns(5)
     
-    # Crear un DataFrame para el gráfico
-    df_resultados = pd.DataFrame(list(resultados_finales.items()), columns=['Dimensión', 'Puntaje (%)'])
-    st.bar_chart(df_resultados.set_index('Dimensión'))
+    # Mapping para íconos
+    icon_map = {
+        "Estabilidad Emocional": "🧘",
+        "Extroversión": "🗣️",
+        "Amabilidad": "🤝",
+        "Responsabilidad": "✅",
+        "Apertura a la Experiencia": "✨"
+    }
+
+    for i, (cat, score) in enumerate(resultados_finales.items()):
+        # Usar HTML con la clase score-card para un mejor estilo
+        with col_scores[i]:
+            st.markdown(f"""
+            <div class="score-card">
+                <h3>{icon_map.get(cat, '❓')} {cat}</h3>
+                <p>{score}%</p>
+            </div>
+            """, unsafe_allow_html=True)
 
     st.markdown("---")
     st.header("💡 Análisis Detallado de tu Perfil")
 
-    fortalezas_list, debilidades_list, oportunidades_list = [], [], []
+    fortalezas_list = []
+    debilidades_list = []
+    oportunidades_list = []
+    
+    # Generar todas las interpretaciones
     for cat, score in resultados_finales.items():
         f, d, o = interpretar_puntaje(cat, score)
         if f: fortalezas_list.append(f)
         if d: debilidades_list.append(d)
         if o: oportunidades_list.append(o)
+        
+    # Mostrar la interpretación en 3 columnas
+    col_int1, col_int2, col_int3 = st.columns(3)
 
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.markdown('<div class="result-card"><h3>🌟 Fortalezas</h3></div>', unsafe_allow_html=True)
-        for item in fortalezas_list:
-            st.markdown(f"- {item}")
-    
-    with col2:
-        st.markdown('<div class="result-card"><h3>⚠️ Debilidades</h3></div>', unsafe_allow_html=True)
-        for item in debilidades_list:
-            st.markdown(f"- {item}")
+    with col_int1:
+        st.markdown('<div class="result-detail-card fortalezas"><h3>🌟 Fortalezas Clave</h3></div>', unsafe_allow_html=True)
+        if fortalezas_list:
+            for item in fortalezas_list:
+                # Separar el título del texto
+                titulo, texto = item.split(':', 1)
+                st.markdown(f"**{titulo.strip()}**")
+                st.markdown(f"<p style='margin-left: 10px; border-left: 2px solid #D1D5DB; padding-left: 8px;'>{texto.strip()}</p>", unsafe_allow_html=True)
+        else:
+            st.info("No se identificaron fortalezas claras en este perfil.")
 
-    with col3:
-        st.markdown('<div class="result-card"><h3>🌱 Áreas de Oportunidad</h3></div>', unsafe_allow_html=True)
-        for item in oportunidades_list:
-            st.markdown(f"- {item}")
+    with col_int2:
+        st.markdown('<div class="result-detail-card debilidades"><h3>⚠️ Puntos de Mejora (Debilidades)</h3></div>', unsafe_allow_html=True)
+        if debilidades_list:
+            for item in debilidades_list:
+                titulo, texto = item.split(':', 1)
+                st.markdown(f"**{titulo.strip()}**")
+                st.markdown(f"<p style='margin-left: 10px; border-left: 2px solid #D1D5DB; padding-left: 8px;'>{texto.strip()}</p>", unsafe_allow_html=True)
+        else:
+            st.info("¡Excelente! No hay áreas de debilidad significativas identificadas.")
+
+    with col_int3:
+        st.markdown('<div class="result-detail-card oportunidades"><h3>🌱 Estrategias de Crecimiento</h3></div>', unsafe_allow_html=True)
+        if oportunidades_list:
+            for item in oportunidades_list:
+                titulo, texto = item.split(':', 1)
+                st.markdown(f"**{titulo.strip()}**")
+                st.markdown(f"<p style='margin-left: 10px; border-left: 2px solid #D1D5DB; padding-left: 8px;'>{texto.strip()}</p>", unsafe_allow_html=True)
+        else:
+            st.info("Tu perfil está bien definido; el crecimiento se centra en profundizar tus fortalezas principales.")
             
     st.markdown("---")
     
-    # --- DESCARGA DE RESULTADOS ---
-    with st.expander("📥 Descargar tus respuestas y resultados"):
-        # Preparar DataFrame para descarga
+    # --- DESCARGA DE RESULTADOS (MEJORADA) ---
+    with st.expander("📥 Descargar tus respuestas y resultados detallados"):
+        # Preparar DataFrame de respuestas
         df_export = pd.DataFrame(list(st.session_state.answers.values()))
-        st.dataframe(df_export)
+        st.dataframe(df_export.head()) # Mostrar solo una vista previa
+        
+        # Preparar DataFrame de Resumen (para el Excel)
+        df_resumen_final = pd.DataFrame(list(resultados_finales.items()), columns=['Dimensión', 'Puntaje_Porcentaje'])
         
         col_dl1, col_dl2 = st.columns(2)
         with col_dl1:
             csv = df_export.to_csv(index=False).encode('utf-8')
             st.download_button(
-                label="Descargar como CSV",
+                label="Descargar Respuestas (CSV)",
                 data=csv,
-                file_name='mis_resultados_test.csv',
+                file_name='mis_respuestas_detalladas.csv',
                 mime='text/csv',
             )
         with col_dl2:
-            excel_data = to_excel(df_export)
+            # Llamar a la función actualizada con ambas tablas
+            excel_data = to_excel_with_summary(df_export, df_resumen_final)
             st.download_button(
-                label="Descargar como Excel",
+                label="Descargar Resultados Completos (Excel)",
                 data=excel_data,
-                file_name='mis_resultados_test.xlsx',
+                file_name='mis_resultados_test_detallado.xlsx',
                 mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             )
 
@@ -613,4 +764,3 @@ else:
     st.markdown("---")
     if st.button("🔄 Volver a la pantalla de bienvenida"):
         volver_a_inicio()
-
