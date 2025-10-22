@@ -257,8 +257,8 @@ def cargar_css():
 
 # Función MAXIMAMENTE FORZADA para el scroll al top
 def forzar_scroll_al_top(idx):
-    # Se inyecta el índice (idx) en el script para forzar a Streamlit a considerarlo
-    # un componente único y re-renderizarlo, ejecutando el JavaScript de nuevo.
+    # NOTA DE CAMBIO: Se ha aumentado el 'setTimeout' a 150ms para asegurar que el contenido
+    # de la nueva pregunta se renderice completamente antes de ejecutar el scroll.
     js_code = f"""
         <script>
             // Pregunta única para forzar render: {idx}
@@ -269,12 +269,12 @@ def forzar_scroll_al_top(idx):
                 // 2. Scroll en el body de la ventana principal
                 window.parent.document.body.scrollTo({{ top: 0, behavior: 'auto' }});
                 
-                // 3. Intenta encontrar y scroll en el contenedor principal de Streamlit
+                // 3. Intenta encontrar y scroll en el contenedor principal de Streamlit (más fiable)
                 var mainContent = window.parent.document.querySelector('[data-testid="stAppViewContainer"]');
                 if (mainContent) {{
                     mainContent.scrollTo({{ top: 0, behavior: 'auto' }});
                 }}
-            }}, 50); // Retardo de 50 milisegundos para asegurar el renderizado completo
+            }}, 150); // Retardo AUMENTADO a 150ms para asegurar la estabilidad del renderizado.
         </script>
         """
     # El key es opcional aquí, pero el contenido único de js_code es lo que realmente lo fuerza
