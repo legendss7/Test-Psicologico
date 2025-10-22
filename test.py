@@ -83,7 +83,7 @@ preguntas_test = {
         "Soy una persona cortés y respetuosa con todos.",
         "Evito los conflictos y busco soluciones pacíficas.",
         "Me considero una persona cálida y compasiva.",
-        "Estoy dispuesto/a a comprometerme para satisfacer las necesidades de otros.",
+        "Estoy dispuesto/a a comprometerse para satisfacer las necesidades de otros.",
         "Creo que la mayoría de la gente tiene buenas intenciones.",
         "Me siento bien cuando hago algo bueno por alguien sin esperar nada a cambio.",
         "Escucho atentamente los problemas de los demás.",
@@ -175,11 +175,6 @@ TOTAL_PREGUNTAS = len(todas_las_preguntas)
 def cargar_css():
     st.markdown("""
     <style>
-        /* Reset de scroll al cambiar de pregunta */
-        .main .block-container {
-            scroll-behavior: smooth;
-        }
-
         /* Estilo general */
         body {
             font-family: 'Inter', sans-serif;
@@ -260,13 +255,26 @@ def cargar_css():
 
 # --- FUNCIONES AUXILIARES ---
 
-# Función para resetear el scroll al top (usando JS)
-def scroll_to_top():
+# Función CORREGIDA para forzar el scroll al top
+def forzar_scroll_al_top():
+    # Intenta forzar el scroll al inicio de la página en la ventana principal del iframe.
+    # Se usan múltiples selectores y el scroll de la ventana para asegurar el movimiento.
     st.components.v1.html("""
         <script>
-            window.parent.document.querySelector('section.main').scrollTo(0, 0);
+            // 1. Scroll en el body de la ventana principal
+            window.parent.document.body.scrollTo(0, 0); 
+            
+            // 2. Scroll en la ventana principal (más genérico)
+            window.parent.scrollTo(0, 0);
+
+            // 3. Scroll en el contenedor principal de Streamlit (que maneja el scroll en muchos casos)
+            var mainContent = window.parent.document.querySelector('.stApp, section.main');
+            if (mainContent) {
+                mainContent.scrollTo(0, 0);
+            }
         </script>
         """, height=0)
+
 
 # Función para inicializar el estado de la sesión
 def inicializar_estado():
@@ -280,7 +288,7 @@ def inicializar_estado():
         st.session_state.test_completed = False
     if 'start_time' not in st.session_state:
         st.session_state.start_time = 0
-    # NUEVO: Bandera para controlar el desplazamiento
+    # Bandera para controlar el desplazamiento
     if 'should_scroll' not in st.session_state:
         st.session_state.should_scroll = False
 
@@ -310,10 +318,10 @@ def to_excel(df):
 cargar_css()
 inicializar_estado()
 
-# EJECUCIÓN CONDICIONAL DEL SCROLL
+# EJECUCIÓN CONDICIONAL DEL SCROLL (AL INICIO DEL RENDERIZADO)
 # Este bloque garantiza que el scroll se ejecute al principio de la nueva carga de página
 if st.session_state.should_scroll:
-    scroll_to_top()
+    forzar_scroll_al_top()
     st.session_state.should_scroll = False
 
 
@@ -335,7 +343,6 @@ if not st.session_state.test_started:
     if st.button("🚀 Comenzar el Test", key="start_button"):
         st.session_state.test_started = True
         st.session_state.start_time = time.time()
-        # FIX: Reemplazado st.experimental_rerun() por st.rerun()
         st.rerun()
 
 # --- PANTALLA DEL TEST ---
@@ -386,7 +393,6 @@ elif not st.session_state.test_completed:
             if st.button("⬅️ Anterior"):
                 st.session_state.current_question -= 1
                 st.session_state.should_scroll = True # Establece la bandera de scroll
-                # FIX: Reemplazado st.experimental_rerun() por st.rerun()
                 st.rerun()
 
     with col3:
@@ -396,12 +402,10 @@ elif not st.session_state.test_completed:
                 if st.button("Siguiente ➡️"):
                     st.session_state.current_question += 1
                     st.session_state.should_scroll = True # Establece la bandera de scroll
-                    # FIX: Reemplazado st.experimental_rerun() por st.rerun()
                     st.rerun()
             else:
                 if st.button("🎉 Finalizar Test"):
                     st.session_state.test_completed = True
-                    # FIX: Reemplazado st.experimental_rerun() por st.rerun()
                     st.rerun()
         else:
             st.warning("Por favor, selecciona una respuesta para continuar.")
